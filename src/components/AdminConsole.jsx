@@ -488,10 +488,10 @@ function AdminConsole({
                   <button
                     onClick={() => setTheme('softly')}
                     className={`flex-1 py-3 border text-xs font-bold uppercase tracking-wider ${
-                      theme === 'softly' ? 'bg-softly-sage text-softly-bg border-softly-sage' : 'hover:bg-swiss-bg'
+                      theme !== 'swiss' ? 'bg-softly-sage text-white border-softly-sage' : 'hover:bg-swiss-bg'
                     }`}
                   >
-                    Softly Wellness Mode
+                    Colourful Wellness Mode
                   </button>
                 </div>
               </div>

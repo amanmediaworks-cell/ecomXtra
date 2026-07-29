@@ -166,7 +166,7 @@ function LoginScreen({ onLogin }) {
           {/* Footer note */}
           <div className="mt-8 pt-6 border-t border-[#f2f2f2]/8 text-center">
             <p className="text-[10px] text-[#f2f2f2]/20 tracking-widest uppercase">
-              An Identifier IT Solutions System · Restricted
+              A Quadranex IT Solutions System · Restricted
             </p>
           </div>
         </div>
@@ -252,7 +252,7 @@ function AdminDashboard({ onLogout }) {
               ECOMXTRA CONTROL HUB
             </span>
             <span className="font-satoshi text-[10px] text-[#f2f2f2]/40 block tracking-widest uppercase">
-              Admin · Identifier IT Solutions
+              Admin · Quadranex IT Solutions
             </span>
           </div>
         </div>
@@ -694,16 +694,16 @@ function AdminConsoleInline({ theme, setTheme, services, showcases, testimonials
                 <button
                   onClick={() => setTheme('softly')}
                   className={`p-6 border text-left transition-all duration-300 ${
-                    theme === 'softly'
+                    theme !== 'swiss'
                       ? 'border-softly-peach/60 bg-softly-peach/5'
                       : 'border-[#f2f2f2]/10 hover:border-[#f2f2f2]/30'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <span className="font-outfit text-sm font-bold text-[#f2f2f2]">Softly Wellness</span>
-                    {theme === 'softly' && <span className="w-2 h-2 rounded-full bg-softly-peach animate-ping" />}
+                    <span className="font-outfit text-sm font-bold text-[#f2f2f2]">Colourful Wellness</span>
+                    {theme !== 'swiss' && <span className="w-2 h-2 rounded-full bg-softly-peach animate-ping" />}
                   </div>
-                  <p className="text-[11px] text-[#f2f2f2]/40 leading-relaxed">Warm pastels, high-radius borders, cursive accents, paper-grain texture. Relaxed digital living room.</p>
+                  <p className="text-[11px] text-[#f2f2f2]/40 leading-relaxed">Vibrant pastels, high-radius borders, cursive accents, ambient glow. Relaxed digital experience.</p>
                   <div className="mt-4 flex gap-2">
                     <span className="w-6 h-6 rounded-full bg-[#606C56]" />
                     <span className="w-6 h-6 rounded-full bg-[#DD8D6B]" />
@@ -721,7 +721,7 @@ function AdminConsoleInline({ theme, setTheme, services, showcases, testimonials
                 { name: 'Google Sheets Integration (v4)', status: 'CONNECTED', color: 'text-green-400' },
                 { name: 'WhatsApp Business API Gateway', status: 'ONLINE',    color: 'text-green-400' },
                 { name: 'Hinglish AI Agent Core Engine', status: 'READY',     color: 'text-green-400' },
-                { name: 'Identifier IT Solutions Parent CDN', status: 'ACTIVE', color: 'text-green-400' },
+                { name: 'Quadranex IT Solutions Parent CDN', status: 'ACTIVE', color: 'text-green-400' },
               ].map(api => (
                 <div key={api.name} className="flex justify-between items-center py-3 border-b border-[#f2f2f2]/5 last:border-0">
                   <span className="text-xs text-[#f2f2f2]/60 font-satoshi">{api.name}</span>

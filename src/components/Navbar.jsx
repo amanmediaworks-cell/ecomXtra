@@ -1,23 +1,24 @@
 import React, { useState } from 'react'
+import { Link, NavLink } from 'react-router-dom'
 
 // Logo with oversized X
 function Logo({ theme }) {
   if (theme === 'swiss') {
     return (
-      <a href="#" className="font-clash font-bold tracking-tighter hover:opacity-80 transition-opacity text-swiss-text flex items-baseline gap-0 select-none">
+      <Link to="/" className="font-clash font-bold tracking-tighter hover:opacity-80 transition-opacity text-swiss-text flex items-baseline gap-0 select-none">
         <span className="text-2xl font-black">ECOM</span>
         <span className="text-5xl font-black leading-none" style={{ lineHeight: 1, transform: 'translateY(4px)', display: 'inline-block' }}>X</span>
         <span className="text-2xl font-black">TRA</span>
         <span className="text-[9px] align-super ml-0.5 font-bold opacity-60">®</span>
-      </a>
+      </Link>
     )
   }
   return (
-    <a href="#" className="font-outfit font-bold tracking-tight hover:opacity-80 transition-opacity text-softly-text flex items-baseline gap-0 select-none">
-      <span className="text-lg font-semibold">ecom</span>
-      <span className="text-4xl font-black text-softly-peach leading-none" style={{ lineHeight: 1, transform: 'translateY(3px)', display: 'inline-block' }}>x</span>
-      <span className="text-lg font-semibold">tra</span>
-    </a>
+    <Link to="/" className="font-outfit font-extrabold tracking-tight hover:opacity-90 transition-opacity text-slate-900 flex items-center gap-0.5 select-none">
+      <span className="text-xl font-bold tracking-tight text-slate-900">ecom</span>
+      <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 leading-none px-0.5">X</span>
+      <span className="text-xl font-bold tracking-tight text-slate-900">tra</span>
+    </Link>
   )
 }
 
@@ -25,11 +26,12 @@ function Navbar({ theme }) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const navLinks = [
-    { label: 'Philosophy', href: '#philosophy' },
-    { label: 'Showcase',   href: '#showcase' },
-    { label: 'Services',   href: '#services' },
-    { label: 'Testimonials', href: '#testimonials' },
-    { label: 'Careers',    href: '#contact' },
+    { label: 'Home',         path: '/' },
+    { label: 'Philosophy',   path: '/philosophy' },
+    { label: 'Showcase',     path: '/showcase' },
+    { label: 'Services',     path: '/services' },
+    { label: 'Testimonials', path: '/testimonials' },
+    { label: 'Contact',      path: '/contact' },
   ]
 
   // ── Swiss Brutalist Navbar ─────────────────────────────────────────────
@@ -43,24 +45,28 @@ function Navbar({ theme }) {
           {/* Desktop nav links */}
           <nav className="hidden md:flex items-center space-x-8">
             {navLinks.map(link => (
-              <a
+              <NavLink
                 key={link.label}
-                href={link.href}
-                className="font-satoshi text-[11px] font-black tracking-widest uppercase text-swiss-text hover:underline underline-offset-4 decoration-2 transition-all"
+                to={link.path}
+                className={({ isActive }) =>
+                  `font-satoshi text-[11px] font-black tracking-widest uppercase text-swiss-text transition-all ${
+                    isActive ? 'underline underline-offset-4 decoration-2' : 'hover:underline underline-offset-4 decoration-2'
+                  }`
+                }
               >
                 {link.label}
-              </a>
+              </NavLink>
             ))}
           </nav>
 
           {/* CTA */}
           <div className="flex items-center gap-3">
-            <a
-              href="#contact"
+            <Link
+              to="/contact"
               className="hidden sm:inline-block text-[11px] font-satoshi font-black tracking-widest uppercase bg-swiss-text text-swiss-bg px-6 py-3 border border-swiss-text hover:bg-swiss-bg hover:text-swiss-text transition-all duration-300"
             >
               Book Consultation
-            </a>
+            </Link>
 
             {/* Mobile hamburger */}
             <button
@@ -79,83 +85,100 @@ function Navbar({ theme }) {
         {mobileOpen && (
           <div className="md:hidden border-t border-swiss-text bg-swiss-bg px-6 py-4 flex flex-col gap-4">
             {navLinks.map(link => (
-              <a
+              <NavLink
                 key={link.label}
-                href={link.href}
+                to={link.path}
                 onClick={() => setMobileOpen(false)}
-                className="font-satoshi text-xs font-black tracking-widest uppercase text-swiss-text"
+                className={({ isActive }) =>
+                  `font-satoshi text-xs font-black tracking-widest uppercase text-swiss-text ${
+                    isActive ? 'underline underline-offset-4 decoration-2' : ''
+                  }`
+                }
               >
                 {link.label}
-              </a>
+              </NavLink>
             ))}
-            <a
-              href="#contact"
+            <Link
+              to="/contact"
               onClick={() => setMobileOpen(false)}
               className="text-[11px] font-satoshi font-black tracking-widest uppercase bg-swiss-text text-swiss-bg px-6 py-3 text-center border border-swiss-text"
             >
               Book Consultation
-            </a>
+            </Link>
           </div>
         )}
       </header>
     )
   }
 
-  // ── Softly Wellness Navbar ─────────────────────────────────────────────
+  // ── Colourful Theme Navbar ─────────────────────────────────────────────
   return (
-    <header className="fixed top-4 left-0 right-0 z-40 mx-auto max-w-6xl px-4 transition-all duration-500">
-      <div className="bg-softly-bg/75 backdrop-blur-lg border border-softly-sand shadow-sm rounded-full py-3 px-6 md:px-8 flex items-center justify-between">
+    <header className="fixed top-3 sm:top-4 left-0 right-0 z-40 mx-auto max-w-6xl px-3 sm:px-4 transition-all duration-500">
+      <div className="bg-white/90 backdrop-blur-xl border border-violet-150/80 shadow-lg shadow-violet-500/5 rounded-full py-3 px-5 sm:px-8 flex items-center justify-between">
         {/* Logo */}
-        <Logo theme="softly" />
+        <Logo theme="colourful" />
 
         {/* Desktop links */}
-        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center space-x-7 text-sm font-semibold">
           {navLinks.map(link => (
-            <a
+            <NavLink
               key={link.label}
-              href={link.href}
-              className="text-softly-text/80 hover:text-softly-sage transition-colors"
+              to={link.path}
+              className={({ isActive }) =>
+                `transition-colors ${isActive ? 'text-violet-600 font-extrabold' : 'text-slate-700 hover:text-violet-600'}`
+              }
             >
               {link.label}
-            </a>
+            </NavLink>
           ))}
         </nav>
 
         {/* CTA */}
         <div className="flex items-center gap-2">
-          <a
-            href="#contact"
-            className="bg-softly-sage text-softly-bg text-xs font-semibold px-5 py-2.5 rounded-full hover:bg-softly-peach transition-all duration-300 shadow-sm"
+          <Link
+            to="/contact"
+            className="hidden sm:inline-block bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 hover:opacity-95 text-white text-xs font-extrabold px-6 py-2.5 rounded-full transition-all duration-300 shadow-md shadow-violet-500/20 transform hover:scale-105"
           >
             Consultation
-          </a>
+          </Link>
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden flex flex-col gap-1 p-2"
+            className="md:hidden flex flex-col gap-1 p-1.5 focus:outline-none"
             onClick={() => setMobileOpen(v => !v)}
             aria-label="Toggle menu"
           >
-            <span className="w-5 h-0.5 bg-softly-text rounded-full" />
-            <span className="w-5 h-0.5 bg-softly-text rounded-full" />
-            <span className="w-5 h-0.5 bg-softly-text rounded-full" />
+            <span className={`w-5 h-0.5 bg-slate-800 rounded-full transition-all ${mobileOpen ? 'rotate-45 translate-y-1.5' : ''}`} />
+            <span className={`w-5 h-0.5 bg-slate-800 rounded-full transition-all ${mobileOpen ? 'opacity-0' : ''}`} />
+            <span className={`w-5 h-0.5 bg-slate-800 rounded-full transition-all ${mobileOpen ? '-rotate-45 -translate-y-1.5' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* Mobile dropdown */}
       {mobileOpen && (
-        <div className="md:hidden mt-2 bg-softly-bg border border-softly-sand rounded-2xl px-6 py-4 flex flex-col gap-3 shadow-md">
+        <div className="md:hidden mt-2 bg-white/95 backdrop-blur-xl border border-violet-100 rounded-2xl px-6 py-4 flex flex-col gap-3 shadow-xl">
           {navLinks.map(link => (
-            <a
+            <NavLink
               key={link.label}
-              href={link.href}
+              to={link.path}
               onClick={() => setMobileOpen(false)}
-              className="text-sm font-medium text-softly-text/80 hover:text-softly-sage transition-colors"
+              className={({ isActive }) =>
+                `text-sm font-semibold py-1 transition-colors ${
+                  isActive ? 'text-violet-600 font-extrabold' : 'text-slate-800 hover:text-violet-600'
+                }`
+              }
             >
               {link.label}
-            </a>
+            </NavLink>
           ))}
+          <Link
+            to="/contact"
+            onClick={() => setMobileOpen(false)}
+            className="bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white text-xs font-bold px-5 py-2.5 rounded-full text-center shadow-md shadow-violet-500/20 mt-1"
+          >
+            Book Consultation
+          </Link>
         </div>
       )}
     </header>

@@ -1,8 +1,10 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import { ArrowUpRight, Code, Cpu, LineChart, Link2, ShoppingBag, Zap } from 'lucide-react'
 
 function Services({ theme, services }) {
-  // Map icons to services based on index or title keywords
+  const isSwiss = theme === 'swiss';
+
   const getIcon = (idx, tClass) => {
     switch (idx % 6) {
       case 0: return <ShoppingBag className={tClass} />;
@@ -14,91 +16,87 @@ function Services({ theme, services }) {
     }
   };
 
-  if (theme === 'swiss') {
-    return (
-      <section id="services" className="py-20 md:py-28 px-6 md:px-12 border-b border-swiss-text">
-        <div className="mb-16">
-          <span className="font-satoshi text-xs font-black tracking-widest uppercase text-swiss-text block mb-2">
-            [ AGENCY CAPABILITIES ]
-          </span>
-          <h2 className="font-clash text-3xl md:text-4xl font-bold tracking-tight text-swiss-text">
-            Bespoke eCommerce Solutions
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 border-l border-t border-swiss-text">
-          {services.map((service, idx) => (
-            <div
-              key={service.id || idx}
-              className="border-r border-b border-swiss-text p-8 bg-transparent hover:bg-white group transition-all duration-300 flex flex-col justify-between h-[360px]"
-            >
-              <div>
-                {/* 64x64px rotating geometric icon box */}
-                <div className="w-16 h-16 border border-swiss-text flex items-center justify-center bg-swiss-bg group-hover:rotate-12 transition-transform duration-300">
-                  {getIcon(idx, "w-6 h-6 text-swiss-text")}
-                </div>
-                <h3 className="font-clash text-xl font-bold mt-6 text-swiss-text">
-                  {service.title}
-                </h3>
-                <p className="font-satoshi text-xs text-swiss-text/75 mt-3 leading-relaxed">
-                  {service.description}
-                </p>
-              </div>
-
-              <a
-                href="#contact"
-                className="inline-flex items-center gap-2 text-xs font-satoshi font-black tracking-widest uppercase mt-6 text-swiss-text group-hover:underline underline-offset-4"
-              >
-                Inquire Service <ArrowUpRight className="w-4 h-4" />
-              </a>
-            </div>
-          ))}
-        </div>
-      </section>
-    );
-  }
-
-  // Softly Theme Services
   return (
-    <section id="services" className="py-20 md:py-28 px-6 max-w-6xl mx-auto">
-      <div className="text-center mb-16">
-        <span className="text-softly-sage font-semibold tracking-wider text-sm uppercase block mb-2">[ OUR SERVICE OFFERING ]</span>
-        <h2 className="font-outfit text-3xl md:text-5xl font-bold text-softly-text">
-          Growth & Automation Capabilities
+    <section id="services" className={`py-20 md:py-28 px-6 max-w-6xl mx-auto ${isSwiss ? 'border-b border-swiss-text' : ''}`}>
+      <div className="mb-16 text-center md:text-left">
+        <span className={`text-xs font-black tracking-widest uppercase block mb-2 ${
+          isSwiss ? 'font-satoshi text-swiss-text' : 'font-outfit text-violet-600 font-extrabold'
+        }`}>
+          [ AGENCY CAPABILITIES ]
+        </span>
+        <h2 className={`text-3xl md:text-5xl font-bold tracking-tight ${
+          isSwiss ? 'font-clash text-swiss-text' : 'font-outfit text-slate-900 font-extrabold'
+        }`}>
+          Bespoke eCommerce Solutions
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${
+        isSwiss ? 'border-l border-t border-swiss-text gap-0' : ''
+      }`}>
         {services.map((service, idx) => {
-          const pastelBgs = ['bg-softly-sage/5', 'bg-softly-peach/5', 'bg-softly-lavender/5'];
-          const pastelBorders = ['border-softly-sage/20', 'border-softly-peach/20', 'border-softly-lavender/20'];
-          const pastelIcons = ['bg-softly-sage/10 text-softly-sage', 'bg-softly-peach/10 text-softly-peach', 'bg-softly-lavender/10 text-softly-lavender'];
+          const cardThemes = [
+            { bg: 'bg-gradient-to-br from-emerald-500/10 via-white to-teal-500/5 border-emerald-200', icon: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20', hoverText: 'hover:text-emerald-600' },
+            { bg: 'bg-gradient-to-br from-violet-500/10 via-white to-indigo-500/5 border-violet-200', icon: 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/20', hoverText: 'hover:text-violet-600' },
+            { bg: 'bg-gradient-to-br from-pink-500/10 via-white to-rose-500/5 border-pink-200', icon: 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-md shadow-pink-500/20', hoverText: 'hover:text-pink-600' },
+            { bg: 'bg-gradient-to-br from-amber-500/10 via-white to-orange-500/5 border-amber-200', icon: 'bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/20', hoverText: 'hover:text-amber-600' },
+            { bg: 'bg-gradient-to-br from-cyan-500/10 via-white to-sky-500/5 border-cyan-200', icon: 'bg-gradient-to-br from-cyan-500 to-sky-600 text-white shadow-md shadow-cyan-500/20', hoverText: 'hover:text-cyan-600' },
+            { bg: 'bg-gradient-to-br from-fuchsia-500/10 via-white to-purple-500/5 border-fuchsia-200', icon: 'bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white shadow-md shadow-fuchsia-500/20', hoverText: 'hover:text-fuchsia-600' },
+          ];
 
-          const cycleIdx = idx % 3;
+          const t = cardThemes[idx % cardThemes.length];
+
+          if (isSwiss) {
+            return (
+              <div
+                key={service.id || idx}
+                className="border-r border-b border-swiss-text p-8 bg-transparent hover:bg-white group transition-all duration-300 flex flex-col justify-between h-[360px]"
+              >
+                <div>
+                  <div className="w-16 h-16 border border-swiss-text flex items-center justify-center bg-swiss-bg group-hover:rotate-12 transition-transform duration-300">
+                    {getIcon(idx, "w-6 h-6 text-swiss-text")}
+                  </div>
+                  <h3 className="font-clash text-xl font-bold mt-6 text-swiss-text">
+                    {service.title}
+                  </h3>
+                  <p className="font-satoshi text-xs text-swiss-text/75 mt-3 leading-relaxed">
+                    {service.description}
+                  </p>
+                </div>
+
+                <Link
+                  to="/contact"
+                  className="inline-flex items-center gap-2 text-xs font-satoshi font-black tracking-widest uppercase mt-6 text-swiss-text group-hover:underline underline-offset-4"
+                >
+                  Inquire Service <ArrowUpRight className="w-4 h-4" />
+                </Link>
+              </div>
+            );
+          }
 
           return (
             <div
               key={service.id || idx}
-              className={`${pastelBgs[cycleIdx]} border ${pastelBorders[cycleIdx]} p-8 rounded-[2rem] shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between h-[340px]`}
+              className={`${t.bg} border-2 p-8 rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between min-h-[340px] group`}
             >
               <div>
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${pastelIcons[cycleIdx]}`}>
-                  {getIcon(idx, "w-5 h-5")}
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${t.icon} group-hover:rotate-12 transition-transform duration-300`}>
+                  {getIcon(idx, "w-7 h-7")}
                 </div>
-                <h3 className="font-outfit text-lg font-bold mt-6 text-softly-text">
+                <h3 className="font-outfit text-xl font-extrabold mt-6 text-slate-900 leading-snug">
                   {service.title}
                 </h3>
-                <p className="font-outfit text-xs text-softly-text/80 mt-3 leading-relaxed">
+                <p className="font-outfit text-xs text-slate-600 mt-3 leading-relaxed font-medium">
                   {service.description}
                 </p>
               </div>
 
-              <a
-                href="#contact"
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-softly-text hover:text-softly-sage transition-colors mt-6"
+              <Link
+                to="/contact"
+                className={`inline-flex items-center gap-2 text-xs font-bold text-slate-800 ${t.hoverText} transition-colors mt-6 pt-4 border-t border-slate-100 uppercase tracking-wider`}
               >
-                Inquire Service <ArrowUpRight className="w-3.5 h-3.5" />
-              </a>
+                Inquire Service <ArrowUpRight className="w-4 h-4" />
+              </Link>
             </div>
           );
         })}

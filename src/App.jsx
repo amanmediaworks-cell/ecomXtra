@@ -1,13 +1,23 @@
 import React, { useState, useEffect } from 'react'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar'
-import Hero from './components/Hero'
-import About from './components/About'
-import ShowcaseGrid from './components/ShowcaseGrid'
-import Services from './components/Services'
-import Testimonials from './components/Testimonials'
-import Contact from './components/Contact'
 import Chatbot from './components/Chatbot'
 import Footer from './components/Footer'
+
+import HomePage from './pages/HomePage'
+import PhilosophyPage from './pages/PhilosophyPage'
+import ShowcasePage from './pages/ShowcasePage'
+import ServicesPage from './pages/ServicesPage'
+import TestimonialsPage from './pages/TestimonialsPage'
+import ContactPage from './pages/ContactPage'
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+  return null
+}
 
 // Default Datasets
 const defaultServices = [
@@ -51,7 +61,6 @@ function App() {
   const [careers, setCareers] = useState(() => {
     try { return JSON.parse(localStorage.getItem('ecom_careers')) || [] } catch { return [] }
   })
-  // ── NEW: consultation enquiries ──────────────────────────────────────────
   const [consultations, setConsultations] = useState(() => {
     try { return JSON.parse(localStorage.getItem('ecom_consultations')) || [] } catch { return [] }
   })
@@ -103,7 +112,7 @@ function App() {
     addLog(`[Google Sheets API] Row appended to 'Careers': [${submission.name}, ${submission.email}, ${submission.role}].`)
   }
 
-  // ── NEW: Save consultation enquiry + fire sync logs ──────────────────────
+  // Save consultation enquiry + fire sync logs
   const addConsultation = (form) => {
     const entry = {
       id: Date.now(),
@@ -115,49 +124,57 @@ function App() {
     addLog(`[Google Sheets API] Row appended to 'Consultations': [${form.name}, ${form.email}, ${form.business || 'N/A'}].`)
   }
 
-  // CRUD operations
-  const handleCRUD = {
-    addService:    (s) => { setServices(p => [...p, { id: Date.now(), ...s }]);          addLog(`[Admin] Created Service: "${s.title}"`) },
-    updateService: (id, s) => { setServices(p => p.map(x => x.id === id ? { ...x, ...s } : x));  addLog(`[Admin] Updated Service ID: ${id}`) },
-    deleteService: (id) => { setServices(p => p.filter(x => x.id !== id));               addLog(`[Admin] Deleted Service ID: ${id}`) },
-    addShowcase:    (s) => { setShowcases(p => [...p, { id: Date.now(), ...s }]);        addLog(`[Admin] Created Case Study: "${s.title}"`) },
-    updateShowcase: (id, s) => { setShowcases(p => p.map(x => x.id === id ? { ...x, ...s } : x)); addLog(`[Admin] Updated Showcase ID: ${id}`) },
-    deleteShowcase: (id) => { setShowcases(p => p.filter(x => x.id !== id));             addLog(`[Admin] Deleted Showcase ID: ${id}`) },
-    addTestimonial:    (t) => { setTestimonials(p => [...p, { id: Date.now(), ...t }]); addLog(`[Admin] Created Testimonial by: "${t.author}"`) },
-    updateTestimonial: (id, t) => { setTestimonials(p => p.map(x => x.id === id ? { ...x, ...t } : x)); addLog(`[Admin] Updated Testimonial ID: ${id}`) },
-    deleteTestimonial: (id) => { setTestimonials(p => p.filter(x => x.id !== id));      addLog(`[Admin] Deleted Testimonial ID: ${id}`) },
-  }
-
   return (
-    <div className={`theme-${theme} min-h-screen relative overflow-x-hidden ${
+    <div className={`theme-${theme} min-h-screen flex flex-col justify-between relative overflow-x-hidden ${
       theme === 'swiss'
         ? 'bg-swiss-bg text-swiss-text font-satoshi'
-        : 'bg-softly-bg text-softly-text font-outfit'
+        : 'bg-[#faf8ff] text-slate-900 font-outfit'
     }`}>
-      {/* Softly ambient blobs + grain */}
-      {theme === 'softly' && (
+      <ScrollToTop />
+
+      {/* Colourful ambient glowing blobs + subtle mesh */}
+      {theme !== 'swiss' && (
         <>
           <div className="softly-grain-overlay" />
-          <div className="absolute top-[10%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-softly-peach/10 blur-[80px] pointer-events-none animate-float" />
-          <div className="absolute top-[60%] right-[-10%] w-[35vw] h-[35vw] rounded-full bg-softly-lavender/10 blur-[80px] pointer-events-none animate-float" style={{ animationDelay: '2s' }} />
-          <div className="absolute top-[110%] left-[20%] w-[30vw] h-[30vw] rounded-full bg-softly-sage/10 blur-[80px] pointer-events-none animate-float" style={{ animationDelay: '4s' }} />
+          <div className="absolute top-[5%] left-[-10%] w-[55vw] h-[55vw] rounded-full bg-gradient-to-tr from-pink-400/25 to-violet-500/25 blur-[120px] pointer-events-none animate-float" />
+          <div className="absolute top-[45%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-violet-400/25 to-cyan-400/25 blur-[120px] pointer-events-none animate-float" style={{ animationDelay: '2s' }} />
+          <div className="absolute top-[85%] left-[5%] w-[45vw] h-[45vw] rounded-full bg-gradient-to-tr from-amber-400/20 to-rose-400/20 blur-[120px] pointer-events-none animate-float" style={{ animationDelay: '4s' }} />
         </>
       )}
 
       {/* Navbar — no theme toggle on public site */}
       <Navbar theme={theme} />
 
-      <main>
-        <Hero theme={theme} />
-        <About theme={theme} />
-        <ShowcaseGrid theme={theme} showcases={showcases} />
-        <Services theme={theme} services={services} />
-        <Testimonials theme={theme} testimonials={testimonials} />
-        <Contact
-          theme={theme}
-          onAddSubmission={addSubmission}
-          onAddConsultation={addConsultation}
-        />
+      <main className="flex-1 w-full">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <HomePage
+                theme={theme}
+                showcases={showcases}
+                services={services}
+                testimonials={testimonials}
+                onAddSubmission={addSubmission}
+                onAddConsultation={addConsultation}
+              />
+            }
+          />
+          <Route path="/philosophy" element={<PhilosophyPage theme={theme} />} />
+          <Route path="/showcase" element={<ShowcasePage theme={theme} showcases={showcases} />} />
+          <Route path="/services" element={<ServicesPage theme={theme} services={services} />} />
+          <Route path="/testimonials" element={<TestimonialsPage theme={theme} testimonials={testimonials} />} />
+          <Route
+            path="/contact"
+            element={
+              <ContactPage
+                theme={theme}
+                onAddSubmission={addSubmission}
+                onAddConsultation={addConsultation}
+              />
+            }
+          />
+        </Routes>
       </main>
 
       <Footer theme={theme} />

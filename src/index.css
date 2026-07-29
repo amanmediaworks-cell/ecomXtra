@@ -21,14 +21,20 @@
   background: #111111;
 }
 
-.theme-softly ::-webkit-scrollbar {
+.theme-softly ::-webkit-scrollbar,
+.theme-colourful ::-webkit-scrollbar,
+.theme-colorful ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
-.theme-softly ::-webkit-scrollbar-track {
+.theme-softly ::-webkit-scrollbar-track,
+.theme-colourful ::-webkit-scrollbar-track,
+.theme-colorful ::-webkit-scrollbar-track {
   background: #FDFCF8;
 }
-.theme-softly ::-webkit-scrollbar-thumb {
+.theme-softly ::-webkit-scrollbar-thumb,
+.theme-colourful ::-webkit-scrollbar-thumb,
+.theme-colorful ::-webkit-scrollbar-thumb {
   background: #DD8D6B;
   border-radius: 9999px;
   border: 3px solid #FDFCF8;
@@ -45,6 +51,25 @@
   pointer-events: none;
   z-index: 9999;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Custom Keyframes & Utility Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(2deg); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.04); }
+}
+
+.animate-float {
+  animation: float 8s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 4s ease-in-out infinite;
 }
 
 /* Custom Cubic Bezier Transitions */
