@@ -5,11 +5,11 @@ import { MessageSquare, X, Send } from 'lucide-react'
 const KB = [
   {
     patterns: ['hi', 'hello', 'hey', 'namaste', 'namaskar', 'hola', 'sup', 'yo'],
-    reply: 'Namaste! 👋 Main EcomXtra ka AI Growth Agent hoon. Main aapki help kar sakta hoon:\n\n• Pricing & packages\n• eCommerce services info\n• WhatsApp AI bot details\n• Quotations & consultation\n\nAap kya jaanna chahte hain?'
+    reply: 'Namaste! 👋 Main EcomXtra ka AI Growth Agent hoon. Main aapki help kar sakta hoon:\n\n• Custom quotations & info\n• eCommerce services info\n• WhatsApp AI bot details\n• Quotations & consultation\n\nAap kya jaanna chahte hain?'
   },
   {
     patterns: ['price', 'pricing', 'cost', 'package', 'kitna', 'rate', 'fees', 'charge', 'budget'],
-    reply: '💰 EcomXtra Core Packages:\n\n1. Shopify / WooCommerce Custom Store\n   → ₹3,99,000 / $4,999 (one-time)\n\n2. AI WhatsApp Deal-Closer Agent\n   → ₹1,99,000 / $2,499 (one-time)\n\n3. Marketing Automation Setup\n   → ₹1,49,000 / $1,999 per month\n\n4. Full eCommerce Growth Bundle\n   → Custom quote\n\n💬 Chat on WhatsApp (+91 8700259557) or contact us for a quotation!\n👉 https://wa.me/918700259557'
+    reply: '📋 EcomXtra Core Packages & Quotations:\n\nAll our packages (Shopify/WooCommerce stores, AI WhatsApp agents, and marketing automation) are custom-tailored based on your brand requirements.\n\n💬 Chat on WhatsApp (+91 8700259557) or contact us to get a custom quotation!\n👉 https://wa.me/918700259557'
   },
   {
     patterns: ['service', 'services', 'offer', 'kya karte', 'what do you', 'help', 'kya hai'],
@@ -25,7 +25,7 @@ const KB = [
   },
   {
     patterns: ['shopify', 'woocommerce', 'store', 'website', 'ecommerce', 'headless', 'theme'],
-    reply: '🛒 Store Development:\n\n✓ Custom Shopify themes from scratch\n✓ WooCommerce with advanced plugins\n✓ Headless architecture (ultra-fast)\n✓ Multi-currency & multi-language\n✓ Mobile-first responsive design\n✓ Payment gateway integrations\n✓ Inventory & fulfillment sync\n\nTimeline: 4-8 weeks | Starting ₹3,99,000\n\nChat on WhatsApp (+91 8700259557) or contact us for a custom quotation!\n👉 https://wa.me/918700259557'
+    reply: '🛒 Store Development:\n\n✓ Custom Shopify themes from scratch\n✓ WooCommerce with advanced plugins\n✓ Headless architecture (ultra-fast)\n✓ Multi-currency & multi-language\n✓ Mobile-first responsive design\n✓ Payment gateway integrations\n✓ Inventory & fulfillment sync\n\nTimeline: 4-8 weeks | Custom Quotation\n\nChat on WhatsApp (+91 8700259557) or contact us for a custom quotation!\n👉 https://wa.me/918700259557'
   },
   {
     patterns: ['book', 'consult', 'consultation', 'schedule', 'call', 'meeting', 'demo', 'appointment', 'baat', 'milna', 'quote', 'quotation'],
@@ -42,14 +42,14 @@ const KB = [
   },
   {
     patterns: ['theek', 'thik', 'accha', 'okay', 'ok', 'sure', 'haan', 'yes', 'yep', 'thanks', 'thank you', 'dhanyawad'],
-    reply: 'Shukriya! 🙏 Koi aur sawaal ho toh zaroor poochhen. Main yahan hoon aapki madad ke liye!\n\nType "services" for our offerings, "pricing" for packages, or "book" to schedule a consultation.'
+    reply: 'Shukriya! 🙏 Koi aur sawaal ho toh zaroor poochhen. Main yahan hoon aapki madad ke liye!\n\nType "services" for our offerings or "book" to schedule a consultation.'
   },
 ]
 
 const INITIAL_MESSAGE = {
   id: 1,
   sender: 'bot',
-  text: 'Namaste! 🙏 Main EcomXtra ka AI Growth Agent hoon.\n\nMain aapki help karoonga:\n• Pricing & packages\n• eCommerce services\n• Marketplace rankings\n• Consultation booking\n\nKya poochna chahte hain aap?'
+  text: 'Namaste! 🙏 Main EcomXtra ka AI Growth Agent hoon.\n\nMain aapki help karoonga:\n• Custom Quotations\n• eCommerce services\n• Marketplace rankings\n• Consultation booking\n\nKya poochna chahte hain aap?'
 }
 
 function Chatbot({ theme, addLog }) {
@@ -193,7 +193,7 @@ function Chatbot({ theme, addLog }) {
 
   // Quick action buttons
   const quickActions = [
-    { label: '💰 Pricing', msg: 'pricing' },
+    { label: '📋 Quotation', msg: 'pricing' },
     { label: '🛒 Services', msg: 'services' },
     { label: '🤖 WhatsApp Bot', msg: 'whatsapp' },
     { label: '📅 Book Call', msg: 'book' },

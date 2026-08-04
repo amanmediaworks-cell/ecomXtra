@@ -45,7 +45,7 @@ const defaultTestimonials = [
 function App() {
   // Theme — read from localStorage (set only by /admin)
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('ecom_theme_mode') || 'swiss'
+    return localStorage.getItem('ecom_theme_mode') || 'softly'
   })
 
   // Database states

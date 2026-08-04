@@ -192,7 +192,7 @@ function LoginScreen({ onLogin }) {
 
 // ── Admin Dashboard (post-login) ────────────────────────────────────────────
 function AdminDashboard({ onLogout }) {
-  const [theme, setTheme] = useState(() => localStorage.getItem('ecom_theme_mode') || 'swiss')
+  const [theme, setTheme] = useState(() => localStorage.getItem('ecom_theme_mode') || 'softly')
   const [services, setServices]     = useState(() => { try { return JSON.parse(localStorage.getItem('ecom_services')) || defaultServices } catch { return defaultServices } })
   const [showcases, setShowcases]   = useState(() => { try { return JSON.parse(localStorage.getItem('ecom_showcases')) || defaultShowcases } catch { return defaultShowcases } })
   const [testimonials, setTestimonials] = useState(() => { try { return JSON.parse(localStorage.getItem('ecom_testimonials')) || defaultTestimonials } catch { return defaultTestimonials } })
