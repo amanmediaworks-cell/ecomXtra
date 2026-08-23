@@ -125,7 +125,7 @@ function App() {
   }
 
   return (
-    <div className={`theme-${theme} min-h-screen flex flex-col justify-between relative overflow-x-hidden ${
+    <div className={`theme-${theme} min-h-screen flex flex-col justify-between relative ${
       theme === 'swiss'
         ? 'bg-swiss-bg text-swiss-text font-satoshi'
         : 'bg-[#faf8ff] text-slate-900 font-outfit'
