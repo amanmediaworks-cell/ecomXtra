@@ -125,21 +125,20 @@ function App() {
   }
 
   return (
-    <div className={`theme-${theme} min-h-screen flex flex-col justify-between relative ${
+    <div className={`theme-${theme} min-h-screen flex flex-col justify-between relative overflow-x-hidden ${
       theme === 'swiss'
         ? 'bg-swiss-bg text-swiss-text font-satoshi'
         : 'bg-[#faf8ff] text-slate-900 font-outfit'
     }`}>
       <ScrollToTop />x
-
-      {/* Colourful ambient glowing blobs + subtle mesh */}
+      {/* Colourful ambient glowing blobs + subtle mesh (fixed, overflow-hidden so they don't affect layout) */}
       {theme !== 'swiss' && (
-        <>
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
           <div className="softly-grain-overlay" />
-          <div className="absolute top-[5%] left-[-10%] w-[55vw] h-[55vw] rounded-full bg-gradient-to-tr from-pink-400/25 to-violet-500/25 blur-[120px] pointer-events-none animate-float" />
-          <div className="absolute top-[45%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-violet-400/25 to-cyan-400/25 blur-[120px] pointer-events-none animate-float" style={{ animationDelay: '2s' }} />
-          <div className="absolute top-[65%] left-[5%] w-[45vw] h-[45vw] rounded-full bg-gradient-to-tr from-amber-400/20 to-rose-400/20 blur-[120px] pointer-events-none animate-float" style={{ animationDelay: '4s' }} />
-        </>
+          <div className="absolute top-[5%] left-[-10%] w-[55vw] h-[55vw] rounded-full bg-gradient-to-tr from-pink-400/25 to-violet-500/25 blur-[120px] animate-float" />
+          <div className="absolute top-[45%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-violet-400/25 to-cyan-400/25 blur-[120px] animate-float" style={{ animationDelay: '2s' }} />
+          <div className="absolute top-[65%] left-[5%] w-[45vw] h-[45vw] rounded-full bg-gradient-to-tr from-amber-400/20 to-rose-400/20 blur-[120px] animate-float" style={{ animationDelay: '4s' }} />
+        </div>
       )}
 
       {/* Navbar — no theme toggle on public site */}
