@@ -130,7 +130,7 @@ function App() {
         ? 'bg-swiss-bg text-swiss-text font-satoshi'
         : 'bg-[#faf8ff] text-slate-900 font-outfit'
     }`}>
-      <ScrollToTop />
+      <ScrollToTop />x
 
       {/* Colourful ambient glowing blobs + subtle mesh */}
       {theme !== 'swiss' && (
@@ -138,7 +138,7 @@ function App() {
           <div className="softly-grain-overlay" />
           <div className="absolute top-[5%] left-[-10%] w-[55vw] h-[55vw] rounded-full bg-gradient-to-tr from-pink-400/25 to-violet-500/25 blur-[120px] pointer-events-none animate-float" />
           <div className="absolute top-[45%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-violet-400/25 to-cyan-400/25 blur-[120px] pointer-events-none animate-float" style={{ animationDelay: '2s' }} />
-          <div className="absolute top-[85%] left-[5%] w-[45vw] h-[45vw] rounded-full bg-gradient-to-tr from-amber-400/20 to-rose-400/20 blur-[120px] pointer-events-none animate-float" style={{ animationDelay: '4s' }} />
+          <div className="absolute top-[65%] left-[5%] w-[45vw] h-[45vw] rounded-full bg-gradient-to-tr from-amber-400/20 to-rose-400/20 blur-[120px] pointer-events-none animate-float" style={{ animationDelay: '4s' }} />
         </>
       )}
 
