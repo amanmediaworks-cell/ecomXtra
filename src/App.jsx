@@ -130,7 +130,7 @@ function App() {
         ? 'bg-swiss-bg text-swiss-text font-satoshi'
         : 'bg-[#faf8ff] text-slate-900 font-outfit'
     }`}>
-      <ScrollToTop />x
+      <ScrollToTop />
       {/* Colourful ambient glowing blobs + subtle mesh (fixed, overflow-hidden so they don't affect layout) */}
       {theme !== 'swiss' && (
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
