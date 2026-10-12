@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { ExternalLink } from 'lucide-react'
 
 function Footer({ theme }) {
   const isSwiss = theme === 'swiss';
@@ -63,7 +64,13 @@ function Footer({ theme }) {
             Corporate Info
           </span>
           <ul className="space-y-2.5 text-xs font-medium">
-            <li>Parent Co: Quadranex IT Solutions</li>
+            <li>
+              Parent Co:{' '}
+              <a href="https://quadranex-seven.vercel.app/" target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 transition-colors ${isSwiss ? 'hover:text-white' : 'hover:text-pink-400'}`}>
+                Quadranex IT Solutions
+                <ExternalLink aria-hidden="true" className="h-3 w-3" />
+              </a>
+            </li>
             <li>Email: info@ecomxtra.in</li>
             <li>Phone: +91 8700259557</li>
           </ul>
@@ -89,7 +96,14 @@ function Footer({ theme }) {
         isSwiss ? 'border-white/10 text-white/50' : 'border-slate-800/80 text-slate-500'
       }`}>
         <span>© {new Date().getFullYear()} EcomXtra. All rights reserved.</span>
-        <span>A Quadranex IT Solutions Subsidiary.</span>
+        <span>
+          A{' '}
+          <a href="https://quadranex-seven.vercel.app/" target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 transition-colors ${isSwiss ? 'hover:text-white' : 'hover:text-pink-400'}`}>
+            Quadranex IT Solutions
+            <ExternalLink aria-hidden="true" className="h-3 w-3" />
+          </a>{' '}
+          Subsidiary.
+        </span>
       </div>
     </footer>
   );

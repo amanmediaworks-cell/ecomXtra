@@ -1,6 +1,6 @@
 import React from 'react'
 import Contact from '../components/Contact'
-import { Mail, Phone, Building2 } from 'lucide-react'
+import { Mail, Phone, Building2, ExternalLink } from 'lucide-react'
 
 function ContactPage({ theme, onAddSubmission, onAddConsultation }) {
   const isSwiss = theme === 'swiss'
@@ -100,7 +100,10 @@ function ContactPage({ theme, onAddSubmission, onAddConsultation }) {
               <span className={`text-sm font-bold block ${
                 isSwiss ? 'font-clash text-swiss-text' : 'font-outfit text-slate-900 font-extrabold'
               }`}>
-                Quadranex IT Solutions
+                <a href="https://quadranex-seven.vercel.app/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:underline">
+                  Quadranex IT Solutions
+                  <ExternalLink aria-hidden="true" className="h-3 w-3" />
+                </a>
               </span>
             </div>
           </div>

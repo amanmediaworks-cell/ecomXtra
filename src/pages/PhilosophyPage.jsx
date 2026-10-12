@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import About from '../components/About'
-import { ArrowRight, ShieldCheck, Zap, Cpu, BarChart3 } from 'lucide-react'
+import { ArrowRight, ShieldCheck, Zap, Cpu, BarChart3, ExternalLink } from 'lucide-react'
 
 function PhilosophyPage({ theme }) {
   const isSwiss = theme === 'swiss'
@@ -23,7 +23,12 @@ function PhilosophyPage({ theme }) {
         <p className={`mt-4 text-sm md:text-base max-w-3xl leading-relaxed ${
           isSwiss ? 'font-satoshi text-swiss-text/80' : 'font-outfit text-slate-600 font-medium'
         }`}>
-          At EcomXtra (Parent Co: Quadranex IT Solutions), we reject generic agency templates. We design custom digital engines where high-speed storefronts, automated catalog syncs, and AI-driven Hinglish WhatsApp closers work in perfect harmony.
+          At EcomXtra (Parent Co:{' '}
+          <a href="https://quadranex-seven.vercel.app/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:underline">
+            Quadranex IT Solutions
+            <ExternalLink aria-hidden="true" className="h-3 w-3" />
+          </a>
+          ), we reject generic agency templates. We design custom digital engines where high-speed storefronts, automated catalog syncs, and AI-driven Hinglish WhatsApp closers work in perfect harmony.
         </p>
       </section>
 
@@ -99,7 +104,12 @@ function PhilosophyPage({ theme }) {
               Enterprise Backend Reliability
             </h3>
             <p className={`text-sm leading-relaxed ${isSwiss ? 'font-satoshi text-swiss-text/80' : 'font-outfit text-slate-600'}`}>
-              Backing every deployment with Quadranex IT Solutions enterprise architecture, ensuring 99.99% uptime during high-volume sales events.
+              Backing every deployment with{' '}
+              <a href="https://quadranex-seven.vercel.app/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:underline">
+                Quadranex IT Solutions
+                <ExternalLink aria-hidden="true" className="h-3 w-3" />
+              </a>{' '}
+              enterprise architecture, ensuring 99.99% uptime during high-volume sales events.
             </p>
           </div>
         </div>
