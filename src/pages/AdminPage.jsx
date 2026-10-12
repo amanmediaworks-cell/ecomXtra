@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 import AdminConsole from '../components/AdminConsole'
+import { ExternalLink } from 'lucide-react'
 
 // Default datasets (mirrored from App.jsx so Admin can read localStorage)
 const defaultServices = [
@@ -166,7 +167,12 @@ function LoginScreen({ onLogin }) {
           {/* Footer note */}
           <div className="mt-8 pt-6 border-t border-[#f2f2f2]/8 text-center">
             <p className="text-[10px] text-[#f2f2f2]/20 tracking-widest uppercase">
-              A Quadranex IT Solutions System · Restricted
+              A{' '}
+              <a href="https://quadranex-seven.vercel.app/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:underline">
+                Quadranex IT Solutions
+                <ExternalLink aria-hidden="true" className="h-3 w-3" />
+              </a>{' '}
+              System · Restricted
             </p>
           </div>
         </div>
@@ -252,7 +258,11 @@ function AdminDashboard({ onLogout }) {
               ECOMXTRA CONTROL HUB
             </span>
             <span className="font-satoshi text-[10px] text-[#f2f2f2]/40 block tracking-widest uppercase">
-              Admin · Quadranex IT Solutions
+              Admin ·{' '}
+              <a href="https://quadranex-seven.vercel.app/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:underline">
+                Quadranex IT Solutions
+                <ExternalLink aria-hidden="true" className="h-3 w-3" />
+              </a>
             </span>
           </div>
         </div>
@@ -721,10 +731,17 @@ function AdminConsoleInline({ theme, setTheme, services, showcases, testimonials
                 { name: 'Google Sheets Integration (v4)', status: 'CONNECTED', color: 'text-green-400' },
                 { name: 'WhatsApp Business API Gateway', status: 'ONLINE',    color: 'text-green-400' },
                 { name: 'Hinglish AI Agent Core Engine', status: 'READY',     color: 'text-green-400' },
-                { name: 'Quadranex IT Solutions Parent CDN', status: 'ACTIVE', color: 'text-green-400' },
+                { name: 'Quadranex IT Solutions Parent CDN', status: 'ACTIVE', color: 'text-green-400', href: 'https://quadranex-seven.vercel.app/' },
               ].map(api => (
                 <div key={api.name} className="flex justify-between items-center py-3 border-b border-[#f2f2f2]/5 last:border-0">
-                  <span className="text-xs text-[#f2f2f2]/60 font-satoshi">{api.name}</span>
+                  {api.href ? (
+                    <a href={api.href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[#f2f2f2]/60 font-satoshi hover:underline">
+                      {api.name}
+                      <ExternalLink aria-hidden="true" className="h-3 w-3 shrink-0" />
+                    </a>
+                  ) : (
+                    <span className="text-xs text-[#f2f2f2]/60 font-satoshi">{api.name}</span>
+                  )}
                   <span className={`text-[10px] font-black tracking-widest uppercase ${api.color} border border-current/20 px-2 py-0.5`}>{api.status}</span>
                 </div>
               ))}

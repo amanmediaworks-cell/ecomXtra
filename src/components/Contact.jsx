@@ -1,4 +1,12 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
+import { ExternalLink } from 'lucide-react'
+
+const WHATSAPP_NUMBER = '918700259557'
+
+function openWhatsAppMessage(message) {
+  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
 
 function Contact({ theme, onAddSubmission, onAddConsultation }) {
   const [activeTab, setActiveTab] = useState('consult'); // 'consult' | 'careers'
@@ -15,6 +23,14 @@ function Contact({ theme, onAddSubmission, onAddConsultation }) {
   const handleConsultSubmit = (e) => {
     e.preventDefault();
     onAddConsultation && onAddConsultation({ ...consultForm });
+    openWhatsAppMessage([
+      'Hi EcomXtra, I would like to book a consultation.',
+      '',
+      `Name: ${consultForm.name}`,
+      `Email: ${consultForm.email}`,
+      `Business: ${consultForm.business || 'Not provided'}`,
+      `How can we help: ${consultForm.message || 'Not provided'}`
+    ].join('\n'));
     setConsultSubmitted(true);
     setTimeout(() => {
       setConsultSubmitted(false);
@@ -25,6 +41,15 @@ function Contact({ theme, onAddSubmission, onAddConsultation }) {
   const handleCareerSubmit = (e) => {
     e.preventDefault();
     onAddSubmission(careerForm);
+    openWhatsAppMessage([
+      'Hi EcomXtra, I would like to apply for a position.',
+      '',
+      `Name: ${careerForm.name}`,
+      `Email: ${careerForm.email}`,
+      `Position: ${careerForm.role}`,
+      `Resume: ${careerForm.resume}`,
+      `Note: ${careerForm.message || 'Not provided'}`
+    ].join('\n'));
     setCareerSubmitted(true);
     setTimeout(() => {
       setCareerSubmitted(false);
@@ -69,7 +94,13 @@ function Contact({ theme, onAddSubmission, onAddConsultation }) {
           }`}>
             <div>EMAIL: info@ecomxtra.in</div>
             <div>PHONE: +91 8700259557</div>
-            <div>PARENT CO: QUADRANEX IT SOLUTIONS</div>
+            <div>
+              PARENT CO:{' '}
+              <a href="https://quadranex-seven.vercel.app/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:underline">
+                QUADRANEX IT SOLUTIONS
+                <ExternalLink aria-hidden="true" className="h-3 w-3" />
+              </a>
+            </div>
           </div>
         </div>
 
@@ -117,10 +148,10 @@ function Contact({ theme, onAddSubmission, onAddConsultation }) {
                   isSwiss ? 'border-dashed border-swiss-text' : 'bg-violet-50 border-2 border-violet-200 rounded-2xl'
                 }`}>
                   <span className={`text-xl font-bold block ${isSwiss ? 'font-clash text-swiss-text' : 'font-outfit text-slate-900'}`}>
-                    Consultation Requested Successfully!
+                    WhatsApp Message Ready
                   </span>
                   <span className={`text-xs block mt-2 ${isSwiss ? 'font-satoshi text-swiss-text/75' : 'font-outfit text-slate-600'}`}>
-                    Our representative will email you within 2 hours.
+                    Your details are pre-filled in WhatsApp. Press Send there to submit your request.
                   </span>
                 </div>
               ) : (
@@ -199,7 +230,7 @@ function Contact({ theme, onAddSubmission, onAddConsultation }) {
                         : 'font-outfit bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 hover:opacity-95 text-white font-extrabold rounded-full shadow-lg shadow-pink-500/20 hover:scale-[1.01]'
                     }`}
                   >
-                    SUBMIT REQUEST
+                    BOOK CONSULTATION
                   </button>
                 </form>
               )}
@@ -214,10 +245,10 @@ function Contact({ theme, onAddSubmission, onAddConsultation }) {
                   isSwiss ? 'border-dashed border-swiss-text' : 'bg-violet-50 border-2 border-violet-200 rounded-2xl'
                 }`}>
                   <span className={`text-xl font-bold block ${isSwiss ? 'font-clash text-swiss-text' : 'font-outfit text-slate-900'}`}>
-                    Application Submitted!
+                    WhatsApp Message Ready
                   </span>
                   <p className={`text-xs mt-3 px-8 ${isSwiss ? 'font-satoshi text-swiss-text/75' : 'font-outfit text-slate-600'}`}>
-                    Your resume was successfully submitted. Real-time push sync logs have been fired to the WhatsApp dashboard pipeline and Google Sheets table.
+                    Your application details are pre-filled in WhatsApp. Press Send there to submit your application.
                   </p>
                 </div>
               ) : (

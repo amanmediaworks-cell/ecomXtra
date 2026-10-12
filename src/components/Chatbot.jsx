@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { MessageSquare, X, Send } from 'lucide-react'
+import { MessageSquare, X, Send, ExternalLink } from 'lucide-react'
 
 // ── Knowledge Base ────────────────────────────────────────────────────────────
 const KB = [
@@ -34,11 +34,11 @@ const KB = [
   },
   {
     patterns: ['contact', 'email', 'reach', 'phone', 'mobile', 'whatsapp', 'office'],
-    reply: '📬 Contact EcomXtra:\n\n• Email: info@ecomxtra.in\n• Mobile / WhatsApp: +91 8700259557\n• Parent Company: Quadranex IT Solutions\n\nOr navigate to our Contact section to fill the form directly. Response time: within 2 hours!'
+    reply: '📬 Contact EcomXtra:\n\n• Email: info@ecomxtra.in\n• Mobile / WhatsApp: +91 8700259557\n• Parent Company: Quadranex IT Solutions\n👉 https://quadranex-seven.vercel.app/\n\nOr navigate to our Contact section to fill the form directly. Response time: within 2 hours!'
   },
   {
     patterns: ['parent', 'quadranex', 'identifier', 'company', 'about', 'who', 'kaun', 'team', 'founders'],
-    reply: '🏢 About EcomXtra:\n\nEcomXtra is a results-driven eCommerce agency operating under Quadranex IT Solutions.\n\nWe specialize in helping D2C brands and marketplace sellers scale faster through automation, AI, and high-converting design.'
+    reply: '🏢 About EcomXtra:\n\nEcomXtra is a results-driven eCommerce agency operating under Quadranex IT Solutions.\n👉 https://quadranex-seven.vercel.app/\n\nWe specialize in helping D2C brands and marketplace sellers scale faster through automation, AI, and high-converting design.'
   },
   {
     patterns: ['theek', 'thik', 'accha', 'okay', 'ok', 'sure', 'haan', 'yes', 'yep', 'thanks', 'thank you', 'dhanyawad'],
@@ -296,17 +296,24 @@ function Chatbot({ theme, addLog }) {
                       ? 'bg-white border border-swiss-text/20 text-swiss-text'
                       : 'bg-white border border-slate-200 text-slate-800 rounded-[1rem] rounded-tl-sm shadow-sm'
                 }`}>
-                  {typeof m.text === 'string' && m.text.includes('https://wa.me/') ? (
-                    m.text.split(/(https:\/\/wa\.me\/[^\s]+)/g).map((part, i) =>
-                      part.startsWith('https://wa.me/') ? (
+                  {typeof m.text === 'string' && /(https:\/\/(?:wa\.me\/[^\s]+|quadranex-seven\.vercel\.app\/?))/g.test(m.text) ? (
+                    m.text.split(/(https:\/\/(?:wa\.me\/[^\s]+|quadranex-seven\.vercel\.app\/?))/g).map((part, i) =>
+                      part.startsWith('https://wa.me/') || part.startsWith('https://quadranex-seven.vercel.app') ? (
                         <a
                           key={i}
                           href={part}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-full shadow-sm transition-all"
+                          className={part.startsWith('https://wa.me/')
+                            ? 'inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-full shadow-sm transition-all'
+                            : 'inline-flex items-center gap-1 underline underline-offset-2 hover:text-violet-600'}
                         >
-                          💬 Chat on WhatsApp (+91 8700259557)
+                          {part.startsWith('https://wa.me/') ? '💬 Chat on WhatsApp (+91 8700259557)' : (
+                            <>
+                              Quadranex IT Solutions
+                              <ExternalLink aria-hidden="true" className="h-3 w-3" />
+                            </>
+                          )}
                         </a>
                       ) : (
                         part
