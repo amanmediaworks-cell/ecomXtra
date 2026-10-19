@@ -8,8 +8,11 @@ import HomePage from './pages/HomePage'
 import PhilosophyPage from './pages/PhilosophyPage'
 import ShowcasePage from './pages/ShowcasePage'
 import ServicesPage from './pages/ServicesPage'
+import BlogPage from './pages/BlogPage'
+import BlogPostPage from './pages/BlogPostPage'
 import TestimonialsPage from './pages/TestimonialsPage'
 import ContactPage from './pages/ContactPage'
+import { defaultBlogs } from './data/defaultBlogs'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -58,6 +61,9 @@ function App() {
   const [testimonials, setTestimonials] = useState(() => {
     try { return JSON.parse(localStorage.getItem('ecom_testimonials')) || defaultTestimonials } catch { return defaultTestimonials }
   })
+  const [blogs, setBlogs] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('ecom_blogs')) || defaultBlogs } catch { return defaultBlogs }
+  })
   const [careers, setCareers] = useState(() => {
     try { return JSON.parse(localStorage.getItem('ecom_careers')) || [] } catch { return [] }
   })
@@ -79,6 +85,7 @@ function App() {
   useEffect(() => { localStorage.setItem('ecom_services', JSON.stringify(services)) }, [services])
   useEffect(() => { localStorage.setItem('ecom_showcases', JSON.stringify(showcases)) }, [showcases])
   useEffect(() => { localStorage.setItem('ecom_testimonials', JSON.stringify(testimonials)) }, [testimonials])
+  useEffect(() => { localStorage.setItem('ecom_blogs', JSON.stringify(blogs)) }, [blogs])
   useEffect(() => { localStorage.setItem('ecom_careers', JSON.stringify(careers)) }, [careers])
   useEffect(() => { localStorage.setItem('ecom_consultations', JSON.stringify(consultations)) }, [consultations])
   useEffect(() => { localStorage.setItem('ecom_logs', JSON.stringify(logs)) }, [logs])
@@ -90,6 +97,7 @@ function App() {
       if (e.key === 'ecom_services' && e.newValue)        try { setServices(JSON.parse(e.newValue)) } catch {}
       if (e.key === 'ecom_showcases' && e.newValue)       try { setShowcases(JSON.parse(e.newValue)) } catch {}
       if (e.key === 'ecom_testimonials' && e.newValue)    try { setTestimonials(JSON.parse(e.newValue)) } catch {}
+      if (e.key === 'ecom_blogs' && e.newValue)           try { setBlogs(JSON.parse(e.newValue)) } catch {}
     }
     window.addEventListener('storage', handler)
     return () => window.removeEventListener('storage', handler)
@@ -162,6 +170,9 @@ function App() {
           <Route path="/philosophy" element={<PhilosophyPage theme={theme} />} />
           <Route path="/showcase" element={<ShowcasePage theme={theme} showcases={showcases} />} />
           <Route path="/services" element={<ServicesPage theme={theme} services={services} />} />
+          <Route path="/blog" element={<BlogPage theme={theme} blogs={blogs} />} />
+          <Route path="/blogs" element={<BlogPage theme={theme} blogs={blogs} />} />
+          <Route path="/blog/:id" element={<BlogPostPage theme={theme} blogs={blogs} />} />
           <Route path="/testimonials" element={<TestimonialsPage theme={theme} testimonials={testimonials} />} />
           <Route
             path="/contact"

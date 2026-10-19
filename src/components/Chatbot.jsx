@@ -41,8 +41,12 @@ const KB = [
     reply: '🏢 About EcomXtra:\n\nEcomXtra is a results-driven eCommerce agency operating under Quadranex IT Solutions.\n👉 https://quadranex-seven.vercel.app/\n\nWe specialize in helping D2C brands and marketplace sellers scale faster through automation, AI, and high-converting design.'
   },
   {
+    patterns: ['blog', 'blogs', 'article', 'articles', 'playbook', 'insights', 'read', 'guide', 'post', 'posts'],
+    reply: '📚 EcomXtra Insights & Blogs:\n\nCheck out our latest eCommerce & AI playbooks:\n• Hinglish AI WhatsApp Automation for D2C\n• Headless Shopify vs. Liquid Speed Benchmarks\n• Amazon India #1 Ranking Algorithm Playbook\n• Tier-2/3 Regional eCommerce Psychology\n\nVisit our Blog section at /blog to read all in-depth articles!'
+  },
+  {
     patterns: ['theek', 'thik', 'accha', 'okay', 'ok', 'sure', 'haan', 'yes', 'yep', 'thanks', 'thank you', 'dhanyawad'],
-    reply: 'Shukriya! 🙏 Koi aur sawaal ho toh zaroor poochhen. Main yahan hoon aapki madad ke liye!\n\nType "services" for our offerings or "book" to schedule a consultation.'
+    reply: 'Shukriya! 🙏 Koi aur sawaal ho toh zaroor poochhen. Main yahan hoon aapki madad ke liye!\n\nType "services" for our offerings, "blog" for articles, or "book" to schedule a consultation.'
   },
 ]
 
@@ -249,9 +253,9 @@ function Chatbot({ theme, addLog }) {
           }`}>
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                  isSwiss ? 'bg-swiss-bg text-swiss-text' : 'bg-white text-violet-600 shadow-xs'
-                }`}>AI</div>
+                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center p-0.5 bg-white shadow-xs">
+                  <img src="/logo.png" alt="EcomXtra AI" className="w-full h-full object-contain" />
+                </div>
                 <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 rounded-full border border-white" />
               </div>
               <div>
@@ -283,9 +287,9 @@ function Chatbot({ theme, addLog }) {
             {messages.map((m) => (
               <div key={m.id} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.sender === 'bot' && (
-                  <div className={`w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[9px] font-black mr-2 mt-0.5 ${
-                    isSwiss ? 'bg-swiss-text text-swiss-bg' : 'bg-gradient-to-r from-violet-600 to-pink-500 text-white'
-                  }`}>AI</div>
+                  <div className="w-6 h-6 rounded-full shrink-0 overflow-hidden mr-2 mt-0.5 p-0.5 bg-white border border-gray-200 shadow-xs">
+                    <img src="/logo.png" alt="AI" className="w-full h-full object-contain" />
+                  </div>
                 )}
                 <div className={`max-w-[82%] px-3.5 py-2.5 text-xs leading-relaxed whitespace-pre-wrap ${
                   m.sender === 'user'
@@ -329,9 +333,9 @@ function Chatbot({ theme, addLog }) {
             {/* Typing indicator */}
             {isTyping && (
               <div className="flex items-center gap-2">
-                <div className={`w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[9px] font-black ${
-                  isSwiss ? 'bg-swiss-text text-swiss-bg' : 'bg-gradient-to-r from-violet-600 to-pink-500 text-white'
-                }`}>AI</div>
+                <div className="w-6 h-6 rounded-full shrink-0 overflow-hidden p-0.5 bg-white border border-gray-200 shadow-xs">
+                  <img src="/logo.png" alt="AI" className="w-full h-full object-contain" />
+                </div>
                 <div className={`px-4 py-3 ${
                   isSwiss ? 'bg-white border border-swiss-text/20' : 'bg-white border border-slate-200 rounded-[1rem] rounded-tl-sm shadow-sm'
                 }`}>

@@ -13,7 +13,7 @@ function Hero({ theme }) {
     }`}>
       {/* Top Feature Pill Badge */}
       <div className="mb-6 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-gray-300/40 bg-white/70 backdrop-blur-md shadow-xs transition-all hover:scale-105">
-        <Sparkles className={`w-3.5 h-3.5 ${isSwiss ? 'text-swiss-text' : 'text-pink-500 animate-pulse'}`} />
+        <img src="/logo.png" alt="EcomXtra" className="w-4 h-4 rounded-full object-contain shrink-0" />
         <span className={`text-[11px] font-extrabold uppercase tracking-wider ${
           isSwiss ? 'font-satoshi text-swiss-text' : 'font-outfit text-slate-800'
         }`}>

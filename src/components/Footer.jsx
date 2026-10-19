@@ -9,6 +9,7 @@ function Footer({ theme }) {
     { label: 'Philosophy', path: '/philosophy' },
     { label: 'Showcase', path: '/showcase' },
     { label: 'Services', path: '/services' },
+    { label: 'Blog', path: '/blog' },
     { label: 'Testimonials', path: '/testimonials' },
     { label: 'Contact', path: '/contact' },
   ];
@@ -23,14 +24,18 @@ function Footer({ theme }) {
         {/* Col 1: Brand */}
         <div className="flex flex-col gap-4">
           {isSwiss ? (
-            <Link to="/" className="font-clash text-2xl font-bold text-white tracking-tighter hover:opacity-80 transition-opacity">
-              ECOMXTRA
+            <Link to="/" className="font-clash text-2xl font-bold text-white tracking-tighter hover:opacity-80 transition-opacity flex items-center gap-2.5">
+              <img src="/logo.png" alt="EcomXtra" className="w-7 h-7 rounded-full object-contain shrink-0" />
+              <span>ECOMXTRA</span>
             </Link>
           ) : (
-            <Link to="/" className="font-outfit font-extrabold text-2xl text-white flex items-center gap-0.5 select-none hover:opacity-90 transition-opacity">
-              <span className="font-bold text-white">ecom</span>
-              <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-pink-400 to-amber-400 px-0.5">X</span>
-              <span className="font-bold text-white">tra</span>
+            <Link to="/" className="font-outfit font-extrabold text-2xl text-white flex items-center gap-2 select-none hover:opacity-90 transition-opacity">
+              <img src="/logo.png" alt="EcomXtra" className="w-7 h-7 rounded-full object-contain shrink-0 drop-shadow-sm" />
+              <div className="flex items-center gap-0.5">
+                <span className="font-bold text-white">ecom</span>
+                <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-pink-400 to-amber-400 px-0.5">X</span>
+                <span className="font-bold text-white">tra</span>
+              </div>
             </Link>
           )}
           <p className="text-xs leading-relaxed max-w-[220px]">

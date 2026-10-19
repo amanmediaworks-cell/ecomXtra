@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 import AdminConsole from '../components/AdminConsole'
 import { ExternalLink } from 'lucide-react'
+import { defaultBlogs } from '../data/defaultBlogs'
 
 // Default datasets (mirrored from App.jsx so Admin can read localStorage)
 const defaultServices = [
@@ -72,11 +73,9 @@ function LoginScreen({ onLogin }) {
         <div className="border border-[#f2f2f2]/15 bg-[#1a1a1a]/80 backdrop-blur-xl p-10">
           {/* Header */}
           <div className="mb-10 text-center">
-            {/* Lock icon SVG */}
-            <div className="w-14 h-14 border border-[#f2f2f2]/20 flex items-center justify-center mx-auto mb-6 bg-[#111111]">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="#f2f2f2" className="w-7 h-7">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-              </svg>
+            {/* Logo image & Lock icon */}
+            <div className="w-16 h-16 rounded-full overflow-hidden mx-auto mb-4 p-1 border border-[#f2f2f2]/20 bg-[#111111] shadow-lg">
+              <img src="/logo.png" alt="EcomXtra" className="w-full h-full object-contain" />
             </div>
 
             <span className="font-clash text-[10px] font-black tracking-[0.35em] uppercase text-[#f2f2f2]/40 block mb-3">
@@ -202,6 +201,7 @@ function AdminDashboard({ onLogout }) {
   const [services, setServices]     = useState(() => { try { return JSON.parse(localStorage.getItem('ecom_services')) || defaultServices } catch { return defaultServices } })
   const [showcases, setShowcases]   = useState(() => { try { return JSON.parse(localStorage.getItem('ecom_showcases')) || defaultShowcases } catch { return defaultShowcases } })
   const [testimonials, setTestimonials] = useState(() => { try { return JSON.parse(localStorage.getItem('ecom_testimonials')) || defaultTestimonials } catch { return defaultTestimonials } })
+  const [blogs, setBlogs]           = useState(() => { try { return JSON.parse(localStorage.getItem('ecom_blogs')) || defaultBlogs } catch { return defaultBlogs } })
   const [careers, setCareers]       = useState(() => { try { return JSON.parse(localStorage.getItem('ecom_careers')) || [] } catch { return [] } })
   const [consultations, setConsultations] = useState(() => { try { return JSON.parse(localStorage.getItem('ecom_consultations')) || [] } catch { return [] } })
   const [logs, setLogs]             = useState(() => { try { return JSON.parse(localStorage.getItem('ecom_logs')) || [] } catch { return [] } })
@@ -211,6 +211,7 @@ function AdminDashboard({ onLogout }) {
   useEffect(() => { localStorage.setItem('ecom_services', JSON.stringify(services)) }, [services])
   useEffect(() => { localStorage.setItem('ecom_showcases', JSON.stringify(showcases)) }, [showcases])
   useEffect(() => { localStorage.setItem('ecom_testimonials', JSON.stringify(testimonials)) }, [testimonials])
+  useEffect(() => { localStorage.setItem('ecom_blogs', JSON.stringify(blogs)) }, [blogs])
   useEffect(() => { localStorage.setItem('ecom_careers', JSON.stringify(careers)) }, [careers])
   useEffect(() => { localStorage.setItem('ecom_logs', JSON.stringify(logs)) }, [logs])
 
@@ -241,6 +242,31 @@ function AdminDashboard({ onLogout }) {
     addTestimonial:    (t)     => { const n = { id: Date.now(), ...t }; setTestimonials(p => [...p, n]); addLog(`[Admin] Created Testimonial by: "${t.author}"`) },
     updateTestimonial: (id, t) => { setTestimonials(p => p.map(x => x.id === id ? { ...x, ...t } : x)); addLog(`[Admin] Updated Testimonial ID: ${id}`) },
     deleteTestimonial: (id)    => { setTestimonials(p => p.filter(x => x.id !== id)); addLog(`[Admin] Deleted Testimonial ID: ${id}`) },
+
+    addBlog: (b) => {
+      const slug = b.slug || b.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+      const n = {
+        id: Date.now(),
+        slug,
+        date: b.date || new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        tags: typeof b.tags === 'string' ? b.tags.split(',').map(s => s.trim()).filter(Boolean) : (b.tags || []),
+        ...b
+      }
+      setBlogs(p => [n, ...p])
+      addLog(`[Admin] Created Blog Post: "${b.title}"`)
+    },
+    updateBlog: (id, b) => {
+      setBlogs(p => p.map(x => x.id === id ? {
+        ...x,
+        ...b,
+        tags: typeof b.tags === 'string' ? b.tags.split(',').map(s => s.trim()).filter(Boolean) : (b.tags || x.tags)
+      } : x))
+      addLog(`[Admin] Updated Blog ID: ${id}`)
+    },
+    deleteBlog: (id) => {
+      setBlogs(p => p.filter(x => x.id !== id))
+      addLog(`[Admin] Deleted Blog ID: ${id}`)
+    },
   }
 
   return (
@@ -248,6 +274,9 @@ function AdminDashboard({ onLogout }) {
       {/* Admin Top Header Bar */}
       <header className="sticky top-0 z-50 bg-[#111111] border-b border-[#f2f2f2]/10 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
+          <a href="/" title="Go to website" className="shrink-0 transition-transform hover:scale-105">
+            <img src="/logo.png" alt="EcomXtra" className="w-8 h-8 rounded-full object-contain" />
+          </a>
           {/* Live status dot */}
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-ping block" />
@@ -303,6 +332,7 @@ function AdminDashboard({ onLogout }) {
           services={services}
           showcases={showcases}
           testimonials={testimonials}
+          blogs={blogs}
           careers={careers}
           consultations={consultations}
           logs={logs}
@@ -314,9 +344,9 @@ function AdminDashboard({ onLogout }) {
 }
 
 // ── Inline variant of AdminConsole (no drawer overlay, full page) ────────────
-import { X, Save, Trash2, Edit, Check, Settings, RefreshCw, List, Clipboard, Terminal } from 'lucide-react'
+import { X, Save, Trash2, Edit, Check, Settings, RefreshCw, List, Clipboard, Terminal, BookOpen } from 'lucide-react'
 
-function AdminConsoleInline({ theme, setTheme, services, showcases, testimonials, careers, consultations = [], logs, handleCRUD }) {
+function AdminConsoleInline({ theme, setTheme, services, showcases, testimonials, blogs = [], careers, consultations = [], logs, handleCRUD }) {
   const [activeTab, setActiveTab]   = useState('db')
   const [dbSubTab, setDbSubTab]     = useState('services')
 
@@ -332,8 +362,23 @@ function AdminConsoleInline({ theme, setTheme, services, showcases, testimonials
   const [editingTestimonialId, setEditingTestimonialId] = useState(null)
   const [editingTestimonial, setEditingTestimonial]     = useState({})
 
+  const [newBlog, setNewBlog] = useState({
+    title: '',
+    category: 'AI Automation',
+    author: 'Aman Verma',
+    authorRole: 'Head of Growth Architecture',
+    readTime: '5 min read',
+    coverImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+    tags: 'WhatsApp AI, D2C Growth, Automation',
+    excerpt: '',
+    content: ''
+  })
+  const [editingBlogId, setEditingBlogId] = useState(null)
+  const [editingBlog, setEditingBlog]     = useState({})
+
   const tabs = [
     { id: 'db',            label: 'CRUD Manager',   icon: <List      className="w-4 h-4" /> },
+    { id: 'blogs',         label: 'Manage Blogs',   icon: <BookOpen  className="w-4 h-4" /> },
     { id: 'consultations', label: 'Consultations',  icon: <Clipboard className="w-4 h-4" /> },
     { id: 'leads',         label: 'Career Leads',   icon: <Clipboard className="w-4 h-4" /> },
     { id: 'logs',          label: 'Sync Terminal',  icon: <Terminal  className="w-4 h-4" /> },
@@ -372,6 +417,7 @@ function AdminConsoleInline({ theme, setTheme, services, showcases, testimonials
             { label: 'Services',     val: services.length },
             { label: 'Case Studies', val: showcases.length },
             { label: 'Reviews',      val: testimonials.length },
+            { label: 'Blog Posts',   val: blogs.length },
             { label: 'Enquiries',    val: consultations.length },
             { label: 'Career Leads', val: careers.length },
           ].map(s => (
@@ -557,6 +603,299 @@ function AdminConsoleInline({ theme, setTheme, services, showcases, testimonials
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ─── Blog Manager ─── */}
+        {activeTab === 'blogs' && (
+          <div className="space-y-8">
+            <div className="mb-8">
+              <h2 className="font-clash text-xl font-bold text-[#f2f2f2] tracking-tight">Blog & Knowledge Base Manager</h2>
+              <p className="text-xs text-[#f2f2f2]/35 mt-1">Publish, edit, and organize strategic eCommerce playbooks for the public blog directory.</p>
+            </div>
+
+            {/* Form: New Blog Article */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newBlog.title.trim()) return;
+                handleCRUD.addBlog(newBlog);
+                setNewBlog({
+                  title: '',
+                  category: 'AI Automation',
+                  author: 'Aman Verma',
+                  authorRole: 'Head of Growth Architecture',
+                  readTime: '5 min read',
+                  coverImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+                  tags: 'WhatsApp AI, D2C Growth, Automation',
+                  excerpt: '',
+                  content: ''
+                });
+              }}
+              className="border border-[#f2f2f2]/10 bg-[#141414] p-6 space-y-4"
+            >
+              <h3 className="text-[10px] font-black tracking-[0.25em] uppercase text-[#f2f2f2]/50">[ Publish New Blog Article ]</h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-2">
+                  <label className={labelCls}>Article Title</label>
+                  <input
+                    required
+                    value={newBlog.title}
+                    onChange={e => setNewBlog({ ...newBlog, title: e.target.value })}
+                    placeholder="e.g. How Hinglish AI WhatsApp Automation Boosts D2C Conversions"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Category</label>
+                  <select
+                    value={newBlog.category}
+                    onChange={e => setNewBlog({ ...newBlog, category: e.target.value })}
+                    className={inputCls}
+                  >
+                    {['AI Automation', 'Shopify & Tech', 'Marketplace SEO', 'CRO & Growth'].map(c => (
+                      <option key={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div>
+                  <label className={labelCls}>Author Name</label>
+                  <input
+                    value={newBlog.author}
+                    onChange={e => setNewBlog({ ...newBlog, author: e.target.value })}
+                    placeholder="e.g. Aman Verma"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Author Role</label>
+                  <input
+                    value={newBlog.authorRole}
+                    onChange={e => setNewBlog({ ...newBlog, authorRole: e.target.value })}
+                    placeholder="e.g. Lead Architect"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Read Time</label>
+                  <input
+                    value={newBlog.readTime}
+                    onChange={e => setNewBlog({ ...newBlog, readTime: e.target.value })}
+                    placeholder="e.g. 5 min read"
+                    className={inputCls}
+                  />
+                </div>
+                <div>
+                  <label className={labelCls}>Tags (comma-separated)</label>
+                  <input
+                    value={newBlog.tags}
+                    onChange={e => setNewBlog({ ...newBlog, tags: e.target.value })}
+                    placeholder="AI, WhatsApp, D2C"
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={labelCls}>Cover Image URL</label>
+                <input
+                  value={newBlog.coverImage}
+                  onChange={e => setNewBlog({ ...newBlog, coverImage: e.target.value })}
+                  placeholder="https://images.unsplash.com/..."
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label className={labelCls}>Excerpt / Summary</label>
+                <textarea
+                  required
+                  rows={2}
+                  value={newBlog.excerpt}
+                  onChange={e => setNewBlog({ ...newBlog, excerpt: e.target.value })}
+                  placeholder="Brief synopsis shown on cards and social previews..."
+                  className={`${inputCls} resize-none`}
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className={labelCls}>Full Article Body (Markdown supported)</label>
+                  <span className="text-[9px] text-[#f2f2f2]/30">Supports ### headings, &gt; quotes, * bullet points</span>
+                </div>
+                <textarea
+                  required
+                  rows={8}
+                  value={newBlog.content}
+                  onChange={e => setNewBlog({ ...newBlog, content: e.target.value })}
+                  placeholder="### Section Heading&#10;&#10;Detailed explanation and breakdown...&#10;&#10;&gt; Key insight or quote&#10;&#10;* Action item 1&#10;* Action item 2"
+                  className={`${inputCls} font-mono text-[11px] leading-relaxed resize-y`}
+                />
+              </div>
+
+              <button type="submit" className={btnCreate}>+ Publish Blog Article</button>
+            </form>
+
+            {/* List of Published Articles */}
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black tracking-[0.25em] uppercase text-[#f2f2f2]/30">
+                [ {blogs.length} Published Articles ]
+              </h4>
+
+              {blogs.map(b => (
+                <div key={b.id} className="border border-[#f2f2f2]/10 bg-[#141414] p-5">
+                  {editingBlogId === b.id ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="sm:col-span-2">
+                          <label className={labelCls}>Title</label>
+                          <input
+                            value={editingBlog.title}
+                            onChange={e => setEditingBlog({ ...editingBlog, title: e.target.value })}
+                            className={inputCls}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Category</label>
+                          <select
+                            value={editingBlog.category}
+                            onChange={e => setEditingBlog({ ...editingBlog, category: e.target.value })}
+                            className={inputCls}
+                          >
+                            {['AI Automation', 'Shopify & Tech', 'Marketplace SEO', 'CRO & Growth'].map(c => (
+                              <option key={c}>{c}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <label className={labelCls}>Author</label>
+                          <input
+                            value={editingBlog.author}
+                            onChange={e => setEditingBlog({ ...editingBlog, author: e.target.value })}
+                            className={inputCls}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Read Time</label>
+                          <input
+                            value={editingBlog.readTime}
+                            onChange={e => setEditingBlog({ ...editingBlog, readTime: e.target.value })}
+                            className={inputCls}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelCls}>Cover Image URL</label>
+                          <input
+                            value={editingBlog.coverImage}
+                            onChange={e => setEditingBlog({ ...editingBlog, coverImage: e.target.value })}
+                            className={inputCls}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className={labelCls}>Excerpt</label>
+                        <textarea
+                          rows={2}
+                          value={editingBlog.excerpt}
+                          onChange={e => setEditingBlog({ ...editingBlog, excerpt: e.target.value })}
+                          className={`${inputCls} resize-none`}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelCls}>Content (Markdown)</label>
+                        <textarea
+                          rows={6}
+                          value={editingBlog.content}
+                          onChange={e => setEditingBlog({ ...editingBlog, content: e.target.value })}
+                          className={`${inputCls} font-mono text-[11px] leading-relaxed resize-y`}
+                        />
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          onClick={() => {
+                            handleCRUD.updateBlog(b.id, editingBlog);
+                            setEditingBlogId(null);
+                          }}
+                          className="px-4 py-2 bg-green-600 text-white text-[10px] font-black tracking-widest uppercase hover:bg-green-700 transition-colors flex items-center gap-1.5"
+                        >
+                          <Check className="w-4 h-4" /> Save Article
+                        </button>
+                        <button
+                          onClick={() => setEditingBlogId(null)}
+                          className="px-4 py-2 bg-[#f2f2f2]/10 text-[#f2f2f2] text-[10px] font-black tracking-widest uppercase hover:bg-[#f2f2f2]/20 transition-colors flex items-center gap-1.5"
+                        >
+                          <X className="w-4 h-4" /> Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col md:flex-row gap-5 items-start justify-between">
+                      {b.coverImage && (
+                        <div className="w-full md:w-36 h-24 shrink-0 rounded bg-slate-900 overflow-hidden border border-[#f2f2f2]/10">
+                          <img src={b.coverImage} alt={b.title} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className="text-[9px] font-black tracking-wider uppercase text-[#f2f2f2]/40 border border-[#f2f2f2]/10 px-2 py-0.5">
+                            {b.category}
+                          </span>
+                          <span className="text-[10px] text-[#f2f2f2]/30">{b.date}</span>
+                          <span className="text-[10px] text-[#f2f2f2]/30">· {b.readTime}</span>
+                          <span className="text-[10px] text-[#f2f2f2]/30">· By {b.author}</span>
+                        </div>
+                        <h4 className="text-sm font-bold text-[#f2f2f2] leading-snug">
+                          {b.title}
+                        </h4>
+                        <p className="text-[11px] text-[#f2f2f2]/50 mt-1.5 line-clamp-2 leading-relaxed">
+                          {b.excerpt}
+                        </p>
+                        <div className="mt-3 flex items-center gap-3">
+                          <a
+                            href={`/blog/${b.slug || b.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-bold text-violet-400 hover:text-violet-300 underline tracking-wider uppercase"
+                          >
+                            View on Site ↗
+                          </a>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 items-center shrink-0 self-start">
+                        <button
+                          onClick={() => {
+                            setEditingBlogId(b.id);
+                            setEditingBlog(b);
+                          }}
+                          className="p-2 border border-[#f2f2f2]/10 text-[#f2f2f2]/50 hover:text-[#f2f2f2] hover:border-[#f2f2f2]/30"
+                          title="Edit Article"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleCRUD.deleteBlog(b.id)}
+                          className="p-2 border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40"
+                          title="Delete Article"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

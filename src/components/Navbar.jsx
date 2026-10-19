@@ -1,23 +1,29 @@
 import React, { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 
-// Logo with oversized X
+// Logo with brand mark
 function Logo({ theme }) {
   if (theme === 'swiss') {
     return (
-      <Link to="/" className="font-clash font-bold tracking-tighter hover:opacity-80 transition-opacity text-swiss-text flex items-baseline gap-0 select-none">
-        <span className="text-2xl font-black">ECOM</span>
-        <span className="text-5xl font-black leading-none" style={{ lineHeight: 1, transform: 'translateY(4px)', display: 'inline-block' }}>X</span>
-        <span className="text-2xl font-black">TRA</span>
-        <span className="text-[9px] align-super ml-0.5 font-bold opacity-60">®</span>
+      <Link to="/" className="font-clash font-bold tracking-tighter hover:opacity-80 transition-opacity text-swiss-text flex items-center gap-2.5 select-none">
+        <img src="/logo.png" alt="EcomXtra Logo" className="w-8 h-8 rounded-full object-contain shrink-0" />
+        <div className="flex items-baseline gap-0">
+          <span className="text-2xl font-black">ECOM</span>
+          <span className="text-4xl font-black leading-none" style={{ lineHeight: 1, transform: 'translateY(2px)', display: 'inline-block' }}>X</span>
+          <span className="text-2xl font-black">TRA</span>
+          <span className="text-[9px] align-super ml-0.5 font-bold opacity-60">®</span>
+        </div>
       </Link>
     )
   }
   return (
-    <Link to="/" className="font-outfit font-extrabold tracking-tight hover:opacity-90 transition-opacity text-slate-900 flex items-center gap-0.5 select-none">
-      <span className="text-xl font-bold tracking-tight text-slate-900">ecom</span>
-      <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 leading-none px-0.5">X</span>
-      <span className="text-xl font-bold tracking-tight text-slate-900">tra</span>
+    <Link to="/" className="font-outfit font-extrabold tracking-tight hover:opacity-90 transition-opacity text-slate-900 flex items-center gap-2 select-none group">
+      <img src="/logo.png" alt="EcomXtra Logo" className="w-8 h-8 rounded-full object-contain shrink-0 drop-shadow-sm transition-transform duration-300 group-hover:rotate-6 group-hover:scale-105" />
+      <div className="flex items-center gap-0.5">
+        <span className="text-xl font-bold tracking-tight text-slate-900">ecom</span>
+        <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 leading-none px-0.5">X</span>
+        <span className="text-xl font-bold tracking-tight text-slate-900">tra</span>
+      </div>
     </Link>
   )
 }
@@ -30,6 +36,7 @@ function Navbar({ theme }) {
     { label: 'Philosophy',   path: '/philosophy' },
     { label: 'Showcase',     path: '/showcase' },
     { label: 'Services',     path: '/services' },
+    { label: 'Blog',         path: '/blog' },
     { label: 'Testimonials', path: '/testimonials' },
     { label: 'Contact',      path: '/contact' },
   ]
