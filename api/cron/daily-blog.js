@@ -234,10 +234,35 @@ function extractGeminiText(payload) {
 
 async function generateArticle(category, titles, recentTopics) {
   const model = process.env.GEMINI_MODEL || EXPECTED_GEMINI_MODEL
+
+  const log = (level, event, details = {}) => {
+    const entry = JSON.stringify({
+      timestamp: new Date().toISOString(),
+      event,
+      category,
+      ...details,
+    })
+
+    if (level === 'error') console.error(entry)
+    else if (level === 'warn') console.warn(entry)
+    else console.info(entry)
+  }
+
   if (model !== EXPECTED_GEMINI_MODEL) {
+    log('error', 'gemini_model_not_approved', {
+      configuredModel: model,
+      expectedModel: EXPECTED_GEMINI_MODEL,
+    })
     throw new JobError('gemini_model_not_approved', 500)
   }
+
+  if (!process.env.GEMINI_API_KEY) {
+    log('error', 'gemini_api_key_missing')
+    throw new JobError('gemini_api_key_missing', 500)
+  }
+
   const prompt = buildPrompt(category, titles, recentTopics)
+
   const schema = {
     type: 'OBJECT',
     properties: {
@@ -249,12 +274,30 @@ async function generateArticle(category, titles, recentTopics) {
       image_search_query: { type: 'STRING' },
       content: { type: 'STRING' },
     },
-    required: ['title', 'excerpt', 'seo_title', 'meta_description', 'tags', 'image_search_query', 'content'],
+    required: [
+      'title',
+      'excerpt',
+      'seo_title',
+      'meta_description',
+      'tags',
+      'image_search_query',
+      'content',
+    ],
   }
 
   let previousIssues = []
+
   for (let attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt += 1) {
+    const startedAt = Date.now()
+
+    log('info', 'gemini_generation_started', {
+      attempt,
+      maxAttempts: MAX_GENERATION_ATTEMPTS,
+      model,
+    })
+
     let response
+
     try {
       response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${EXPECTED_GEMINI_MODEL}:generateContent`,
@@ -283,27 +326,236 @@ async function generateArticle(category, titles, recentTopics) {
           signal: AbortSignal.timeout(GEMINI_REQUEST_TIMEOUT_MS),
         },
       )
-    } catch {
-      throw new JobError('gemini_request_failed', 502)
+    } catch (error) {
+      const timedOut =
+        error?.name === 'TimeoutError' ||
+        error?.name === 'AbortError'
+
+      log('error', 'gemini_request_failed', {
+        attempt,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
+        durationMs: Date.now() - startedAt,
+        errorName: error?.name || 'UnknownError',
+        errorMessage: error?.message || 'No error message available',
+        timedOut,
+      })
+
+      throw new JobError(
+        timedOut ? 'gemini_request_timeout' : 'gemini_request_failed',
+        502,
+      )
     }
+
     if (!response.ok) {
-      throw new JobError(`gemini_http_${response.status}`, response.status === 429 ? 503 : 502)
+      let responseBody = ''
+
+      try {
+        const errorPayload = await response.json()
+        responseBody =
+          errorPayload?.error?.message ||
+          JSON.stringify(errorPayload?.error || errorPayload)
+      } catch {
+        responseBody = 'Gemini returned a non-JSON error response'
+      }
+
+      // Limit log length to avoid excessively large entries.
+      responseBody = String(responseBody).slice(0, 1000)
+
+      const retryable = [429, 500, 502, 503, 504].includes(
+        response.status,
+      )
+
+      const canRetry =
+        retryable && attempt < MAX_GENERATION_ATTEMPTS
+
+      log(canRetry ? 'warn' : 'error', 'gemini_http_error', {
+        attempt,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
+        httpStatus: response.status,
+        statusText: response.statusText,
+        durationMs: Date.now() - startedAt,
+        retryable,
+        willRetry: canRetry,
+        responseBody,
+      })
+
+      if (canRetry) {
+        const delayMs = Math.min(1000 * 2 ** (attempt - 1), 4000)
+
+        log('warn', 'gemini_retry_scheduled', {
+          attempt,
+          nextAttempt: attempt + 1,
+          delayMs,
+          reason: `HTTP ${response.status}`,
+        })
+
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+        continue
+      }
+
+      throw new JobError(
+        `gemini_http_${response.status}`,
+        retryable ? 503 : 502,
+      )
     }
 
     let payload
+
     try {
       payload = await response.json()
-      const article = JSON.parse(extractGeminiText(payload))
-      previousIssues = getArticleValidationIssues(article, category)
-      if (previousIssues.length === 0) return article
     } catch (error) {
-      if (error instanceof JobError && error.code.startsWith('gemini_http_')) throw error
-      previousIssues = ['response must be valid JSON matching the article schema']
+      previousIssues = ['Gemini returned a response that was not valid JSON']
+
+      log('error', 'gemini_response_json_parse_failed', {
+        attempt,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
+        durationMs: Date.now() - startedAt,
+        errorName: error?.name || 'UnknownError',
+        errorMessage: error?.message || 'No error message available',
+      })
+
+      if (attempt === MAX_GENERATION_ATTEMPTS) {
+        throw new JobError('gemini_output_validation_failed', 502)
+      }
+
+      continue
     }
-    if (attempt === MAX_GENERATION_ATTEMPTS) {
+
+    const candidate = payload?.candidates?.[0]
+    const finishReason = candidate?.finishReason || 'UNKNOWN'
+    const promptFeedback = payload?.promptFeedback?.blockReason
+
+    if (promptFeedback) {
+      log('error', 'gemini_prompt_blocked', {
+        attempt,
+        blockReason: promptFeedback,
+        durationMs: Date.now() - startedAt,
+      })
+    }
+
+    if (!candidate) {
+      previousIssues = [
+        promptFeedback
+          ? `Gemini blocked the prompt: ${promptFeedback}`
+          : 'Gemini returned no candidate',
+      ]
+
+      log('error', 'gemini_candidate_missing', {
+        attempt,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
+        finishReason,
+        blockReason: promptFeedback || null,
+        responseKeys: Object.keys(payload || {}),
+      })
+
+      if (attempt === MAX_GENERATION_ATTEMPTS) {
+        throw new JobError('gemini_output_validation_failed', 502)
+      }
+
+      continue
+    }
+
+    if (finishReason === 'MAX_TOKENS') {
+      previousIssues = [
+        'Gemini stopped at the output token limit; generated content may be incomplete',
+      ]
+
+      log('warn', 'gemini_output_truncated', {
+        attempt,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
+        finishReason,
+        durationMs: Date.now() - startedAt,
+        maxOutputTokens: 5000,
+      })
+
+      if (attempt === MAX_GENERATION_ATTEMPTS) {
+        throw new JobError('gemini_output_validation_failed', 502)
+      }
+
+      continue
+    }
+
+    if (finishReason !== 'STOP') {
+      log('warn', 'gemini_unexpected_finish_reason', {
+        attempt,
+        finishReason,
+        safetyRatings: candidate?.safetyRatings || [],
+      })
+    }
+
+    let article
+
+    try {
+      const generatedText = extractGeminiText(payload)
+      article = JSON.parse(generatedText)
+    } catch (error) {
+      previousIssues = [
+        'Gemini response could not be extracted or parsed as valid article JSON',
+      ]
+
+      log('error', 'gemini_article_parse_failed', {
+        attempt,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
+        finishReason,
+        durationMs: Date.now() - startedAt,
+        errorName: error?.name || 'UnknownError',
+        errorMessage: error?.message || 'No error message available',
+      })
+
+      if (attempt === MAX_GENERATION_ATTEMPTS) {
+        throw new JobError('gemini_output_validation_failed', 502)
+      }
+
+      continue
+    }
+
+    try {
+      previousIssues = getArticleValidationIssues(article, category)
+    } catch (error) {
+      log('error', 'gemini_article_validator_threw', {
+        attempt,
+        errorName: error?.name || 'UnknownError',
+        errorMessage: error?.message || 'No error message available',
+      })
+
       throw new JobError('gemini_output_validation_failed', 502)
     }
+
+    if (previousIssues.length === 0) {
+      log('info', 'gemini_generation_succeeded', {
+        attempt,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
+        durationMs: Date.now() - startedAt,
+        finishReason,
+        contentLength: article.content.length,
+        tagCount: article.tags.length,
+      })
+
+      return article
+    }
+
+    log('warn', 'gemini_article_validation_failed', {
+      attempt,
+      maxAttempts: MAX_GENERATION_ATTEMPTS,
+      durationMs: Date.now() - startedAt,
+      finishReason,
+      issues: previousIssues,
+    })
+
+    if (attempt < MAX_GENERATION_ATTEMPTS) {
+      log('info', 'gemini_regeneration_scheduled', {
+        attempt,
+        nextAttempt: attempt + 1,
+        reason: 'Article validation failed',
+      })
+    }
   }
+
+  log('error', 'gemini_generation_exhausted', {
+    maxAttempts: MAX_GENERATION_ATTEMPTS,
+    finalIssues: previousIssues,
+  })
+
   throw new JobError('gemini_output_validation_failed', 502)
 }
 
