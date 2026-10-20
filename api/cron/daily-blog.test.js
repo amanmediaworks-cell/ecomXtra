@@ -219,6 +219,21 @@ test('article validation enforces length and required article sections', () => {
   assert.ok(countWords(article.content) >= 700)
   assert.equal(isValidArticle(article, 'Shopify & Tech'), true)
   assert.equal(isValidArticle(validArticle('##'), 'Shopify & Tech'), true)
+  assert.equal(isValidArticle({
+    ...article,
+    content: article.content
+      .replace('### Conclusion', '## Conclusion:')
+      .replace('### Frequently Asked Questions', '## Frequently Asked Questions:'),
+  }, 'Shopify & Tech'), true)
+  assert.equal(isValidArticle({
+    ...article,
+    content: article.content
+      .replace('### Frequently Asked Questions', '## Frequently Asked Questions (FAQ)'),
+  }, 'Shopify & Tech'), true)
+  assert.equal(isValidArticle({
+    ...article,
+    content: article.content.replace(/###/g, '#'),
+  }, 'Shopify & Tech'), true)
   const issues = getArticleValidationIssues({
     ...article,
     meta_description: 'x'.repeat(170),

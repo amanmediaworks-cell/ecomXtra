@@ -8,7 +8,7 @@ function StatsSection({ metrics = [] }) {
   if (!metrics.length) return null
 
   return (
-    <section className="grid grid-cols-1 md:grid-cols-3 gap-6 py-10 px-6 max-w-6xl mx-auto">
+    <section className="grid grid-cols-1 md:grid-cols-3 gap-6 py-12 px-4 sm:px-6 lg:px-8 xl:px-12 max-w-7xl mx-auto w-full">
       {metrics.map((stat, index) => (
         <article
           key={`${stat.label || 'metric'}-${index}`}

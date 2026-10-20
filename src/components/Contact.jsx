@@ -63,9 +63,7 @@ function Contact({ content }) {
   ];
 
   return (
-    <section id="contact" className={`py-12 md:py-20 px-6 max-w-6xl mx-auto ${
-      ''
-    }`}>
+    <section id="contact" className="py-12 md:py-20 px-4 sm:px-6 lg:px-8 xl:px-12 max-w-7xl mx-auto w-full">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         {/* Left Column: Info & Description */}
         <div className="lg:col-span-5 flex flex-col justify-between">

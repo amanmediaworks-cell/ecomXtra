@@ -8,7 +8,7 @@ export const siteContentDefaults = [
       heading: 'ECOMXTRA',
       subheading: 'We build high-converting ecommerce storefronts, custom integrations, and smart Hinglish AI automation that automatically closes sales for growth-minded brands.',
       description: '',
-      imageUrl: '',
+      imageUrl: 'https://cdn.pixabay.com/photo/2017/03/13/17/26/ecommerce-2140603_1280.jpg',
       buttons: [
         { label: 'Book Consultation', href: '/contact' },
         { label: 'Chat With AI Agent', href: 'https://wa.me/918700259557?text=Hi%20EcomXtra%2C%20I%20want%20to%20chat%20with%20an%20AI%20agent%20and%20get%20a%20quote' },
@@ -23,7 +23,7 @@ export const siteContentDefaults = [
       eyebrow: '[ PHILOSOPHY ]',
       heading: 'We design systems where digital efficiency and raw automation align to drive commerce.',
       description: 'We reject standard, bloated templates. EcomXtra operates on precision principles: heavy typography, high-contrast layouts, and robust backend integrations that require zero manual upkeep.',
-      imageUrl: '',
+      imageUrl: 'https://cdn.pixabay.com/photo/2024/05/21/19/57/computer-8779036_1280.jpg',
       highlights: ['High-speed storefronts', 'Automated catalog syncs', 'AI-driven WhatsApp conversations'],
     },
   },

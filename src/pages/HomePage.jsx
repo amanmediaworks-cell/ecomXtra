@@ -20,7 +20,6 @@ function HomePage({
   })
   const sections = [
     { key: 'hero', render: () => <Hero content={sectionContent('hero')} /> },
-    { key: 'about', render: () => <About content={sectionContent('about')} /> },
     { key: 'stats', render: () => <StatsSection metrics={sectionContent('stats').metrics} /> },
     { key: 'showcase_section', render: () => <ShowcaseGrid showcases={showcases} content={sectionContent('showcase_section')} /> },
     { key: 'services_section', render: () => <Services services={services} content={sectionContent('services_section')} /> },

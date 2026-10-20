@@ -1,11 +1,16 @@
 
+import SafeImage from './SafeImage'
+
+const DEFAULT_ABOUT_IMAGE = 'https://cdn.pixabay.com/photo/2024/05/21/19/57/computer-8779036_1280.jpg'
+
 function About({ content }) {
   const about = content || {}
+  const aboutImage = about.imageUrl || DEFAULT_ABOUT_IMAGE
 
   return (
-    <section id="philosophy" className="py-20 md:py-28 px-6 max-w-6xl mx-auto">
+    <section id="philosophy" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 xl:px-12 max-w-7xl mx-auto w-full">
       {/* Top Section / Layout */}
-      <div className="">
+      <div>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Title / Section Name */}
           <div className="lg:col-span-3">
@@ -16,7 +21,7 @@ function About({ content }) {
             </span>
           </div>
 
-          {/* Giant Bold Quote */}
+          {/* Giant Bold Quote and Visual */}
           <div className="lg:col-span-9">
             <h2 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight ${
               'font-outfit text-slate-900 font-extrabold'
@@ -37,13 +42,30 @@ function About({ content }) {
                 ))}
               </ul>
             )}
-            {about.imageUrl && (
-              <img src={about.imageUrl} alt="" className="mt-6 max-h-64 max-w-full rounded-2xl object-contain" />
-            )}
+
+            {/* Curated Visual Representation Card */}
+            <div className="mt-10 relative overflow-hidden rounded-3xl border-2 border-violet-200/80 bg-white shadow-xl group">
+              <div className="relative aspect-[16/9] sm:aspect-[2.2/1] w-full overflow-hidden bg-slate-900">
+                <SafeImage
+                  src={aboutImage}
+                  alt="EcomXtra Commerce Architecture & Digital Automation"
+                  className="w-full h-full"
+                  imgClassName="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-black/10 pointer-events-none" />
+                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white">
+                  <span className="text-xs font-extrabold font-outfit uppercase tracking-wider bg-violet-600/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">
+                    Autonomous Architecture
+                  </span>
+                  <span className="text-[11px] font-mono text-slate-300">
+                    Precision Principles
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
     </section>
   );
 }

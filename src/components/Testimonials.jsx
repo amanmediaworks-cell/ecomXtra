@@ -19,9 +19,7 @@ function Testimonials({
   };
 
   return (
-    <section id="testimonials" className={`py-20 md:py-28 px-6 max-w-6xl mx-auto ${
-      ''
-    }`}>
+    <section id="testimonials" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 xl:px-12 max-w-7xl mx-auto w-full">
       <div className="mb-12 flex flex-col md:flex-row md:items-end md:justify-between gap-6">
         <div>
           <span className={`text-xs font-black tracking-widest uppercase block mb-2 ${

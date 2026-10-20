@@ -141,23 +141,23 @@ function readingTime(value) {
 
 function normalizeArticleContent(content) {
   let value = String(content).replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-  if (!value.includes('\n')) {
+  if (value.includes('\\n')) {
     value = value.replace(/\\n/g, '\n')
   }
   return value
-    .replace(/[ \t]+(#{2,4}\s+)/g, '\n$1')
+    .replace(/[ \t]+(#{1,4}\s+)/g, '\n$1')
     .replace(
-      /^(#{2,4}\s+)((?:in\s+)?conclusion|frequently asked questions|faqs?)\s+/gim,
+      /^(#{1,4}\s+)((?:in\s+)?conclusion|frequently asked questions|faqs?)\s+/gim,
       '$1$2\n',
     )
 }
 
 function parseMarkdownHeading(line) {
-  const match = String(line).trim().match(/^(#{2,4})\s+\*{0,2}(.+?)\*{0,2}\s*#*\s*$/)
+  const match = String(line).trim().match(/^(#{1,4})\s+\*{0,2}(.+?)\*{0,2}\s*#*\s*$/)
   if (!match) return null
   return {
-    level: match[1].length,
-    title: match[2].replace(/\*+/g, '').trim(),
+    level: Math.max(2, match[1].length),
+    title: match[2].replace(/\*+/g, '').replace(/[:.]\s*$/, '').trim(),
   }
 }
 
@@ -240,12 +240,12 @@ function getArticleValidationIssues(article, category) {
     const headings = listMarkdownHeadings(content)
     if (headings.length < 3) issues.push('content must include Markdown section headings')
 
-    const conclusionText = extractNamedSection(content, /^(?:in\s+)?conclusion$/i)
+    const conclusionText = extractNamedSection(content, /^(?:in\s+|final\s+)?conclusion:?$/i)
     if (!conclusionText || countWords(conclusionText) < 30) {
       issues.push('content must include a Conclusion section with at least 30 words')
     }
 
-    const faqText = extractNamedSection(content, /^(?:frequently\s+asked\s+questions|faqs?)$/i)
+    const faqText = extractNamedSection(content, /^(?:frequently\s+asked\s+questions|faqs?)(?:\s*\(faqs?\))?:?$/i)
     if (!faqText) {
       issues.push('content must include a Frequently Asked Questions or FAQs section')
     } else {
@@ -332,29 +332,36 @@ function isValidImagePayload(imageUrl, socialImage, metadata) {
 
 function buildPrompt(category, titles, recentTopics) {
   return [
-    'You are an experienced e-commerce content writer for the EcomXtra e-commerce growth blog.',
-    `Topic category: ${category}. Choose one specific, useful, evergreen topic that differs meaningfully from the existing titles and recent topics.`,
+    'You are a senior e-commerce SEO content strategist and writer for the EcomXtra e-commerce growth blog.',
+    `Topic category: ${category}. Choose one high-intent, actionable, evergreen topic tailored to eCommerce merchants and marketplace sellers that differs meaningfully from the existing titles and recent topics.`,
     
-    'ARTICLE LENGTH AND QUALITY:',
-    'Write 800–1000 words of Markdown for the content field. Use clear natural English, practical advice, actionable steps, and one explicitly hypothetical example. Avoid repetition and generic filler.',
+    'ARTICLE LENGTH AND DEPTH (CRITICAL FOR SEO & RANKING):',
+    'Write 800–1000 words of Markdown for the content field (aim for 950–1200 words to ensure top search engine authority; articles under 700 words are rejected). Provide in-depth explanations, practical advice, actionable implementation steps, and one explicitly hypothetical store case study or example. Do not write shallow summaries or generic filler.',
+    'Follow this section-by-section length breakdown to guarantee minimum length:',
+    '- Introduction: 80–120 words establishing the problem, why it impacts sales/conversion, and what the reader will learn.',
+    '- At least 3 Main Sections: 180–250 words per section with tactical steps, optimization workflows, and realistic metrics.',
+    '- Hypothetical Example: 100–150 words detailing a concrete store scenario demonstrating results.',
+    '- Conclusion: 50–90 words with strategic takeaways and next steps.',
+    '- Frequently Asked Questions: 120–180 words providing substantive answers to 2–4 search queries.',
     
-    'MANDATORY ARTICLE STRUCTURE:',
-    'The content field MUST contain all of these sections, in this exact order, using Markdown ATX headings on their own lines (## or ###):',
-    '1. An introduction before the main sections.',
-    '2. At least three useful main sections, each starting with a heading such as "## Section title".',
-    '3. A heading whose title is exactly "Conclusion" (for example "## Conclusion"), followed by at least 40 words.',
+    'MANDATORY ARTICLE STRUCTURE AND HEADINGS (EXACT FORMAT REQUIRED):',
+    'The content field MUST contain all of these sections, in this exact order, using Markdown ATX headings on their own isolated lines with empty lines above and below (## for main sections, ### for FAQ questions):',
+    '1. An introduction paragraph before the main sections (starts immediately with text; do not put a heading above the introduction).',
+    '2. At least three useful main sections, each starting with a heading such as "## Section title". Never use single "#" headings.',
+    '3. A heading whose title is exactly "Conclusion" (for example "## Conclusion"), followed by at least 40 words (aim for 60+ words). Do not append colons, numbers, or extra text to "## Conclusion".',
     '4. A heading whose title is exactly "Frequently Asked Questions" (for example "## Frequently Asked Questions"), followed by 2–4 questions that each end with a question mark on their own line, plus concise answers.',
+    'Each FAQ question must be an H3 heading starting with "### " and ending with a question mark "?" on its own line (e.g. "### How do I improve marketplace product visibility?"), followed by a substantive answer of at least 40 words.',
     'Do not omit, rename, or combine Conclusion or Frequently Asked Questions. Do not use bold text or numbered lists as a substitute for Markdown headings.',
     'Before returning your response, verify that the content field contains at least five Markdown headings, including Conclusion and Frequently Asked Questions.',
     
     'FIELD REQUIREMENTS:',
-    '- title: 25–100 characters.',
-    '- excerpt: 60–240 characters.',
-    '- seo_title: maximum 60 characters.',
-    '- meta_description: maximum 160 characters.',
-    '- image_search_query: 2–5 concise visual keywords.',
+    '- title: 25–100 characters. High-CTR, search-optimized title that targets high-intent queries.',
+    '- excerpt: 60–240 characters. Compelling summary highlighting key takeaways.',
+    '- seo_title: maximum 60 characters. Clean, keyword-focused meta title for Google SERPs.',
+    '- meta_description: maximum 160 characters. Action-oriented meta description to drive organic clicks.',
+    '- image_search_query: 2–5 concise visual keywords describing a relevant photo for Pixabay.',
     '- tags: 3–6 distinct strings, each at most 32 characters.',
-    '- content: complete Markdown article meeting every structural requirement above.',
+    '- content: complete Markdown article meeting every structural and length requirement above.',
     
     'FACTUAL ACCURACY:',
     'Do not invent facts, statistics, customer results, product capabilities, personal experiences, quotes, citations, or current claims. Avoid unsupported numbers. Keep the article evergreen, useful, and actionable.',
@@ -412,13 +419,35 @@ async function generateArticle(category, titles, recentTopics) {
   const schema = {
     type: 'OBJECT',
     properties: {
-      title: { type: 'STRING' },
-      excerpt: { type: 'STRING' },
-      seo_title: { type: 'STRING' },
-      meta_description: { type: 'STRING' },
-      tags: { type: 'ARRAY', items: { type: 'STRING' } },
-      image_search_query: { type: 'STRING' },
-      content: { type: 'STRING' },
+      title: {
+        type: 'STRING',
+        description: 'High-CTR, search-optimized article title between 25 and 100 characters.',
+      },
+      excerpt: {
+        type: 'STRING',
+        description: 'Engaging summary of the article between 60 and 240 characters.',
+      },
+      seo_title: {
+        type: 'STRING',
+        description: 'Primary SEO meta title, maximum 60 characters.',
+      },
+      meta_description: {
+        type: 'STRING',
+        description: 'Compelling search engine snippet, maximum 160 characters.',
+      },
+      tags: {
+        type: 'ARRAY',
+        items: { type: 'STRING' },
+        description: 'Array of 3 to 6 distinct topic tags, each at most 32 characters.',
+      },
+      image_search_query: {
+        type: 'STRING',
+        description: '2 to 5 concise visual keywords for Pixabay photo search (e.g. "ecommerce warehouse logistics").',
+      },
+      content: {
+        type: 'STRING',
+        description: 'Full Markdown article content. Strict requirement: 800–1000+ words (minimum 750 words). Must include introduction, at least 3 main body sections starting with "## " (at least 180 words each), exactly "## Conclusion" (50+ words), and exactly "## Frequently Asked Questions" with 2–4 questions starting with "### " and ending with "?". No HTML, no single "#" headings.',
+      },
     },
     required: [
       'title',
@@ -708,11 +737,12 @@ async function generateArticle(category, titles, recentTopics) {
   throw new JobError('gemini_output_validation_failed', 502)
 }
 
-function safeProviderUrl(value, allowedHost) {
+function safeProviderUrl(value, allowedHosts) {
   if (typeof value !== 'string') return ''
   try {
     const url = new URL(value)
-    if (url.protocol !== 'https:' || url.hostname !== allowedHost) return ''
+    const hosts = Array.isArray(allowedHosts) ? allowedHosts : [allowedHosts]
+    if (url.protocol !== 'https:' || !hosts.includes(url.hostname)) return ''
     return url.href
   } catch {
     return ''
@@ -722,73 +752,84 @@ function safeProviderUrl(value, allowedHost) {
 async function findPixabayImage(query) {
   if (!process.env.PIXABAY_API_KEY) return null;
 
-  const url = new URL('https://pixabay.com/api/');
-  url.searchParams.set('key', process.env.PIXABAY_API_KEY);
-  url.searchParams.set('q', query.slice(0, 100));
-  url.searchParams.set('image_type', 'photo');
-  url.searchParams.set('orientation', 'horizontal');
-  url.searchParams.set('per_page', '10');
-  url.searchParams.set('safesearch', 'true');
-
-  let response;
-
   try {
-    response = await fetch(url, {
-      signal: AbortSignal.timeout(PIXABAY_REQUEST_TIMEOUT_MS),
+    const url = new URL('https://pixabay.com/api/');
+    url.searchParams.set('key', process.env.PIXABAY_API_KEY);
+    url.searchParams.set('q', String(query || '').slice(0, 100));
+    url.searchParams.set('image_type', 'photo');
+    url.searchParams.set('orientation', 'horizontal');
+    url.searchParams.set('per_page', '10');
+    url.searchParams.set('safesearch', 'true');
+
+    let response;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      response = await fetch(url, {
+        signal: AbortSignal.timeout(PIXABAY_REQUEST_TIMEOUT_MS),
+      });
+
+      if (response.status === 429 && attempt < 3) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        continue;
+      }
+      break;
+    }
+
+    if (!response || !response.ok) return null;
+
+    const payload = await response.json();
+    if (!Array.isArray(payload?.hits) || !payload.hits.length) return null;
+
+    const queryWords = String(query || '').toLowerCase().split(/\s+/).filter(Boolean);
+
+    // Score hits to decide the best, highest quality representation
+    const sortedHits = [...payload.hits].sort((a, b) => {
+      const score = hit => {
+        let s = Math.log10((hit.likes || 0) + 1) * 20 + Math.log10((hit.views || 0) + 1) * 10;
+        if (hit.imageWidth && hit.imageHeight) {
+          const ratio = hit.imageWidth / hit.imageHeight;
+          if (ratio >= 1.3 && ratio <= 2.2) s += 30;
+          else if (ratio < 1.0) s -= 40;
+        }
+        const tags = String(hit.tags || '').toLowerCase();
+        for (const word of queryWords) {
+          if (word.length > 2 && tags.includes(word)) s += 15;
+        }
+        return s;
+      };
+      return score(b) - score(a);
     });
+
+    for (const hit of sortedHits) {
+      // Prefer the larger image, with webformatURL as a fallback.
+      const imageUrl = safeProviderUrl(
+        hit.largeImageURL || hit.webformatURL,
+        ['cdn.pixabay.com', 'pixabay.com'],
+      );
+
+      const pageUrl = safeProviderUrl(
+        hit.pageURL,
+        ['pixabay.com', 'www.pixabay.com'],
+      );
+
+      if (!imageUrl || !pageUrl || !hit.id) continue;
+
+      return {
+        imageUrl,
+        metadata: {
+          provider: 'Pixabay',
+          photoId: hit.id,
+          photoUrl: pageUrl,
+          photographer: typeof hit.user === 'string' ? hit.user.trim() : '',
+          photographerUrl:
+            typeof hit.user === 'string' && hit.user.trim() && hit.user_id
+              ? `https://pixabay.com/users/${encodeURIComponent(hit.user.trim())}-${hit.user_id}/`
+              : '',
+          alt: typeof hit.tags === 'string' ? hit.tags.slice(0, 300) : '',
+        },
+      };
+    }
   } catch {
-    throw new JobError('pixabay_request_failed', 502);
-  }
-
-  if (!response.ok) {
-    throw new JobError(
-      `pixabay_http_${response.status}`,
-      response.status === 429 ? 503 : 502,
-    );
-  }
-
-  let payload;
-
-  try {
-    payload = await response.json();
-  } catch {
-    throw new JobError('pixabay_invalid_response', 502);
-  }
-
-  if (!Array.isArray(payload.hits)) {
-    throw new JobError('pixabay_invalid_response', 502);
-  }
-
-  if (!payload.hits.length) return null;
-
-  for (const hit of payload.hits) {
-    // Prefer the larger image, with webformatURL as a fallback.
-    const imageUrl = safeProviderUrl(
-      hit.largeImageURL || hit.webformatURL,
-      'cdn.pixabay.com',
-    );
-
-    const pageUrl = safeProviderUrl(
-      hit.pageURL,
-      'pixabay.com',
-    );
-
-    if (!imageUrl || !pageUrl || !hit.id) continue;
-
-    return {
-      imageUrl,
-      metadata: {
-        provider: 'Pixabay',
-        photoId: hit.id,
-        photoUrl: pageUrl,
-        photographer: typeof hit.user === 'string' ? hit.user.trim() : '',
-        photographerUrl:
-          typeof hit.user === 'string' && hit.user.trim() && hit.user_id
-            ? `https://pixabay.com/users/${encodeURIComponent(hit.user.trim())}-${hit.user_id}/`
-            : '',
-        alt: typeof hit.tags === 'string' ? hit.tags.slice(0, 300) : '',
-      },
-    };
+    return null;
   }
 
   return null;
@@ -952,7 +993,12 @@ export default async function handler(req, res) {
       throw new JobError('generated_topic_too_similar', 422)
     }
 
-    const photo = await findPixabayImage(article.image_search_query)
+    let photo = null
+    try {
+      photo = await findPixabayImage(article.image_search_query)
+    } catch {
+      photo = null
+    }
     if (!photo) logEvent('daily_blog_no_verified_photo', { requestId, runId })
     const slug = await chooseUniqueSlug(supabase, article.title, scheduledDate)
     const publishedAt = new Date().toISOString()

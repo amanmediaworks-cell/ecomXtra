@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Calendar, Clock, Search, BookOpen, Sparkles } from 'lucide-react'
+import BlogImage from '../components/BlogImage'
 
 function BlogPage({
   blogs = [],
@@ -112,10 +113,20 @@ function BlogPage({
             <div className="grid grid-cols-1 lg:grid-cols-12">
               <div className="lg:col-span-7 h-64 sm:h-80 lg:h-auto relative overflow-hidden bg-slate-900">
                 {featuredBlog.coverImage ? (
-                  <img
+                  <BlogImage
                     src={featuredBlog.coverImage}
                     alt={featuredBlog.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-90"
+                    priority
+                    className="w-full h-full group-hover:scale-105 transition-transform duration-700 opacity-90"
+                    fallback={
+                      <div
+                        role="img"
+                        aria-label={`No cover image available for ${featuredBlog.title}`}
+                        className="w-full h-full flex items-center justify-center text-violet-200"
+                      >
+                        <BookOpen className="w-12 h-12 opacity-70" aria-hidden="true" />
+                      </div>
+                    }
                   />
                 ) : (
                   <div
@@ -201,10 +212,19 @@ function BlogPage({
                   {/* Thumbnail Image */}
                   <div className="h-48 relative overflow-hidden bg-slate-900">
                     {blog.coverImage ? (
-                      <img
+                      <BlogImage
                         src={blog.coverImage}
                         alt={blog.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full group-hover:scale-105 transition-transform duration-500"
+                        fallback={
+                          <div
+                            role="img"
+                            aria-label={`No cover image available for ${blog.title}`}
+                            className="w-full h-full flex items-center justify-center text-violet-200"
+                          >
+                            <BookOpen className="w-9 h-9 opacity-70" aria-hidden="true" />
+                          </div>
+                        }
                       />
                     ) : (
                       <div

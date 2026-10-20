@@ -1,12 +1,20 @@
 import { Link } from 'react-router-dom'
 import { ArrowUpRight, Code, Cpu, LineChart, Link2, ShoppingBag, Zap } from 'lucide-react'
+import SafeImage from './SafeImage'
+
+const SERVICE_VISUALS = [
+  'https://cdn.pixabay.com/photo/2017/03/13/17/26/ecommerce-2140603_640.jpg', // Shopify & WooCommerce
+  'https://cdn.pixabay.com/photo/2018/07/26/09/56/ecommerce-3563183_640.jpg', // eCommerce Store Development
+  'https://cdn.pixabay.com/photo/2016/12/20/22/32/holiday-shopping-1921658_640.jpg', // AI Chatbots & Whatsapp
+  'https://cdn.pixabay.com/photo/2017/08/10/04/44/analytics-2618277_640.jpg', // Growth Marketing & CRO
+  'https://cdn.pixabay.com/photo/2016/03/09/13/58/online-marketing-1246457_640.jpg', // Marketing Automation
+  'https://cdn.pixabay.com/photo/2020/10/01/17/11/store-5619201_640.jpg', // Custom Integrations
+]
 
 function Services({
   services,
   content,
 }) {
-
-
   const getIcon = (idx, tClass) => {
     switch (idx % 6) {
       case 0: return <ShoppingBag className={tClass} />;
@@ -19,7 +27,7 @@ function Services({
   };
 
   return (
-    <section id="services" className="py-20 md:py-28 px-6 max-w-6xl mx-auto">
+    <section id="services" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 xl:px-12 max-w-7xl mx-auto w-full">
       <div className="mb-16 text-center md:text-left">
         <span className={`text-xs font-black tracking-widest uppercase block mb-2 ${
           'font-outfit text-violet-600 font-extrabold'
@@ -46,22 +54,32 @@ function Services({
           ];
 
           const t = cardThemes[idx % cardThemes.length];
-
-
+          const serviceImage = service.imageUrl || SERVICE_VISUALS[idx % SERVICE_VISUALS.length];
 
           return (
             <div
               key={service.id || idx}
-              className={`${t.bg} border-2 p-8 rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between min-h-[340px] group`}
+              className={`${t.bg} border-2 p-6 md:p-7 rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group overflow-hidden`}
             >
               <div>
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${t.icon} group-hover:rotate-12 transition-transform duration-300`}>
-                  {getIcon(idx, "w-7 h-7")}
+                {/* Visual Thumbnail Header with Safe Caching */}
+                <div className="relative h-44 w-full rounded-2xl overflow-hidden mb-6 bg-slate-900 border border-slate-200/60 shadow-xs">
+                  <SafeImage
+                    src={serviceImage}
+                    alt={service.title}
+                    className="w-full h-full"
+                    imgClassName="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-black/20 to-transparent pointer-events-none" />
+                  <div className={`absolute bottom-3 left-3 w-11 h-11 rounded-xl flex items-center justify-center ${t.icon} group-hover:rotate-12 transition-transform duration-300`}>
+                    {getIcon(idx, "w-5 h-5")}
+                  </div>
                 </div>
-                <h3 className="font-outfit text-xl font-extrabold mt-6 text-slate-900 leading-snug">
+
+                <h3 className="font-outfit text-xl font-extrabold text-slate-900 leading-snug">
                   {service.title}
                 </h3>
-                <p className="font-outfit text-xs text-slate-600 mt-3 leading-relaxed font-medium">
+                <p className="font-outfit text-xs text-slate-600 mt-2.5 leading-relaxed font-medium">
                   {service.description}
                 </p>
               </div>

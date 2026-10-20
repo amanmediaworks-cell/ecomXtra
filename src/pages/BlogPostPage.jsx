@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Calendar, Clock, Share2, Check, MessageSquare } from 'lucide-react'
 import BlogMarkdown from '../components/BlogMarkdown'
 import BlogPostSeo from '../components/BlogPostSeo'
+import BlogImage from '../components/BlogImage'
 
 function BlogPostPage({
   blogs = [],
@@ -141,10 +142,11 @@ function BlogPostPage({
       {blog.coverImage && (
         <div className="px-6 max-w-4xl mx-auto my-8">
           <div className="overflow-hidden rounded-2xl sm:rounded-3xl shadow-lg h-[260px] sm:h-[400px] border-2 border-violet-100">
-            <img
+            <BlogImage
               src={blog.coverImage}
               alt={blog.title}
-              className="w-full h-full object-cover"
+              priority
+              className="w-full h-full"
             />
           </div>
           {blog.image_metadata?.provider === 'pixabay' && (
