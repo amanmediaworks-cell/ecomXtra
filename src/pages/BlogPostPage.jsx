@@ -147,7 +147,7 @@ function BlogPostPage({
               className="w-full h-full object-cover"
             />
           </div>
-          {blog.image_metadata?.provider === 'Pexels' && (
+          {blog.image_metadata?.provider === 'pixabay' && (
             <p className="mt-3 text-xs text-slate-500">
               Photo by{' '}
               <a
@@ -165,16 +165,16 @@ function BlogPostPage({
                 rel="noopener noreferrer"
                 className="font-semibold text-violet-700 underline"
               >
-                Pexels
+                Pixabay
               </a>
               {' '}·{' '}
               <a
-                href="https://www.pexels.com/"
+                href="https://pixabay.com/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-black text-violet-700 underline"
               >
-                Photos provided by Pexels
+                Photos provided by Pixabay
               </a>
             </p>
           )}

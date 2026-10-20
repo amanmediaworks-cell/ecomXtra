@@ -406,18 +406,29 @@ begin
   end if;
 
   image_metadata_value := nullif(p_post->'image_metadata', 'null'::jsonb);
+
   if nullif(p_post->>'cover_image', '') is null
-     and nullif(p_post->>'social_image', '') is null
-     and image_metadata_value is null then
+    and nullif(p_post->>'social_image', '') is null
+    and image_metadata_value is null then
     null;
-  elsif coalesce(p_post->>'cover_image' !~ '^https://images[.]pexels[.]com/[^[:space:]]+$', true)
-     or p_post->>'social_image' is distinct from p_post->>'cover_image'
-     or pg_catalog.jsonb_typeof(image_metadata_value) is distinct from 'object'
-     or image_metadata_value->>'provider' is distinct from 'Pexels'
-     or coalesce(image_metadata_value->>'photoUrl' !~ '^https://www[.]pexels[.]com/[^[:space:]]+$', true)
-     or coalesce(image_metadata_value->>'photographerUrl' !~ '^https://www[.]pexels[.]com/[^[:space:]]+$', true)
-     or pg_catalog.btrim(coalesce(image_metadata_value->>'photographer', '')) = '' then
-    raise exception 'Pexels image URLs or attribution metadata are invalid';
+
+  elsif coalesce(
+          p_post->>'cover_image' !~ '^https://cdn[.]pixabay[.]com/[^[:space:]]+$',
+          true
+        )
+    or p_post->>'social_image' is distinct from p_post->>'cover_image'
+    or pg_catalog.jsonb_typeof(image_metadata_value) is distinct from 'object'
+    or image_metadata_value->>'provider' is distinct from 'Pixabay'
+    or coalesce(
+          image_metadata_value->>'photoUrl' !~ '^https://pixabay[.]com/[^[:space:]]+$',
+          true
+        )
+    or coalesce(
+          image_metadata_value->>'photographerUrl' !~ '^https://pixabay[.]com/users/[^[:space:]]+$',
+          true
+        )
+    or pg_catalog.btrim(coalesce(image_metadata_value->>'photographer', '')) = '' then
+    raise exception 'Pixabay image URLs or attribution metadata are invalid';
   end if;
 
   insert into public.blog_posts (
