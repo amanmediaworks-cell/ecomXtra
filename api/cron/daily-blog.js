@@ -551,7 +551,7 @@ export default async function handler(req, res) {
       throw new JobError('generated_topic_too_similar', 422)
     }
 
-    const photo = await findPexelsImage(article.image_search_query)
+    const photo = await findPixabayImage(article.image_search_query)
     if (!photo) logEvent('daily_blog_no_verified_photo', { requestId, runId })
     const slug = await chooseUniqueSlug(supabase, article.title, scheduledDate)
     const publishedAt = new Date().toISOString()
@@ -618,7 +618,7 @@ export {
   getInvalidEnvironment,
   getClaimedRun,
   getScheduledDate,
-  findPexelsImage,
+  findPixabayImage,
   generateArticle,
   getArticleValidationIssues,
   isValidImagePayload,

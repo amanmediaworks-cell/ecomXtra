@@ -6,7 +6,7 @@ import process from 'node:process'
 import {
   chooseCategory,
   countWords,
-  findPexelsImage,
+  findPixabayImage,
   generateArticle,
   getArticleValidationIssues,
   getClaimedRun,
@@ -182,13 +182,13 @@ test('article validation rejects malformed tag values and image URLs', () => {
 })
 
 test('Pexels is optional and missing API key skips the network request', async () => {
-  const oldKey = process.env.PEXELS_API_KEY
-  delete process.env.PEXELS_API_KEY
+  const oldKey = process.env.PIXABAY_API_KEY
+  delete process.env.PIXABAY_API_KEY
   try {
-    assert.equal(await findPexelsImage('ecommerce checkout'), null)
+    assert.equal(await findPixabayImage('ecommerce checkout'), null)
   } finally {
-    if (oldKey === undefined) delete process.env.PEXELS_API_KEY
-    else process.env.PEXELS_API_KEY = oldKey
+    if (oldKey === undefined) delete process.env.PIXABAY_API_KEY
+    else process.env.PIXABAY_API_KEY = oldKey
   }
 })
 

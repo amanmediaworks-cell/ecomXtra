@@ -19,7 +19,7 @@ Set these in local `.env.local` for a `vercel dev` test, and in the Vercel Proje
 | `CRON_SECRET` | Random secret of at least 32 bytes; Vercel also uses it to authorize Cron requests. |
 | `GEMINI_API_KEY` | Google AI Studio API key; server only. |
 | `GEMINI_MODEL` | Optional. If set, must be exactly `gemini-3.1-flash-lite`; when unset, the function uses that model. The function will not silently switch models. |
-| `PEXELS_API_KEY` | Optional Pexels API key; server only. If omitted, publishing continues without a cover/social image or attribution. |
+| `PIXABAY_API_KEY` | Optional Pexels API key; server only. If omitted, publishing continues without a cover/social image or attribution. |
 | `SUPABASE_URL` | Existing project URL, server variable without the Vite prefix. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service-role key; server only, never use a `VITE_` name. |
 
@@ -39,7 +39,7 @@ Vercel Cron is available on Hobby, with once-daily minimum frequency; the functi
 
 ### Local smoke test
 
-1. Keep the root `.env.local` file private and do not paste its contents into chat or terminal output. The server-only variables in it should be `CRON_SECRET`, `GEMINI_API_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`. `PEXELS_API_KEY` is optional. `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are for the browser client; never put the service-role key in a `VITE_` variable.
+1. Keep the root `.env.local` file private and do not paste its contents into chat or terminal output. The server-only variables in it should be `CRON_SECRET`, `GEMINI_API_KEY`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`. `PIXABAY_API_KEY` is optional. `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are for the browser client; never put the service-role key in a `VITE_` variable.
 2. Run `node --test api/cron/daily-blog.test.js`. This only runs local validation tests and checks that missing Pexels credentials result in no Pexels request.
 3. Install/use the Vercel CLI if needed, then run `npx vercel dev` from the repository root. If prompted to link a project, choose the EcomXtra Vercel project. Do not use `vercel env pull` if it would overwrite your existing `.env.local`.
 4. In a second PowerShell window, verify the endpoint rejects a request with no authorization (expected `401`) and a non-GET method (expected `405`):
@@ -49,7 +49,7 @@ Vercel Cron is available on Hobby, with once-daily minimum frequency; the functi
    ```
 
    PowerShell may display an error object for the expected `401`; it must not contain secrets. A request with a wrong bearer token also returns `401` and does not contact Supabase, Gemini, or Pexels.
-5. Do not send a valid bearer token yet unless the migration has already been applied to the Supabase project named in `SUPABASE_URL` and you intend to create/publish a real blog post. A valid authorized request invokes Gemini and writes a published post directly to that database; it is not a dry run. Pexels is skipped automatically if `PEXELS_API_KEY` is unset.
+5. Do not send a valid bearer token yet unless the migration has already been applied to the Supabase project named in `SUPABASE_URL` and you intend to create/publish a real blog post. A valid authorized request invokes Gemini and writes a published post directly to that database; it is not a dry run. Pexels is skipped automatically if `PIXABAY_API_KEY` is unset.
 
 After deploying, invoke the endpoint manually with the same bearer token Vercel Cron uses:
 
