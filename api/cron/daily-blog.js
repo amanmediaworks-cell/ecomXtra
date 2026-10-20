@@ -10,7 +10,7 @@ const CATEGORIES = [
   'CRO & Growth',
 ]
 const EXPECTED_GEMINI_MODEL = 'gemini-3.1-flash-lite'
-const MAX_GENERATION_ATTEMPTS = 2
+const MAX_GENERATION_ATTEMPTS = 3
 const ARTICLE_MIN_WORDS = 700
 const ARTICLE_MAX_WORDS = 1800
 const RUN_LEASE_MS = 10 * 60 * 1000
@@ -139,6 +139,63 @@ function readingTime(value) {
   return `${Math.max(1, Math.ceil(countWords(value) / 220))} min read`
 }
 
+function normalizeArticleContent(content) {
+  let value = String(content).replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  if (!value.includes('\n')) {
+    value = value.replace(/\\n/g, '\n')
+  }
+  return value
+    .replace(/[ \t]+(#{2,4}\s+)/g, '\n$1')
+    .replace(
+      /^(#{2,4}\s+)((?:in\s+)?conclusion|frequently asked questions|faqs?)\s+/gim,
+      '$1$2\n',
+    )
+}
+
+function parseMarkdownHeading(line) {
+  const match = String(line).trim().match(/^(#{2,4})\s+\*{0,2}(.+?)\*{0,2}\s*#*\s*$/)
+  if (!match) return null
+  return {
+    level: match[1].length,
+    title: match[2].replace(/\*+/g, '').trim(),
+  }
+}
+
+function listMarkdownHeadings(content) {
+  return normalizeArticleContent(content)
+    .split('\n')
+    .map(parseMarkdownHeading)
+    .filter(Boolean)
+}
+
+function extractNamedSection(content, titlePattern) {
+  const lines = normalizeArticleContent(content).split('\n')
+  let start = -1
+  let startLevel = 0
+  for (let index = 0; index < lines.length; index += 1) {
+    const heading = parseMarkdownHeading(lines[index])
+    if (heading && titlePattern.test(heading.title)) {
+      start = index
+      startLevel = heading.level
+      break
+    }
+  }
+  if (start < 0) return null
+  let end = lines.length
+  for (let index = start + 1; index < lines.length; index += 1) {
+    const heading = parseMarkdownHeading(lines[index])
+    if (heading && heading.level <= startLevel && !heading.title.endsWith('?')) {
+      end = index
+      break
+    }
+  }
+  return lines.slice(start + 1, end).join('\n')
+}
+
+function countFaqQuestions(faqText) {
+  return (faqText.match(/^\s*(?:[-*]\s+|#{2,6}\s+|\*{0,2})?.+\?\s*\*{0,2}\s*$/gm) || []).length
+}
+
 function getArticleValidationIssues(article, category) {
   if (!article || typeof article !== 'object' || Array.isArray(article)) {
     return ['response must be a JSON object']
@@ -174,48 +231,32 @@ function getArticleValidationIssues(article, category) {
     issues.push('image_search_query must contain 2–60 valid characters')
   }
   if (typeof article.content === 'string') {
-    const wordCount = countWords(article.content)
+    const content = normalizeArticleContent(article.content)
+    const wordCount = countWords(content)
     if (wordCount < ARTICLE_MIN_WORDS || wordCount > ARTICLE_MAX_WORDS) {
       issues.push(`content must contain ${ARTICLE_MIN_WORDS}–${ARTICLE_MAX_WORDS} words (currently ${wordCount})`)
     }
-    if (/<\/?[a-z][^>]*>/i.test(article.content)) issues.push('content must not contain HTML')
-    if (!/^###\s+.+/m.test(article.content)) issues.push('content must include Markdown section headings')
-    
-    const conclusionMatch = article.content.match(
-      /^###\s+Conclusion\s*$(.*?)(?=^###\s|\s*$)/ims
-    )
+    if (/<\/?[a-z][^>]*>/i.test(content)) issues.push('content must not contain HTML')
+    const headings = listMarkdownHeadings(content)
+    if (headings.length < 3) issues.push('content must include Markdown section headings')
 
-    const faqMatch = article.content.match(
-      /^###\s+Frequently Asked Questions\s*$(.*?)(?=^###\s|\s*$)/ims
-    )
-
-    if (!conclusionMatch || countWords(conclusionMatch[1]) < 30) {
-      issues.push(
-        'content must include a Conclusion section with at least 30 words'
-      )
+    const conclusionText = extractNamedSection(content, /^(?:in\s+)?conclusion$/i)
+    if (!conclusionText || countWords(conclusionText) < 30) {
+      issues.push('content must include a Conclusion section with at least 30 words')
     }
 
-    if (!faqMatch) {
-      issues.push(
-        'content must include a Frequently Asked Questions section'
-      )
+    const faqText = extractNamedSection(content, /^(?:frequently\s+asked\s+questions|faqs?)$/i)
+    if (!faqText) {
+      issues.push('content must include a Frequently Asked Questions or FAQs section')
     } else {
-      const faqText = faqMatch[1].trim()
-      const questionCount = (faqText.match(/^\s*(?:[-*]\s*)?.*\?\s*$/gm) || []).length
-
+      const questionCount = countFaqQuestions(faqText)
       if (questionCount < 2 || questionCount > 4) {
-        issues.push(
-          'FAQ section must contain 2–4 clearly written questions'
-        )
+        issues.push('FAQ section must contain 2–4 clearly written questions')
       }
-
       if (countWords(faqText) < 40) {
-        issues.push(
-          'FAQ section must contain substantive answers'
-        )
+        issues.push('FAQ section must contain substantive answers')
       }
     }
-
   }
   if (!CATEGORIES.includes(category)) issues.push('category is not approved')
   return issues
@@ -298,13 +339,13 @@ function buildPrompt(category, titles, recentTopics) {
     'Write 800–1000 words of Markdown for the content field. Use clear natural English, practical advice, actionable steps, and one explicitly hypothetical example. Avoid repetition and generic filler.',
     
     'MANDATORY ARTICLE STRUCTURE:',
-    'The content field MUST contain all of these sections, in this exact order:',
+    'The content field MUST contain all of these sections, in this exact order, using Markdown ATX headings on their own lines (## or ###):',
     '1. An introduction before the main sections.',
-    '2. At least three useful main sections with Markdown headings beginning with ###.',
-    '3. A heading exactly "### Conclusion", followed by a substantive conclusion.',
-    '4. A heading exactly "### Frequently Asked Questions", followed by 2–4 relevant questions and concise answers.',
-    'The Conclusion and Frequently Asked Questions sections are mandatory. Do not omit, rename, or combine them.',
-    'Before returning your response, verify that both exact headings appear in the content field and that the FAQ section contains actual questions and answers.',
+    '2. At least three useful main sections, each starting with a heading such as "## Section title".',
+    '3. A heading whose title is exactly "Conclusion" (for example "## Conclusion"), followed by at least 40 words.',
+    '4. A heading whose title is exactly "Frequently Asked Questions" (for example "## Frequently Asked Questions"), followed by 2–4 questions that each end with a question mark on their own line, plus concise answers.',
+    'Do not omit, rename, or combine Conclusion or Frequently Asked Questions. Do not use bold text or numbered lists as a substitute for Markdown headings.',
+    'Before returning your response, verify that the content field contains at least five Markdown headings, including Conclusion and Frequently Asked Questions.',
     
     'FIELD REQUIREMENTS:',
     '- title: 25–100 characters.',
@@ -645,6 +686,9 @@ async function generateArticle(category, titles, recentTopics) {
       durationMs: Date.now() - startedAt,
       finishReason,
       issues: previousIssues,
+      headingLines: listMarkdownHeadings(article.content).map(heading => heading.title).slice(0, 20),
+      contentPreview: normalizeArticleContent(article.content).slice(0, 500),
+      wordCount: countWords(article.content),
     })
 
     if (attempt < MAX_GENERATION_ATTEMPTS) {
@@ -734,12 +778,12 @@ async function findPixabayImage(query) {
     return {
       imageUrl,
       metadata: {
-        provider: 'pixabay',
+        provider: 'Pixabay',
         photoId: hit.id,
         photoUrl: pageUrl,
         photographer: typeof hit.user === 'string' ? hit.user.trim() : '',
         photographerUrl:
-          typeof hit.user === 'string' && hit.user.trim()
+          typeof hit.user === 'string' && hit.user.trim() && hit.user_id
             ? `https://pixabay.com/users/${encodeURIComponent(hit.user.trim())}-${hit.user_id}/`
             : '',
         alt: typeof hit.tags === 'string' ? hit.tags.slice(0, 300) : '',

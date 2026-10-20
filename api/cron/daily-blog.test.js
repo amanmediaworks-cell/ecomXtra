@@ -31,8 +31,15 @@ const vercelConfig = JSON.parse(await readFile(
   'utf8',
 ))
 
-function validArticle() {
-  const practicalBody = Array.from({ length: 300 }, (_, index) => `practical guidance ${index}`).join(' ')
+function validArticle(heading = '###') {
+  const practicalBody = Array.from({ length: 120 }, (_, index) => `practical guidance ${index}`).join(' ')
+  const conclusion = Array.from({ length: 40 }, (_, index) => `closing takeaway ${index}`).join(' ')
+  const faq = [
+    '#### What should I measure first?',
+    'Start with checkout completion, form errors, and the drop-off points that already exist in your store analytics dashboard.',
+    '#### How should I test changes?',
+    'Change one checkout step at a time and compare results against the previous version before you ship the next edit.',
+  ].join('\n\n')
   return {
     title: 'A Practical Guide to Improving Shopify Checkout',
     excerpt: 'A detailed practical guide to simplifying a Shopify checkout and improving the customer experience.',
@@ -40,7 +47,7 @@ function validArticle() {
     meta_description: 'Learn practical, low-risk ways to make a Shopify checkout clearer and easier for customers.',
     tags: ['Shopify', 'Checkout', 'Conversion'],
     image_search_query: 'online shopping checkout',
-    content: `### Start Here\n\n${practicalBody}\n\n### Conclusion\n\nReview changes carefully.\n\n### Frequently Asked Questions\n\n#### What should I measure?\n\nUse your existing analytics.`,
+    content: `${heading} Start Here\n\n${practicalBody}\n\n${heading} Next Steps\n\n${practicalBody}\n\n${heading} Conclusion\n\n${conclusion}\n\n${heading} Frequently Asked Questions\n\n${faq}`,
   }
 }
 
@@ -85,16 +92,16 @@ test('ten-minute lease exceeds configured function maximum and provider timeouts
   assert.match(endpoint, /EXPECTED_GEMINI_MODEL = 'gemini-3\.1-flash-lite'/)
   assert.match(endpoint, /models\/\$\{EXPECTED_GEMINI_MODEL\}:generateContent/)
   assert.match(endpoint, /GEMINI_REQUEST_TIMEOUT_MS = 28000/)
-  assert.match(endpoint, /PEXELS_REQUEST_TIMEOUT_MS = 8000/)
+  assert.match(endpoint, /PIXABAY_REQUEST_TIMEOUT_MS = 8000/)
   assert.match(endpoint, /MAX_SUPABASE_REQUEST_MS = 4000/)
 })
 
 test('generation prompt states every article requirement enforced by validation', () => {
-  assert.match(endpoint, /950–1150 words/)
-  assert.match(endpoint, /### Conclusion/)
-  assert.match(endpoint, /### Frequently Asked Questions/)
-  assert.match(endpoint, /meta_description at most 160 characters/)
-  assert.match(endpoint, /tags 3–6 distinct strings/)
+  assert.match(endpoint, /800–1000 words/)
+  assert.match(endpoint, /## Conclusion/)
+  assert.match(endpoint, /## Frequently Asked Questions/)
+  assert.match(endpoint, /meta_description: maximum 160 characters/)
+  assert.match(endpoint, /tags: 3–6 distinct strings/)
 })
 
 test('generation retry reinforces validation requirements after invalid output', async () => {
@@ -170,12 +177,12 @@ test('article validation rejects malformed tag values and image URLs', () => {
   assert.equal(isValidImagePayload(null, null, null), true)
   assert.equal(isValidImagePayload('http://images.pexels.com/x', 'http://images.pexels.com/x', {}), false)
   assert.equal(isValidImagePayload(
-    'https://images.pexels.com/photos/1/photo.jpg',
-    'https://images.pexels.com/photos/1/photo.jpg',
+    'https://cdn.pixabay.com/photo/1/photo.jpg',
+    'https://cdn.pixabay.com/photo/1/photo.jpg',
     {
-      provider: 'Pexels',
-      photoUrl: 'https://www.pexels.com/photo/1/',
-      photographerUrl: 'https://www.pexels.com/@photographer/',
+      provider: 'Pixabay',
+      photoUrl: 'https://pixabay.com/photos/1/',
+      photographerUrl: 'https://pixabay.com/users/photographer-1/',
       photographer: 'Photographer',
     },
   ), true)
@@ -211,6 +218,7 @@ test('article validation enforces length and required article sections', () => {
   const article = validArticle()
   assert.ok(countWords(article.content) >= 700)
   assert.equal(isValidArticle(article, 'Shopify & Tech'), true)
+  assert.equal(isValidArticle(validArticle('##'), 'Shopify & Tech'), true)
   const issues = getArticleValidationIssues({
     ...article,
     meta_description: 'x'.repeat(170),
