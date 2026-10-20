@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { MessageSquare, X, Send, ExternalLink } from 'lucide-react'
 
 // ── Knowledge Base ────────────────────────────────────────────────────────────
@@ -56,7 +56,9 @@ const INITIAL_MESSAGE = {
   text: 'Namaste! 🙏 Main EcomXtra ka AI Growth Agent hoon.\n\nMain aapki help karoonga:\n• Custom Quotations\n• eCommerce services\n• Marketplace rankings\n• Consultation booking\n\nKya poochna chahte hain aap?'
 }
 
-function Chatbot({ theme, addLog }) {
+function Chatbot({
+  addLog
+}) {
   const [isOpen, setIsOpen]     = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const [inputText, setInputText] = useState('')
@@ -216,7 +218,7 @@ function Chatbot({ theme, addLog }) {
     }
   }, [pushMsg, startQuestionnaire, botReply])
 
-  const isSwiss = theme === 'swiss'
+
 
   return (
     <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
@@ -226,9 +228,7 @@ function Chatbot({ theme, addLog }) {
           onClick={() => setIsOpen(true)}
           aria-label="Open AI chat assistant"
           className={`group relative w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110 ${
-            isSwiss
-              ? 'bg-swiss-text text-swiss-bg hover:shadow-swiss-text/20'
-              : 'bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white shadow-pink-500/30'
+            'bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white shadow-pink-500/30'
           } hover:shadow-2xl`}
         >
           <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -241,15 +241,13 @@ function Chatbot({ theme, addLog }) {
       {isOpen && (
         <div
           className={`flex flex-col shadow-2xl overflow-hidden transition-all duration-300 ${
-            isSwiss
-              ? 'w-[calc(100vw-2rem)] sm:w-[400px] max-w-[400px] h-[500px] sm:h-[560px] border border-swiss-text bg-swiss-bg'
-              : 'w-[calc(100vw-2rem)] sm:w-[400px] max-w-[400px] h-[500px] sm:h-[560px] border-2 border-violet-200 bg-white rounded-[1.8rem]'
+            'w-[calc(100vw-2rem)] sm:w-[400px] max-w-[400px] h-[500px] sm:h-[560px] border-2 border-violet-200 bg-white rounded-[1.8rem]'
           }`}
           style={{ maxHeight: 'calc(100vh - 80px)' }}
         >
           {/* Header */}
           <div className={`shrink-0 px-4 py-3.5 flex items-center justify-between ${
-            isSwiss ? 'bg-swiss-text text-swiss-bg' : 'bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white'
+            'bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white'
           }`}>
             <div className="flex items-center gap-3">
               <div className="relative">
@@ -282,7 +280,7 @@ function Chatbot({ theme, addLog }) {
 
           {/* Messages */}
           <div className={`flex-1 overflow-y-auto p-4 space-y-3 ${
-            isSwiss ? 'bg-swiss-bg/60' : 'bg-violet-50/30'
+            'bg-violet-50/30'
           }`}>
             {messages.map((m) => (
               <div key={m.id} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -293,12 +291,8 @@ function Chatbot({ theme, addLog }) {
                 )}
                 <div className={`max-w-[82%] px-3.5 py-2.5 text-xs leading-relaxed whitespace-pre-wrap ${
                   m.sender === 'user'
-                    ? isSwiss
-                      ? 'bg-swiss-text text-swiss-bg'
-                      : 'bg-gradient-to-r from-violet-600 to-pink-500 text-white rounded-[1rem] rounded-tr-sm shadow-xs font-medium'
-                    : isSwiss
-                      ? 'bg-white border border-swiss-text/20 text-swiss-text'
-                      : 'bg-white border border-slate-200 text-slate-800 rounded-[1rem] rounded-tl-sm shadow-sm'
+                    ? 'bg-gradient-to-r from-violet-600 to-pink-500 text-white rounded-[1rem] rounded-tr-sm shadow-xs font-medium'
+                    : 'bg-white border border-slate-200 text-slate-800 rounded-[1rem] rounded-tl-sm shadow-sm'
                 }`}>
                   {typeof m.text === 'string' && /(https:\/\/(?:wa\.me\/[^\s]+|quadranex-seven\.vercel\.app\/?))/g.test(m.text) ? (
                     m.text.split(/(https:\/\/(?:wa\.me\/[^\s]+|quadranex-seven\.vercel\.app\/?))/g).map((part, i) =>
@@ -337,7 +331,7 @@ function Chatbot({ theme, addLog }) {
                   <img src="/logo.png" alt="AI" className="w-full h-full object-contain" />
                 </div>
                 <div className={`px-4 py-3 ${
-                  isSwiss ? 'bg-white border border-swiss-text/20' : 'bg-white border border-slate-200 rounded-[1rem] rounded-tl-sm shadow-sm'
+                  'bg-white border border-slate-200 rounded-[1rem] rounded-tl-sm shadow-sm'
                 }`}>
                   <div className="flex gap-1.5 items-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -353,7 +347,7 @@ function Chatbot({ theme, addLog }) {
           {/* Quick Actions — only when not in questionnaire */}
           {qStep === null && (
             <div className={`shrink-0 px-3 py-2 border-t flex flex-wrap gap-1.5 ${
-              isSwiss ? 'border-swiss-text/15 bg-white' : 'border-violet-100 bg-violet-50/20'
+              'border-violet-100 bg-violet-50/20'
             }`}>
               {quickActions.map(qa => (
                 <button
@@ -361,9 +355,7 @@ function Chatbot({ theme, addLog }) {
                   onClick={() => handleQuickAction(qa.msg)}
                   disabled={isTyping}
                   className={`text-[10px] font-bold px-2.5 py-1 transition-all disabled:opacity-40 ${
-                    isSwiss
-                      ? 'border border-swiss-text/25 hover:bg-swiss-text hover:text-swiss-bg bg-swiss-bg text-swiss-text'
-                      : 'border border-violet-200 rounded-full bg-white hover:bg-gradient-to-r hover:from-violet-600 hover:to-pink-500 hover:text-white text-slate-800 shadow-2xs'
+                    'border border-violet-200 rounded-full bg-white hover:bg-gradient-to-r hover:from-violet-600 hover:to-pink-500 hover:text-white text-slate-800 shadow-2xs'
                   }`}
                 >
                   {qa.label}
@@ -376,7 +368,7 @@ function Chatbot({ theme, addLog }) {
           <form
             onSubmit={handleSend}
             className={`shrink-0 flex gap-2 p-3 border-t ${
-              isSwiss ? 'border-swiss-text/20 bg-white' : 'border-slate-100 bg-white'
+              'border-slate-100 bg-white'
             }`}
           >
             <input
@@ -392,18 +384,14 @@ function Chatbot({ theme, addLog }) {
                 'Message in English / Hindi / Hinglish...'
               }
               className={`flex-1 text-xs p-2.5 focus:outline-none disabled:opacity-50 ${
-                isSwiss
-                  ? 'border border-swiss-text/25 focus:border-swiss-text bg-swiss-bg'
-                  : 'border border-violet-200 rounded-xl focus:border-violet-500 bg-violet-50/20 text-slate-900 placeholder:text-slate-400 shadow-xs'
+                'border border-violet-200 rounded-xl focus:border-violet-500 bg-violet-50/20 text-slate-900 placeholder:text-slate-400 shadow-xs'
               }`}
             />
             <button
               type="submit"
               disabled={!inputText.trim() || isTyping}
               className={`p-2.5 shrink-0 transition-all disabled:opacity-40 ${
-                isSwiss
-                  ? 'bg-swiss-text text-swiss-bg border border-swiss-text hover:bg-swiss-bg hover:text-swiss-text'
-                  : 'bg-gradient-to-r from-violet-600 to-pink-500 text-white rounded-xl hover:opacity-90 shadow-xs'
+                'bg-gradient-to-r from-violet-600 to-pink-500 text-white rounded-xl hover:opacity-90 shadow-xs'
               }`}
             >
               <Send className="w-4 h-4" />

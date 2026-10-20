@@ -1,10 +1,9 @@
-import React from 'react'
 import { Link } from 'react-router-dom'
 import { ExternalLink } from 'lucide-react'
 
-function Footer({ theme }) {
-  const isSwiss = theme === 'swiss';
-  const links = [
+function Footer({ content }) {
+
+  const defaultLinks = [
     { label: 'Home', path: '/' },
     { label: 'Philosophy', path: '/philosophy' },
     { label: 'Showcase', path: '/showcase' },
@@ -13,47 +12,44 @@ function Footer({ theme }) {
     { label: 'Testimonials', path: '/testimonials' },
     { label: 'Contact', path: '/contact' },
   ];
+  const links = content?.navigationLinks?.length ? content.navigationLinks : defaultLinks
+  const socialLinks = content?.socialLinks || [
+    { label: 'GitHub', url: 'https://github.com' },
+    { label: 'LinkedIn', url: 'https://linkedin.com' },
+    { label: 'X / Twitter', url: 'https://x.com' },
+  ]
 
   return (
     <footer className={`py-16 px-6 md:px-12 border-t ${
-      isSwiss
-        ? 'bg-[#111111] text-[#f2f2f2]/60 font-satoshi border-swiss-text'
-        : 'bg-slate-950 text-slate-400 font-outfit border-slate-800'
+      'bg-slate-950 text-slate-400 font-outfit border-slate-800'
     }`}>
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 md:gap-12">
         {/* Col 1: Brand */}
         <div className="flex flex-col gap-4">
-          {isSwiss ? (
-            <Link to="/" className="font-clash text-2xl font-bold text-white tracking-tighter hover:opacity-80 transition-opacity flex items-center gap-2.5">
-              <img src="/logo.png" alt="EcomXtra" className="w-7 h-7 rounded-full object-contain shrink-0" />
-              <span>ECOMXTRA</span>
-            </Link>
-          ) : (
-            <Link to="/" className="font-outfit font-extrabold text-2xl text-white flex items-center gap-2 select-none hover:opacity-90 transition-opacity">
+          {<Link to="/" className="font-outfit font-extrabold text-2xl text-white flex items-center gap-2 select-none hover:opacity-90 transition-opacity">
               <img src="/logo.png" alt="EcomXtra" className="w-7 h-7 rounded-full object-contain shrink-0 drop-shadow-sm" />
               <div className="flex items-center gap-0.5">
                 <span className="font-bold text-white">ecom</span>
                 <span className="font-black text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-pink-400 to-amber-400 px-0.5">X</span>
                 <span className="font-bold text-white">tra</span>
               </div>
-            </Link>
-          )}
+            </Link>}
           <p className="text-xs leading-relaxed max-w-[220px]">
-            High-converting custom store design, catalog automation, and custom Hinglish AI closers.
+            {content?.companyDescription || 'High-converting custom store design, catalog automation, and custom Hinglish AI closers.'}
           </p>
         </div>
 
         {/* Col 2: Navigation */}
         <div>
           <span className={`font-bold text-xs uppercase tracking-widest block mb-4 ${
-            isSwiss ? 'text-white' : 'text-violet-400'
+            'text-violet-400'
           }`}>
             Navigation
           </span>
           <ul className="space-y-2.5 text-xs font-medium">
             {links.map((link) => (
               <li key={link.label}>
-                <Link to={link.path} className={`transition-colors ${isSwiss ? 'hover:text-white' : 'hover:text-pink-400'}`}>
+                <Link to={link.path} className="transition-colors hover:text-pink-400">
                   {link.label}
                 </Link>
               </li>
@@ -64,47 +60,49 @@ function Footer({ theme }) {
         {/* Col 3: Details & Corporate Info */}
         <div>
           <span className={`font-bold text-xs uppercase tracking-widest block mb-4 ${
-            isSwiss ? 'text-white' : 'text-violet-400'
+            'text-violet-400'
           }`}>
             Corporate Info
           </span>
           <ul className="space-y-2.5 text-xs font-medium">
             <li>
               Parent Co:{' '}
-              <a href="https://quadranex-seven.vercel.app/" target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 transition-colors ${isSwiss ? 'hover:text-white' : 'hover:text-pink-400'}`}>
-                Quadranex IT Solutions
+              <a href={content?.parentCompanyUrl || 'https://quadranex-seven.vercel.app/'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 transition-colors hover:text-pink-400">
+                {content?.parentCompany || 'Quadranex IT Solutions'}
                 <ExternalLink aria-hidden="true" className="h-3 w-3" />
               </a>
             </li>
-            <li>Email: info@ecomxtra.in</li>
-            <li>Phone: +91 8700259557</li>
+            <li>Email: {content?.email || 'info@ecomxtra.in'}</li>
+            <li>Phone: {content?.phone || '+91 8700259557'}</li>
           </ul>
         </div>
 
         {/* Col 4: Socials */}
         <div>
           <span className={`font-bold text-xs uppercase tracking-widest block mb-4 ${
-            isSwiss ? 'text-white' : 'text-violet-400'
+            'text-violet-400'
           }`}>
             Social Links
           </span>
           <ul className="space-y-2.5 text-xs font-medium">
-            <li><a href="https://github.com" target="_blank" rel="noopener noreferrer" className={`transition-colors ${isSwiss ? 'hover:text-white' : 'hover:text-pink-400'}`}>GitHub</a></li>
-            <li><a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className={`transition-colors ${isSwiss ? 'hover:text-white' : 'hover:text-pink-400'}`}>LinkedIn</a></li>
-            <li><a href="https://x.com" target="_blank" rel="noopener noreferrer" className={`transition-colors ${isSwiss ? 'hover:text-white' : 'hover:text-pink-400'}`}>X / Twitter</a></li>
+            {socialLinks.map(link => (
+              <li key={link.label}>
+                <a href={link.url} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-pink-400">{link.label}</a>
+              </li>
+            ))}
           </ul>
         </div>
       </div>
 
       {/* Separator and copyright */}
       <div className={`max-w-7xl mx-auto border-t mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-[10px] ${
-        isSwiss ? 'border-white/10 text-white/50' : 'border-slate-800/80 text-slate-500'
+        'border-slate-800/80 text-slate-500'
       }`}>
-        <span>© {new Date().getFullYear()} EcomXtra. All rights reserved.</span>
+        <span>© {new Date().getFullYear()} {content?.copyright || 'EcomXtra. All rights reserved.'}</span>
         <span>
           A{' '}
-          <a href="https://quadranex-seven.vercel.app/" target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-1 transition-colors ${isSwiss ? 'hover:text-white' : 'hover:text-pink-400'}`}>
-            Quadranex IT Solutions
+          <a href={content?.parentCompanyUrl || 'https://quadranex-seven.vercel.app/'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 transition-colors hover:text-pink-400">
+            {content?.parentCompany || 'Quadranex IT Solutions'}
             <ExternalLink aria-hidden="true" className="h-3 w-3" />
           </a>{' '}
           Subsidiary.

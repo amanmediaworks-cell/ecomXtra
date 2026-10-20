@@ -1,9 +1,11 @@
-import React from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowUpRight, Code, Cpu, LineChart, Link2, ShoppingBag, Zap } from 'lucide-react'
 
-function Services({ theme, services }) {
-  const isSwiss = theme === 'swiss';
+function Services({
+  services,
+  content,
+}) {
+
 
   const getIcon = (idx, tClass) => {
     switch (idx % 6) {
@@ -17,23 +19,22 @@ function Services({ theme, services }) {
   };
 
   return (
-    <section id="services" className={`py-20 md:py-28 px-6 max-w-6xl mx-auto ${isSwiss ? 'border-b border-swiss-text' : ''}`}>
+    <section id="services" className="py-20 md:py-28 px-6 max-w-6xl mx-auto">
       <div className="mb-16 text-center md:text-left">
         <span className={`text-xs font-black tracking-widest uppercase block mb-2 ${
-          isSwiss ? 'font-satoshi text-swiss-text' : 'font-outfit text-violet-600 font-extrabold'
+          'font-outfit text-violet-600 font-extrabold'
         }`}>
-          [ AGENCY CAPABILITIES ]
+          {content?.eyebrow || '[ AGENCY CAPABILITIES ]'}
         </span>
         <h2 className={`text-3xl md:text-5xl font-bold tracking-tight ${
-          isSwiss ? 'font-clash text-swiss-text' : 'font-outfit text-slate-900 font-extrabold'
+          'font-outfit text-slate-900 font-extrabold'
         }`}>
-          Bespoke eCommerce Solutions
+          {content?.heading || 'Bespoke eCommerce Solutions'}
         </h2>
       </div>
 
-      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${
-        isSwiss ? 'border-l border-t border-swiss-text gap-0' : ''
-      }`}>
+      {content?.description && <p className="mb-8 max-w-3xl text-sm text-slate-600">{content.description}</p>}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {services.map((service, idx) => {
           const cardThemes = [
             { bg: 'bg-gradient-to-br from-emerald-500/10 via-white to-teal-500/5 border-emerald-200', icon: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20', hoverText: 'hover:text-emerald-600' },
@@ -46,33 +47,7 @@ function Services({ theme, services }) {
 
           const t = cardThemes[idx % cardThemes.length];
 
-          if (isSwiss) {
-            return (
-              <div
-                key={service.id || idx}
-                className="border-r border-b border-swiss-text p-8 bg-transparent hover:bg-white group transition-all duration-300 flex flex-col justify-between h-[360px]"
-              >
-                <div>
-                  <div className="w-16 h-16 border border-swiss-text flex items-center justify-center bg-swiss-bg group-hover:rotate-12 transition-transform duration-300">
-                    {getIcon(idx, "w-6 h-6 text-swiss-text")}
-                  </div>
-                  <h3 className="font-clash text-xl font-bold mt-6 text-swiss-text">
-                    {service.title}
-                  </h3>
-                  <p className="font-satoshi text-xs text-swiss-text/75 mt-3 leading-relaxed">
-                    {service.description}
-                  </p>
-                </div>
 
-                <Link
-                  to="/contact"
-                  className="inline-flex items-center gap-2 text-xs font-satoshi font-black tracking-widest uppercase mt-6 text-swiss-text group-hover:underline underline-offset-4"
-                >
-                  Inquire Service <ArrowUpRight className="w-4 h-4" />
-                </Link>
-              </div>
-            );
-          }
 
           return (
             <div

@@ -1,21 +1,9 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 
 // Logo with brand mark
-function Logo({ theme }) {
-  if (theme === 'swiss') {
-    return (
-      <Link to="/" className="font-clash font-bold tracking-tighter hover:opacity-80 transition-opacity text-swiss-text flex items-center gap-2.5 select-none">
-        <img src="/logo.png" alt="EcomXtra Logo" className="w-8 h-8 rounded-full object-contain shrink-0" />
-        <div className="flex items-baseline gap-0">
-          <span className="text-2xl font-black">ECOM</span>
-          <span className="text-4xl font-black leading-none" style={{ lineHeight: 1, transform: 'translateY(2px)', display: 'inline-block' }}>X</span>
-          <span className="text-2xl font-black">TRA</span>
-          <span className="text-[9px] align-super ml-0.5 font-bold opacity-60">®</span>
-        </div>
-      </Link>
-    )
-  }
+function Logo() {
+
   return (
     <Link to="/" className="font-outfit font-extrabold tracking-tight hover:opacity-90 transition-opacity text-slate-900 flex items-center gap-2 select-none group">
       <img src="/logo.png" alt="EcomXtra Logo" className="w-8 h-8 rounded-full object-contain shrink-0 drop-shadow-sm transition-transform duration-300 group-hover:rotate-6 group-hover:scale-105" />
@@ -28,10 +16,10 @@ function Logo({ theme }) {
   )
 }
 
-function Navbar({ theme }) {
+function Navbar({ content }) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const navLinks = [
+  const defaultLinks = [
     { label: 'Home',         path: '/' },
     { label: 'Philosophy',   path: '/philosophy' },
     { label: 'Showcase',     path: '/showcase' },
@@ -40,90 +28,13 @@ function Navbar({ theme }) {
     { label: 'Testimonials', path: '/testimonials' },
     { label: 'Contact',      path: '/contact' },
   ]
+  const navLinks = content?.navigationLinks?.length ? content.navigationLinks : defaultLinks
 
-  // ── Swiss Brutalist Navbar ─────────────────────────────────────────────
-  if (theme === 'swiss') {
-    return (
-      <header className="sticky top-0 z-40 w-full bg-swiss-bg/90 backdrop-blur-md border-b border-swiss-text transition-all duration-300">
-        <div className="flex items-center justify-between px-6 md:px-12 h-[72px]">
-          {/* Logo */}
-          <Logo theme="swiss" />
-
-          {/* Desktop nav links */}
-          <nav className="hidden md:flex items-center space-x-8">
-            {navLinks.map(link => (
-              <NavLink
-                key={link.label}
-                to={link.path}
-                className={({ isActive }) =>
-                  `font-satoshi text-[11px] font-black tracking-widest uppercase text-swiss-text transition-all ${
-                    isActive ? 'underline underline-offset-4 decoration-2' : 'hover:underline underline-offset-4 decoration-2'
-                  }`
-                }
-              >
-                {link.label}
-              </NavLink>
-            ))}
-          </nav>
-
-          {/* CTA */}
-          <div className="flex items-center gap-3">
-            <Link
-              to="/contact"
-              className="hidden sm:inline-block text-[11px] font-satoshi font-black tracking-widest uppercase bg-swiss-text text-swiss-bg px-6 py-3 border border-swiss-text hover:bg-swiss-bg hover:text-swiss-text transition-all duration-300"
-            >
-              Book Consultation
-            </Link>
-
-            {/* Mobile hamburger */}
-            <button
-              className="md:hidden flex flex-col gap-1.5 p-2"
-              onClick={() => setMobileOpen(v => !v)}
-              aria-label="Toggle menu"
-            >
-              <span className={`w-5 h-0.5 bg-swiss-text transition-all ${mobileOpen ? 'rotate-45 translate-y-2' : ''}`} />
-              <span className={`w-5 h-0.5 bg-swiss-text transition-all ${mobileOpen ? 'opacity-0' : ''}`} />
-              <span className={`w-5 h-0.5 bg-swiss-text transition-all ${mobileOpen ? '-rotate-45 -translate-y-2' : ''}`} />
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="md:hidden border-t border-swiss-text bg-swiss-bg px-6 py-4 flex flex-col gap-4">
-            {navLinks.map(link => (
-              <NavLink
-                key={link.label}
-                to={link.path}
-                onClick={() => setMobileOpen(false)}
-                className={({ isActive }) =>
-                  `font-satoshi text-xs font-black tracking-widest uppercase text-swiss-text ${
-                    isActive ? 'underline underline-offset-4 decoration-2' : ''
-                  }`
-                }
-              >
-                {link.label}
-              </NavLink>
-            ))}
-            <Link
-              to="/contact"
-              onClick={() => setMobileOpen(false)}
-              className="text-[11px] font-satoshi font-black tracking-widest uppercase bg-swiss-text text-swiss-bg px-6 py-3 text-center border border-swiss-text"
-            >
-              Book Consultation
-            </Link>
-          </div>
-        )}
-      </header>
-    )
-  }
-
-  // ── Colourful Theme Navbar ─────────────────────────────────────────────
   return (
     <header className="fixed top-3 sm:top-4 left-0 right-0 z-40 mx-auto max-w-6xl px-3 sm:px-4 transition-all duration-500">
       <div className="bg-white/90 backdrop-blur-xl border border-violet-150/80 shadow-lg shadow-violet-500/5 rounded-full py-3 px-5 sm:px-8 flex items-center justify-between">
         {/* Logo */}
-        <Logo theme="colourful" />
+        <Logo  />
 
         {/* Desktop links */}
         <nav className="hidden md:flex items-center space-x-7 text-sm font-semibold">

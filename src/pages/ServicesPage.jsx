@@ -1,10 +1,11 @@
-import React from 'react'
 import { Link } from 'react-router-dom'
 import Services from '../components/Services'
 import { ArrowRight, Bot, Settings, Store, Target } from 'lucide-react'
 
-function ServicesPage({ theme, services }) {
-  const isSwiss = theme === 'swiss'
+function ServicesPage({
+  services
+}) {
+
 
   const serviceCategories = [
     {
@@ -34,29 +35,29 @@ function ServicesPage({ theme, services }) {
       {/* Page Header */}
       <section className="py-8 md:py-12 px-6 max-w-6xl mx-auto border-b border-gray-200/40">
         <span className={`text-xs font-black tracking-widest uppercase block mb-3 ${
-          isSwiss ? 'font-satoshi text-swiss-text' : 'font-outfit text-violet-600 font-extrabold'
+          'font-outfit text-violet-600 font-extrabold'
         }`}>
           [ AGENCY SOLUTIONS & CAPABILITIES ]
         </span>
         <h1 className={`text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight ${
-          isSwiss ? 'font-clash text-swiss-text' : 'font-outfit text-slate-900 font-extrabold'
+          'font-outfit text-slate-900 font-extrabold'
         }`}>
           End-to-End eCommerce Services
         </h1>
         <p className={`mt-4 text-sm md:text-base max-w-3xl leading-relaxed ${
-          isSwiss ? 'font-satoshi text-swiss-text/80' : 'font-outfit text-slate-600 font-medium'
+          'font-outfit text-slate-600 font-medium'
         }`}>
           From custom store builds and AI Hinglish WhatsApp closers to deep marketplace ranking audits and ERP logistics integrations, explore our full suite of technical capabilities.
         </p>
       </section>
 
       {/* Services Core Grid */}
-      <Services theme={theme} services={services} />
+      <Services  services={services} />
 
       {/* Detailed Capabilities Matrix */}
       <section className="py-10 px-6 max-w-6xl mx-auto">
         <h2 className={`text-2xl md:text-4xl font-bold mb-8 ${
-          isSwiss ? 'font-clash text-swiss-text' : 'font-outfit text-slate-900 font-extrabold'
+          'font-outfit text-slate-900 font-extrabold'
         }`}>
           Technical Delivery Spectrum
         </h2>
@@ -66,20 +67,20 @@ function ServicesPage({ theme, services }) {
             const Icon = cat.icon
             return (
               <div key={cat.title} className={`p-8 ${
-                isSwiss ? 'border border-swiss-text bg-white' : 'bg-white/95 backdrop-blur-md border-2 border-violet-150 rounded-3xl shadow-lg'
+                'bg-white/95 backdrop-blur-md border-2 border-violet-150 rounded-3xl shadow-lg'
               }`}>
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 ${
-                  isSwiss ? 'bg-swiss-text text-swiss-bg' : 'bg-gradient-to-r from-violet-600 to-pink-500 text-white'
+                  'bg-gradient-to-r from-violet-600 to-pink-500 text-white'
                 }`}>
                   <Icon className="w-6 h-6" />
                 </div>
-                <h3 className={`text-xl font-bold mb-4 ${isSwiss ? 'font-clash text-swiss-text' : 'font-outfit text-slate-900 font-bold'}`}>
+                <h3 className="text-xl font-bold mb-4 font-outfit text-slate-900 font-bold">
                   {cat.title}
                 </h3>
                 <ul className="space-y-3">
                   {cat.items.map(item => (
                     <li key={item} className={`flex items-center gap-2 text-xs font-semibold ${
-                      isSwiss ? 'font-satoshi text-swiss-text/85' : 'font-outfit text-slate-700'
+                      'font-outfit text-slate-700'
                     }`}>
                       <span className="w-1.5 h-1.5 rounded-full bg-violet-600"></span>
                       {item}
@@ -93,18 +94,16 @@ function ServicesPage({ theme, services }) {
 
         {/* CTA Banner */}
         <div className={`mt-12 mb-6 p-8 md:p-12 text-center ${
-          isSwiss ? 'border border-swiss-text bg-swiss-bg' : 'bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white rounded-3xl shadow-xl'
+          'bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white rounded-3xl shadow-xl'
         }`}>
-          <h3 className={`text-2xl md:text-3xl font-bold ${isSwiss ? 'font-clash text-swiss-text' : 'font-outfit text-white'}`}>
+          <h3 className="text-2xl md:text-3xl font-bold font-outfit text-white">
             Have a custom technical requirement for your store?
           </h3>
           <div className="mt-6 flex justify-center">
             <Link
               to="/contact"
               className={`inline-flex items-center gap-2 px-8 py-4 text-xs font-black tracking-widest uppercase transition-all ${
-                isSwiss
-                  ? 'bg-swiss-text text-swiss-bg border border-swiss-text hover:bg-swiss-bg hover:text-swiss-text'
-                  : 'bg-white text-slate-900 rounded-full hover:bg-slate-100 shadow-md transform hover:scale-105'
+                'bg-white text-slate-900 rounded-full hover:bg-slate-100 shadow-md transform hover:scale-105'
               }`}
             >
               Discuss Your Stack <ArrowRight className="w-4 h-4" />

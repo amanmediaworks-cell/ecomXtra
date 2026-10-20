@@ -7,14 +7,6 @@ export default {
   theme: {
     extend: {
       colors: {
-        swiss: {
-          bg: '#f2f2f2',
-          text: '#111111',
-          muted: '#b6b5b5',
-          darkgray: '#838282',
-          card: '#ffffff',
-          accent: '#111111',
-        },
         softly: {
           bg: '#FDFCF8',
           text: '#2A2825',
