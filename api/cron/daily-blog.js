@@ -318,52 +318,79 @@ function safeProviderUrl(value, allowedHost) {
   }
 }
 
-async function findPexelsImage(query) {
-  if (!process.env.PEXELS_API_KEY) return null
+async function findPixabayImage(query) {
+  if (!process.env.PIXABAY_API_KEY) return null;
 
-  const url = new URL('https://api.pexels.com/v1/search')
-  url.searchParams.set('query', query)
-  url.searchParams.set('per_page', '10')
-  url.searchParams.set('orientation', 'landscape')
-  let response
+  const url = new URL('https://pixabay.com/api/');
+  url.searchParams.set('key', process.env.PIXABAY_API_KEY);
+  url.searchParams.set('q', query.slice(0, 100));
+  url.searchParams.set('image_type', 'photo');
+  url.searchParams.set('orientation', 'horizontal');
+  url.searchParams.set('per_page', '10');
+  url.searchParams.set('safesearch', 'true');
+
+  let response;
+
   try {
     response = await fetch(url, {
-      headers: { Authorization: process.env.PEXELS_API_KEY },
       signal: AbortSignal.timeout(PEXELS_REQUEST_TIMEOUT_MS),
-    })
+    });
   } catch {
-    throw new JobError('pexels_request_failed', 502)
+    throw new JobError('pixabay_request_failed', 502);
   }
-  if (!response.ok) {
-    throw new JobError(`pexels_http_${response.status}`, response.status === 429 ? 503 : 502)
-  }
-  let payload
-  try {
-    payload = await response.json()
-  } catch {
-    throw new JobError('pexels_invalid_response', 502)
-  }
-  if (!Array.isArray(payload.photos)) throw new JobError('pexels_invalid_response', 502)
-  if (!payload.photos.length) return null
 
-  for (const photo of payload.photos) {
-    const imageUrl = safeProviderUrl(photo.src?.large2 || photo.src?.large, 'images.pexels.com')
-    const pageUrl = safeProviderUrl(photo.url, 'www.pexels.com')
-    const photographerUrl = safeProviderUrl(photo.photographer_url, 'www.pexels.com')
-    if (!imageUrl || !pageUrl || !photographerUrl || !photo.photographer?.trim()) continue
+  if (!response.ok) {
+    throw new JobError(
+      `pixabay_http_${response.status}`,
+      response.status === 429 ? 503 : 502,
+    );
+  }
+
+  let payload;
+
+  try {
+    payload = await response.json();
+  } catch {
+    throw new JobError('pixabay_invalid_response', 502);
+  }
+
+  if (!Array.isArray(payload.hits)) {
+    throw new JobError('pixabay_invalid_response', 502);
+  }
+
+  if (!payload.hits.length) return null;
+
+  for (const hit of payload.hits) {
+    // Prefer the larger image, with webformatURL as a fallback.
+    const imageUrl = safeProviderUrl(
+      hit.largeImageURL || hit.webformatURL,
+      'pixabay.com',
+    );
+
+    const pageUrl = safeProviderUrl(
+      hit.pageURL,
+      'pixabay.com',
+    );
+
+    if (!imageUrl || !pageUrl || !hit.id) continue;
+
     return {
       imageUrl,
       metadata: {
-        provider: 'Pexels',
-        photoId: photo.id,
+        provider: 'Pixabay',
+        photoId: hit.id,
         photoUrl: pageUrl,
-        photographer: photo.photographer.trim(),
-        photographerUrl,
-        alt: typeof photo.alt === 'string' ? photo.alt.slice(0, 300) : '',
+        photographer: typeof hit.user === 'string' ? hit.user.trim() : '',
+        photographerUrl:
+          typeof hit.user === 'string' && hit.user.trim()
+            ? `https://pixabay.com/users/${encodeURIComponent(hit.user.trim())}-${hit.user_id}/`
+            : '',
+        alt: typeof hit.tags === 'string' ? hit.tags.slice(0, 300) : '',
       },
-    }
+    };
   }
-  return null
+
+  return null;
 }
 
 async function chooseUniqueSlug(supabase, title, scheduledDate) {
