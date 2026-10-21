@@ -1,16 +1,23 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
   ],
   "crons": [
     {
       "path": "/api/cron/daily-blog",
-      "schedule": "30 3 * * *"
+      "schedule": "30 1 * * *"
+    },
+    {
+      "path": "/api/cron/daily-blog",
+      "schedule": "0 7 * * *"
     }
   ],
   "functions": {
     "api/cron/daily-blog.js": {
-      "maxDuration": 120
+      "maxDuration": 300
     }
   }
 }

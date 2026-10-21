@@ -27,22 +27,20 @@ function Services({
   };
 
   return (
-    <section id="services" className="py-20 md:py-28 px-4 sm:px-6 lg:px-8 xl:px-12 max-w-7xl mx-auto w-full">
-      <div className="mb-16 text-center md:text-left">
-        <span className={`text-xs font-black tracking-widest uppercase block mb-2 ${
-          'font-outfit text-violet-600 font-extrabold'
-        }`}>
+    <section id="services" className="py-6 md:py-8 px-4 sm:px-6 lg:px-8 xl:px-12 max-w-7xl mx-auto w-full">
+      <div className="mb-6 md:mb-8 text-center md:text-left pb-4 border-b border-slate-200/60">
+        <span className={`text-xs font-black tracking-widest uppercase block mb-1.5 ${'font-outfit text-violet-600 font-extrabold'
+          }`}>
           {content?.eyebrow || '[ AGENCY CAPABILITIES ]'}
         </span>
-        <h2 className={`text-3xl md:text-5xl font-bold tracking-tight ${
-          'font-outfit text-slate-900 font-extrabold'
-        }`}>
+        <h2 className={`text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight ${'font-outfit text-slate-900 font-extrabold'
+          }`}>
           {content?.heading || 'Bespoke eCommerce Solutions'}
         </h2>
       </div>
 
-      {content?.description && <p className="mb-8 max-w-3xl text-sm text-slate-600">{content.description}</p>}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {content?.description && <p className="mb-5 max-w-3xl text-xs md:text-sm text-slate-600">{content.description}</p>}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {services.map((service, idx) => {
           const cardThemes = [
             { bg: 'bg-gradient-to-br from-emerald-500/10 via-white to-teal-500/5 border-emerald-200', icon: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20', hoverText: 'hover:text-emerald-600' },
@@ -59,11 +57,11 @@ function Services({
           return (
             <div
               key={service.id || idx}
-              className={`${t.bg} border-2 p-6 md:p-7 rounded-3xl shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group overflow-hidden`}
+              className={`${t.bg} border-2 p-5 md:p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group overflow-hidden`}
             >
               <div>
                 {/* Visual Thumbnail Header with Safe Caching */}
-                <div className="relative h-44 w-full rounded-2xl overflow-hidden mb-6 bg-slate-900 border border-slate-200/60 shadow-xs">
+                <div className="relative h-36 md:h-40 w-full rounded-xl overflow-hidden mb-4 bg-slate-900 border border-slate-200/60 shadow-xs">
                   <SafeImage
                     src={serviceImage}
                     alt={service.title}
@@ -71,24 +69,24 @@ function Services({
                     imgClassName="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-black/20 to-transparent pointer-events-none" />
-                  <div className={`absolute bottom-3 left-3 w-11 h-11 rounded-xl flex items-center justify-center ${t.icon} group-hover:rotate-12 transition-transform duration-300`}>
-                    {getIcon(idx, "w-5 h-5")}
+                  <div className={`absolute bottom-2.5 left-2.5 w-10 h-10 rounded-xl flex items-center justify-center ${t.icon} group-hover:rotate-12 transition-transform duration-300`}>
+                    {getIcon(idx, "w-4 h-4")}
                   </div>
                 </div>
 
-                <h3 className="font-outfit text-xl font-extrabold text-slate-900 leading-snug">
+                <h3 className="font-outfit text-lg md:text-xl font-extrabold text-slate-900 leading-snug">
                   {service.title}
                 </h3>
-                <p className="font-outfit text-xs text-slate-600 mt-2.5 leading-relaxed font-medium">
+                <p className="font-outfit text-xs text-slate-600 mt-2 leading-relaxed font-medium">
                   {service.description}
                 </p>
               </div>
 
               <Link
                 to="/contact"
-                className={`inline-flex items-center gap-2 text-xs font-bold text-slate-800 ${t.hoverText} transition-colors mt-6 pt-4 border-t border-slate-100 uppercase tracking-wider`}
+                className={`inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 ${t.hoverText} transition-colors mt-4 pt-3 border-t border-slate-100 uppercase tracking-wider`}
               >
-                Inquire Service <ArrowUpRight className="w-4 h-4" />
+                Inquire Service <ArrowUpRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           );
