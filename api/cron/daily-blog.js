@@ -268,64 +268,39 @@ function isValidArticle(article, category) {
 
 
 function isValidImagePayload(imageUrl, socialImage, metadata) {
+  // All-null = no image, always valid (article published without a photo).
   if (imageUrl === null && socialImage === null && metadata === null) {
     return true
   }
 
-  if (
-    typeof imageUrl !== 'string' ||
-    imageUrl !== socialImage ||
-    !metadata ||
-    typeof metadata !== 'object'
-  ) {
+  // When an image is present, cover and social must match and be HTTPS.
+  if (typeof imageUrl !== 'string' || imageUrl !== socialImage) return false
+
+  try {
+    const url = new URL(imageUrl)
+    if (url.protocol !== 'https:') return false
+  } catch {
     return false
   }
 
-  if (metadata.provider !== 'Pixabay') return false
+  // Metadata is optional — if omitted entirely that's fine.
+  if (metadata === null || metadata === undefined) return true
 
-  const validImageUrl = (() => {
+  if (typeof metadata !== 'object' || Array.isArray(metadata)) return false
+
+  // If metadata is present, any optional URLs within it must also be HTTPS.
+  for (const urlField of ['photoUrl', 'photographerUrl']) {
+    const value = metadata[urlField]
+    if (value == null) continue
     try {
-      const url = new URL(imageUrl)
-      return (
-        url.protocol === 'https:' &&
-        ['cdn.pixabay.com', 'pixabay.com'].includes(url.hostname)
-      )
+      const url = new URL(value)
+      if (url.protocol !== 'https:') return false
     } catch {
       return false
     }
-  })()
+  }
 
-  const validPageUrl = (() => {
-    try {
-      const url = new URL(metadata.photoUrl)
-      return (
-        url.protocol === 'https:' &&
-        ['pixabay.com', 'www.pixabay.com'].includes(url.hostname)
-      )
-    } catch {
-      return false
-    }
-  })()
-
-  const validPhotographerUrl = (() => {
-    try {
-      const url = new URL(metadata.photographerUrl)
-      return (
-        url.protocol === 'https:' &&
-        ['pixabay.com', 'www.pixabay.com'].includes(url.hostname)
-      )
-    } catch {
-      return false
-    }
-  })()
-
-  return Boolean(
-    validImageUrl &&
-    validPageUrl &&
-    validPhotographerUrl &&
-    typeof metadata.photographer === 'string' &&
-    metadata.photographer.trim()
-  )
+  return true
 }
 
 
@@ -800,7 +775,7 @@ async function findPixabayImage(query) {
     });
 
     for (const hit of sortedHits) {
-      // Prefer the larger image, with webformatURL as a fallback.
+      // Prefer the large CDN image; fall back to webformatURL.
       const imageUrl = safeProviderUrl(
         hit.largeImageURL || hit.webformatURL,
         ['cdn.pixabay.com', 'pixabay.com'],
@@ -853,12 +828,13 @@ async function chooseUniqueSlug(supabase, title, scheduledDate) {
   throw new JobError('slug_collision_limit_reached', 409)
 }
 
-async function markRunFailed(supabase, runId, attemptToken, errorCode) {
+async function markRunFailed(supabase, runId, attemptToken, errorCode, errorReason = null) {
   try {
     const { data: updated, error } = await supabase.rpc('fail_daily_blog_run', {
       p_run_id: runId,
       p_attempt_token: attemptToken,
       p_error_code: errorCode,
+      p_error_reason: errorReason,
     })
     if (error) {
       logEvent('daily_blog_failure_record_failed', { runId, errorCode: 'failure_record_update_failed' })
@@ -1038,6 +1014,15 @@ export default async function handler(req, res) {
     })
     if (publishError || !postId) {
       const collision = publishError?.code === '23505'
+      // Log the raw DB error so it appears in server logs for debugging.
+      logEvent('daily_blog_publish_error', {
+        requestId,
+        runId,
+        dbErrorCode: publishError?.code || null,
+        dbErrorMessage: publishError?.message?.slice(0, 500) || null,
+        collision,
+        postIdReturned: postId ?? null,
+      })
       throw new JobError(collision ? 'database_unique_constraint_conflict' : 'database_publish_failed', 502)
     }
 
@@ -1053,8 +1038,11 @@ export default async function handler(req, res) {
   } catch (error) {
     const errorCode = error instanceof JobError ? error.code : 'unexpected_error'
     const status = error instanceof JobError ? error.status : 500
-    if (runId && attemptToken) await markRunFailed(supabase, runId, attemptToken, errorCode)
-    logEvent('daily_blog_failed', { requestId, scheduledDate, runId, errorCode })
+    const errorReason = typeof error?.message === 'string' && error.message !== errorCode
+      ? error.message.slice(0, 1000)
+      : null
+    if (runId && attemptToken) await markRunFailed(supabase, runId, attemptToken, errorCode, errorReason)
+    logEvent('daily_blog_failed', { requestId, scheduledDate, runId, errorCode, errorReason })
     return jsonResponse(res, status, { ok: false, error: errorCode, scheduledDate })
   }
 }
