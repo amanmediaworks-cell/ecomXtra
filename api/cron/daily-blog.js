@@ -19,10 +19,12 @@ const GEMINI_REQUEST_TIMEOUT_MS = 28000
 const PIXABAY_REQUEST_TIMEOUT_MS = 8000
 
 class JobError extends Error {
-  constructor(code, status = 500) {
+  constructor(code, status = 500, reason = null) {
     super(code)
     this.code = code
     this.status = status
+    // reason holds the raw underlying API/DB error message for logging.
+    this.reason = reason ? String(reason).slice(0, 1000) : null
   }
 }
 
@@ -898,7 +900,7 @@ export default async function handler(req, res) {
       .select('id, status, post_id, started_at')
       .eq('scheduled_date', scheduledDate)
       .maybeSingle()
-    if (existingRunError) throw new JobError('database_run_lookup_failed', 502)
+    if (existingRunError) throw new JobError('database_run_lookup_failed', 502, existingRunError.message)
     if (existingRun?.status === 'succeeded') {
       logEvent('daily_blog_idempotent_skip', { requestId, scheduledDate, runId: existingRun.id })
       return jsonResponse(res, 200, {
@@ -916,13 +918,13 @@ export default async function handler(req, res) {
       .order('scheduled_date', { ascending: false })
       .limit(1)
       .maybeSingle()
-    if (historyError) throw new JobError('database_history_lookup_failed', 502)
+    if (historyError) throw new JobError('database_history_lookup_failed', 502, historyError.message)
     const category = chooseCategory(priorSuccess?.category)
     const { data: claimedRun, error: claimError } = await supabase.rpc('claim_daily_blog_run', {
       p_scheduled_date: scheduledDate,
       p_category: category,
     })
-    if (claimError) throw new JobError('database_run_claim_failed', 502)
+    if (claimError) throw new JobError('database_run_claim_failed', 502, claimError.message)
     const claim = getClaimedRun(claimedRun)
     runId = claim?.run_id
     attemptToken = claim?.attempt_token
@@ -956,7 +958,8 @@ export default async function handler(req, res) {
         .limit(30),
     ])
     if (postHistoryResult.error || topicHistoryResult.error) {
-      throw new JobError('database_topic_history_lookup_failed', 502)
+      const dbErr = postHistoryResult.error || topicHistoryResult.error
+      throw new JobError('database_topic_history_lookup_failed', 502, dbErr.message)
     }
     const posts = postHistoryResult.data || []
     const titleHistory = posts.map(post => post.title).filter(Boolean)
@@ -1014,16 +1017,15 @@ export default async function handler(req, res) {
     })
     if (publishError || !postId) {
       const collision = publishError?.code === '23505'
-      // Log the raw DB error so it appears in server logs for debugging.
-      logEvent('daily_blog_publish_error', {
-        requestId,
-        runId,
-        dbErrorCode: publishError?.code || null,
-        dbErrorMessage: publishError?.message?.slice(0, 500) || null,
-        collision,
-        postIdReturned: postId ?? null,
-      })
-      throw new JobError(collision ? 'database_unique_constraint_conflict' : 'database_publish_failed', 502)
+      // Carry the raw DB message in the JobError so it surfaces in errorReason.
+      const rawDbMessage = publishError?.message
+        ? `[${publishError.code ?? 'DB'}] ${publishError.message}`.slice(0, 1000)
+        : (!postId ? 'RPC returned no post id' : null)
+      throw new JobError(
+        collision ? 'database_unique_constraint_conflict' : 'database_publish_failed',
+        502,
+        rawDbMessage,
+      )
     }
 
     logEvent('daily_blog_published', { requestId, scheduledDate, runId, postId, slug, category })
@@ -1038,9 +1040,10 @@ export default async function handler(req, res) {
   } catch (error) {
     const errorCode = error instanceof JobError ? error.code : 'unexpected_error'
     const status = error instanceof JobError ? error.status : 500
-    const errorReason = typeof error?.message === 'string' && error.message !== errorCode
-      ? error.message.slice(0, 1000)
-      : null
+    // For JobErrors use the explicit reason; for unexpected errors fall back to the message.
+    const errorReason = error instanceof JobError
+      ? (error.reason ?? null)
+      : (typeof error?.message === 'string' ? error.message.slice(0, 1000) : null)
     if (runId && attemptToken) await markRunFailed(supabase, runId, attemptToken, errorCode, errorReason)
     logEvent('daily_blog_failed', { requestId, scheduledDate, runId, errorCode, errorReason })
     return jsonResponse(res, status, { ok: false, error: errorCode, scheduledDate })
