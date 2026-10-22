@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import handler from './render-page.js'
 
 const article = {
@@ -48,6 +49,11 @@ function createResponse() {
     end(body = '') { this.body = body },
   }
 }
+
+test('SSR bundle contains React Router instead of relying on unavailable deployed files', async () => {
+  const serverBundle = await readFile(new URL('../dist/server/entry-server.js', import.meta.url), 'utf8')
+  assert.doesNotMatch(serverBundle, /\bfrom\s*["']react-router(?:-dom)?["']/)
+})
 
 test('published article requests return SSR HTML with unique SEO tags and article content', async () => {
   const res = createResponse()

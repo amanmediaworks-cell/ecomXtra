@@ -52,6 +52,9 @@ function sitemapDevPlugin() {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), sitemapDevPlugin()],
+  ssr: {
+    noExternal: ['react-router', 'react-router-dom'],
+  },
   server: {
     host: '0.0.0.0',
     allowedHosts: ['deep-forks-end.loca.lt', 'localhost', '127.0.0.1'],
