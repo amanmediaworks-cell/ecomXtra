@@ -7,6 +7,7 @@ const SUPABASE_TIMEOUT_MS = 4000
 const CACHE_TTL_MS = 60 * 1000 // 1 minute in-memory cache
 const SITEMAP_URL_LIMIT = 50000
 const SUPABASE_PAGE_SIZE = 1000
+const STATIC_PAGE_LASTMOD = '2026-10-22'
 
 // In-memory cache for serverless execution environment
 let inMemoryCache = {
@@ -19,12 +20,12 @@ const DISALLOWED_ROUTE_PATTERN = /^(admin|login|register|signup|logout|dashboard
 
 // Explicit allowlist of static public routes with corresponding content_key in site_content table
 const STATIC_PUBLIC_ROUTES = [
-  { path: '/', contentKey: 'seo' },
-  { path: '/philosophy', contentKey: 'about' },
-  { path: '/services', contentKey: 'services_section' },
-  { path: '/showcase', contentKey: 'showcase_section' },
-  { path: '/testimonials', contentKey: 'testimonials_section' },
-  { path: '/contact', contentKey: 'contact' },
+  { path: '/', contentKey: 'seo', lastmod: STATIC_PAGE_LASTMOD },
+  { path: '/philosophy', contentKey: 'about', lastmod: STATIC_PAGE_LASTMOD },
+  { path: '/services', contentKey: 'services_section', lastmod: STATIC_PAGE_LASTMOD },
+  { path: '/showcase', contentKey: 'showcase_section', lastmod: STATIC_PAGE_LASTMOD },
+  { path: '/testimonials', contentKey: 'testimonials_section', lastmod: STATIC_PAGE_LASTMOD },
+  { path: '/contact', contentKey: 'contact', lastmod: STATIC_PAGE_LASTMOD },
   { path: '/blog', contentKey: null }, // Uses latest published blog post timestamp
 ]
 
@@ -50,6 +51,14 @@ export function formatLastmodDate(dateValue) {
   const date = new Date(dateValue)
   if (Number.isNaN(date.getTime())) return null
   return date.toISOString().slice(0, 10)
+}
+
+function latestLastmodDate(...dates) {
+  return dates
+    .map(formatLastmodDate)
+    .filter(Boolean)
+    .sort()
+    .at(-1) || null
 }
 
 /**
@@ -182,12 +191,12 @@ export async function generateSitemapXml({ forceFresh = false, supabaseClient = 
       ? `${CANONICAL_ORIGIN}/`
       : `${CANONICAL_ORIGIN}${staticRoute.path}`
 
-    let lastmod = null
-    if (staticRoute.path === '/blog') {
-      lastmod = latestBlogLastmod
-    } else if (staticRoute.contentKey && contentDates[staticRoute.contentKey]) {
-      lastmod = contentDates[staticRoute.contentKey]
-    }
+    const lastmod = staticRoute.path === '/blog'
+      ? latestBlogLastmod
+      : latestLastmodDate(
+        staticRoute.lastmod,
+        staticRoute.contentKey ? contentDates[staticRoute.contentKey] : null,
+      )
 
     addUrl(loc, lastmod)
   }

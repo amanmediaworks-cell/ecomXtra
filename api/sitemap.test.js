@@ -151,6 +151,36 @@ test('generateSitemapXml generates complete sitemap with public static routes an
   }
 })
 
+test('normal public pages use the confirmed update date without changing article dates', async () => {
+  const pages = [
+    { content_key: 'seo', updated_at: '2026-10-20T00:00:00Z' },
+    { content_key: 'about', updated_at: '2026-10-22T00:00:00Z' },
+    { content_key: 'services_section', updated_at: '2026-10-20T00:00:00Z' },
+    { content_key: 'showcase_section', updated_at: '2026-10-20T00:00:00Z' },
+    { content_key: 'testimonials_section', updated_at: '2026-10-20T00:00:00Z' },
+    { content_key: 'contact', updated_at: '2026-10-20T00:00:00Z' },
+  ]
+  const posts = [{
+    slug: 'article-updated-on-the-twentieth',
+    published_at: '2026-10-19T00:00:00Z',
+    updated_at: '2026-10-20T00:00:00Z',
+    is_published: true,
+  }]
+  const xml = await generateSitemapXml({
+    forceFresh: true,
+    supabaseClient: createSitemapClient({ pages, posts }),
+  })
+
+  for (const path of ['/', '/philosophy', '/services', '/showcase', '/testimonials', '/contact']) {
+    assert.match(
+      xml,
+      new RegExp(`<loc>https://ecomxtra\\.in${path === '/' ? '/' : path.replace('/', '\\/')}</loc><lastmod>2026-10-22</lastmod>`),
+      `Expected ${path} to use the confirmed update date`,
+    )
+  }
+  assert.match(xml, /<loc>https:\/\/ecomxtra\.in\/blog\/article-updated-on-the-twentieth<\/loc><lastmod>2026-10-20<\/lastmod>/)
+})
+
 test('generateSitemapXml paginates published articles beyond Supabase default page size', async () => {
   const posts = Array.from({ length: 1001 }, (_, index) => ({
     slug: `published-article-${index}`,

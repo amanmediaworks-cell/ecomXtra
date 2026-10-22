@@ -4,7 +4,7 @@
 
 Production Vercel rewrites route requests through `api/render-page.js`. The handler server-renders the existing React app into the initial HTML and hydrates that markup in the browser. Blog pages are loaded from the published-only Supabase rows on each request; an unknown or unpublished article receives HTTP 404, and an ID-based legacy URL redirects to its stored slug. The canonical hostname is `https://ecomxtra.in`; trailing slashes and duplicate route aliases redirect to the normalized route. Tracking/query parameters are omitted from canonical links.
 
-Run `npm run build` to produce both the public Vite build and the server renderer in `dist/server`. Vercel must run that build command and include `dist/**` in the page-render function deployment. The sitemap handler at `/api/sitemap` is exposed as `/sitemap.xml` and reads currently published article slugs and persisted `updated_at` timestamps from Supabase. Its short cache allows newly published, edited, and deleted posts to appear without a manual URL list.
+Run `npm run build` to produce both the public Vite build and the server renderer in `dist/server`. Vercel must run that build command and include `dist/**` in the page-render function deployment. The sitemap handler at `/api/sitemap` is exposed as `/sitemap.xml` and reads currently published article slugs and persisted `updated_at` timestamps from Supabase. The confirmed static-page update date is recorded in `api/sitemap.js`; newer per-page content timestamps take precedence. Update that baseline only when static page content or meaningful metadata changes. Its short cache allows newly published, edited, and deleted posts to appear without a manual URL list.
 
 ## Search metadata and structured data
 
