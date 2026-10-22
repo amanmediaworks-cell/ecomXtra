@@ -25,6 +25,12 @@ dist-ssr
 
 .vercel
 
+# Local AI editor and design files
+.cursor/
+.superdesign/
+.windsurfrules
+CLAUDE.md
+
 # Env files
 .env
 .env.*.local

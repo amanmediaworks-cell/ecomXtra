@@ -35,7 +35,7 @@ function sitemapDevPlugin() {
             const xml = await generateSitemapXml()
             res.statusCode = 200
             res.setHeader('Content-Type', 'application/xml; charset=utf-8')
-            res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=3600')
+            res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300')
             res.setHeader('X-Content-Type-Options', 'nosniff')
             res.end(xml)
             return

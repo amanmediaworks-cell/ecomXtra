@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Navigate, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Chatbot from './components/Chatbot'
 import Footer from './components/Footer'
@@ -16,6 +16,8 @@ import { supabase } from './src/lib/supabase'
 import { fallbackContent } from './data/initialContent'
 import { loadCachedContent } from './data/contentCache'
 import { siteContentDefaults } from './data/siteContentDefaults'
+import { getRouteMetadata, getStructuredData } from './data/seoMetadata'
+import { getBlogImageForCategory, normalizeBlogImageUrl } from './data/blogImageUtils'
 
 const PAGE_SIZE = 6
 
@@ -74,15 +76,22 @@ function requestPublicBlogPost(slug) {
 }
 
 function mapPublicBlogPost(post) {
+  const coverImage = normalizeBlogImageUrl(post.cover_image || post.social_image, post.category)
+  const fallbackImage = getBlogImageForCategory(post.category)
   return {
     ...post,
     authorRole: post.author_role || '',
     readTime: post.read_time || '',
-    coverImage: post.cover_image || '',
+    coverImage,
     seoTitle: post.seo_title || '',
     metaDescription: post.meta_description || '',
-    canonicalUrl: post.canonical_url || '',
-    socialImage: post.social_image || '',
+    socialImage: coverImage,
+    image_metadata: {
+      ...post.image_metadata,
+      alt: post.image_metadata?.provider === 'Unsplash'
+        ? post.image_metadata.alt || fallbackImage.alt
+        : fallbackImage.alt,
+    },
     date: post.published_at
       ? new Date(post.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       : '',
@@ -98,8 +107,9 @@ function decodeRouteSegment(value) {
 }
 
 function upsertMeta(selector, attribute, value) {
-  if (!value) return
-  let element = document.head.querySelector(selector)
+  const elements = [...document.head.querySelectorAll(selector)]
+  let element = elements.shift()
+  elements.forEach(duplicate => duplicate.remove())
   if (!element) {
     element = document.createElement('meta')
     element.setAttribute(attribute, selector.includes('property=') ? selector.match(/property="([^"]+)"/)[1] : selector.match(/name="([^"]+)"/)[1])
@@ -108,21 +118,79 @@ function upsertMeta(selector, attribute, value) {
   element.content = value
 }
 
-function App() {
-  const [services, setServices] = useState(fallbackContent.services)
-  const [showcases, setShowcases] = useState(fallbackContent.showcases)
-  const [testimonials, setTestimonials] = useState(fallbackContent.testimonials)
-  const [blogs, setBlogs] = useState([])
-  const [blogPostDetail, setBlogPostDetail] = useState(null)
-  const [resolvedBlogPostSlug, setResolvedBlogPostSlug] = useState(null)
-  const [blogPage, setBlogPage] = useState(0)
-  const [blogCount, setBlogCount] = useState(0)
+function RouteSeo({ pathname, blog, siteContent }) {
+  useEffect(() => {
+    const metadata = getRouteMetadata(pathname, blog)
+    const homeSeo = pathname === '/'
+      ? siteContent.find(section => section.content_key === 'seo')?.content
+      : null
+    const title = homeSeo?.title || metadata.title
+    const description = homeSeo?.description || metadata.description
+    let socialImage = metadata.image
+    if (homeSeo?.socialImage) {
+      try {
+        const imageUrl = new URL(homeSeo.socialImage, 'https://ecomxtra.in')
+        if (imageUrl.protocol === 'https:') socialImage = imageUrl.href
+      } catch {
+        socialImage = metadata.image
+      }
+    }
+
+    document.title = title
+    upsertMeta('meta[name="description"]', 'name', description)
+    upsertMeta('meta[name="robots"]', 'name', metadata.robots)
+    upsertMeta('meta[property="og:type"]', 'property', metadata.type)
+    upsertMeta('meta[property="og:title"]', 'property', title)
+    upsertMeta('meta[property="og:description"]', 'property', description)
+    upsertMeta('meta[property="og:url"]', 'property', metadata.canonicalUrl || 'https://ecomxtra.in')
+    upsertMeta('meta[property="og:image"]', 'property', socialImage)
+    upsertMeta('meta[name="twitter:card"]', 'name', 'summary_large_image')
+    upsertMeta('meta[name="twitter:title"]', 'name', title)
+    upsertMeta('meta[name="twitter:description"]', 'name', description)
+    upsertMeta('meta[name="twitter:image"]', 'name', socialImage)
+
+    const canonicalLinks = [...document.head.querySelectorAll('link[rel="canonical"]')]
+    canonicalLinks.slice(1).forEach(link => link.remove())
+    if (metadata.canonicalUrl) {
+      const canonical = canonicalLinks[0] || document.createElement('link')
+      canonical.rel = 'canonical'
+      canonical.href = metadata.canonicalUrl
+      if (!canonical.isConnected) document.head.appendChild(canonical)
+    } else {
+      canonicalLinks.forEach(link => link.remove())
+    }
+
+    document.head.querySelectorAll('script[id^="structured-data-"]').forEach(script => script.remove())
+    getStructuredData(pathname, blog).forEach((data, index) => {
+      const script = document.createElement('script')
+      script.id = `structured-data-${index}`
+      script.type = 'application/ld+json'
+      script.textContent = JSON.stringify(data).replace(/</g, '\\u003c')
+      document.head.appendChild(script)
+    })
+  }, [pathname, blog, siteContent])
+
+  return null
+}
+
+function App({ initialData = {} }) {
+  const [services, setServices] = useState(() => initialData.services || fallbackContent.services)
+  const [showcases, setShowcases] = useState(() => initialData.showcases || fallbackContent.showcases)
+  const [testimonials, setTestimonials] = useState(() => initialData.testimonials || fallbackContent.testimonials)
+  const [blogs, setBlogs] = useState(() => initialData.blogs || [])
+  const [blogPostDetail, setBlogPostDetail] = useState(() => initialData.blogPostDetail || null)
+  const [resolvedBlogPostSlug, setResolvedBlogPostSlug] = useState(() => initialData.blogPostDetail?.slug || null)
+  const [blogCount, setBlogCount] = useState(() => initialData.blogCount || 0)
   const [testimonialsPage, setTestimonialsPage] = useState(0)
-  const [testimonialsCount, setTestimonialsCount] = useState(0)
+  const [testimonialsCount, setTestimonialsCount] = useState(() => initialData.testimonialsCount || 0)
   const [contentLoadError, setContentLoadError] = useState(false)
-  const [siteContent, setSiteContent] = useState(siteContentDefaults)
-  const [siteContentLoaded, setSiteContentLoaded] = useState(false)
-  const { pathname } = useLocation()
+  const [siteContent, setSiteContent] = useState(() => initialData.siteContent || siteContentDefaults)
+  const [siteContentLoaded, setSiteContentLoaded] = useState(() => Boolean(initialData.siteContent))
+  const { pathname, search } = useLocation()
+  const navigate = useNavigate()
+  const requestedPage = Number.parseInt(new URLSearchParams(search).get('page') || '1', 10)
+  const blogPage = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage - 1 : 0
+  const setBlogPage = page => navigate(page > 0 ? `/blog?page=${page + 1}` : '/blog')
   const requestedBlogPostSlug = pathname.match(/^\/blog\/([^/]+)$/)?.[1]
   const decodedBlogPostSlug = requestedBlogPostSlug ? decodeRouteSegment(requestedBlogPostSlug) : null
   const currentBlogPostDetail = blogPostDetail
@@ -160,59 +228,17 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (pathname !== '/') return undefined
-    const seoRow = siteContent.find(section => section.content_key === 'seo')
-    if (!seoRow) return undefined
-    const defaultSeo = siteContentDefaults.find(section => section.content_key === 'seo')?.content || {}
-    const seo = { ...defaultSeo, ...seoRow.content }
-
-    const previousTitle = document.title
-    const managedSelectors = [
-      'meta[name="description"]',
-      'meta[property="og:title"]',
-      'meta[property="og:description"]',
-      'meta[property="og:image"]',
-      'meta[name="twitter:card"]',
-    ]
-    const previousMeta = managedSelectors.map(selector => {
-      const element = document.head.querySelector(selector)
-      return { selector, element, content: element?.content }
-    })
-    const socialImage = seo.socialImage?.startsWith('/')
-      ? `${window.location.origin}${seo.socialImage}`
-      : seo.socialImage
-
-    document.title = seo.title || previousTitle
-    upsertMeta('meta[name="description"]', 'name', seo.description)
-    upsertMeta('meta[property="og:title"]', 'property', seo.title)
-    upsertMeta('meta[property="og:description"]', 'property', seo.description)
-    upsertMeta('meta[property="og:image"]', 'property', socialImage)
-    upsertMeta('meta[name="twitter:card"]', 'name', 'summary_large_image')
-
-    return () => {
-      document.title = previousTitle
-      for (const { selector, element, content } of previousMeta) {
-        if (element) {
-          if (content !== undefined) element.content = content
-        } else {
-          document.head.querySelector(selector)?.remove()
-        }
-      }
-    }
-  }, [pathname, siteContent])
-
-  useEffect(() => {
     let active = true
     const blogPostSlug = requestedBlogPostSlug
     const requiredTables = pathname === '/'
       ? ['services', 'showcases', 'testimonials']
-      : pathname === '/services' || pathname === '/service'
+      : pathname === '/services'
         ? ['services']
         : pathname === '/showcase'
           ? ['showcases']
           : pathname === '/testimonials'
             ? ['testimonials']
-            : pathname === '/blog' || pathname === '/blogs'
+            : pathname === '/blog'
               ? ['blog_posts']
               : []
     const contentRequests = requiredTables.map(async table => {
@@ -263,11 +289,12 @@ function App() {
     return () => {
       active = false
     }
-  }, [pathname, requestedBlogPostSlug, blogPage, testimonialsPage])
+  }, [pathname, requestedBlogPostSlug, blogPage, testimonialsPage, search])
 
   return (
     <div className="min-h-screen flex flex-col justify-between relative overflow-x-hidden bg-[#faf8ff] text-slate-900 font-outfit">
       <ScrollToTop />
+      <RouteSeo pathname={pathname} blog={currentBlogPostDetail} siteContent={siteContent} />
       {/* Colourful ambient glowing blobs + subtle mesh (fixed, overflow-hidden so they don't affect layout) */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="softly-grain-overlay" />
@@ -296,13 +323,13 @@ function App() {
               />
             }
           />
-          <Route path="/about" element={<PhilosophyPage siteContent={siteContent} />} />
           <Route path="/philosophy" element={<PhilosophyPage siteContent={siteContent} />} />
           <Route path="/showcase" element={<ShowcasePage showcases={showcases} siteContent={siteContent} />} />
           <Route path="/services" element={<ServicesPage services={services} />} />
-          <Route path="/service" element={<ServicesPage services={services} />} />
           <Route path="/blog" element={<BlogPage blogs={blogs} page={blogPage} pageSize={PAGE_SIZE} totalCount={blogCount} onPageChange={setBlogPage} />} />
-          <Route path="/blogs" element={<BlogPage blogs={blogs} page={blogPage} pageSize={PAGE_SIZE} totalCount={blogCount} onPageChange={setBlogPage} />} />
+          <Route path="/about" element={<Navigate to={`/philosophy${search}`} replace />} />
+          <Route path="/service" element={<Navigate to={`/services${search}`} replace />} />
+          <Route path="/blogs" element={<Navigate to={`/blog${search}`} replace />} />
           <Route
             path="/blog/:id"
             element={(
@@ -320,6 +347,7 @@ function App() {
               <ContactPage />
             }
           />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
 
@@ -328,6 +356,15 @@ function App() {
       )}
       <Chatbot />
     </div>
+  )
+}
+
+function NotFoundPage() {
+  return (
+    <section className="pt-32 pb-20 px-6 max-w-4xl mx-auto text-center">
+      <h1 className="text-3xl font-bold text-slate-800 mb-4">Page Not Found</h1>
+      <p className="text-sm text-slate-500">The page you requested could not be found.</p>
+    </section>
   )
 }
 

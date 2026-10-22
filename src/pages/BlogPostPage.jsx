@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Calendar, Clock, Share2, Check, MessageSquare } from 'lucide-react'
 import BlogMarkdown from '../components/BlogMarkdown'
-import BlogPostSeo from '../components/BlogPostSeo'
 import BlogImage from '../components/BlogImage'
 
 function BlogPostPage({
@@ -45,11 +44,11 @@ function BlogPostPage({
     }
 
     const shareText = encodeURIComponent(`${blog.title} — via EcomXtra`)
-    const currentUrl = encodeURIComponent(window.location.href)
+    const articleUrl = `https://ecomxtra.in/blog/${encodeURIComponent(blog.slug || blog.id)}`
+    const currentUrl = encodeURIComponent(articleUrl)
 
     return (
         <>
-            <BlogPostSeo blog={blog} />
             <article className="pt-20 md:pt-24 pb-8">
                 {/* Top Breadcrumb & Navigation */}
                 <div className="px-6 max-w-4xl mx-auto mb-4">
@@ -60,6 +59,15 @@ function BlogPostPage({
                     >
                         <ArrowLeft className="w-3.5 h-3.5" /> Back to All Articles
                     </Link>
+                    <nav aria-label="Breadcrumb" className="mt-2 text-xs text-slate-500">
+                        <ol className="flex flex-wrap items-center gap-2">
+                            <li><Link to="/" className="hover:text-violet-700">Home</Link></li>
+                            <li aria-hidden="true">/</li>
+                            <li><Link to="/blog" className="hover:text-violet-700">Blog</Link></li>
+                            <li aria-hidden="true">/</li>
+                            <li aria-current="page" className="text-slate-700">{blog.title}</li>
+                        </ol>
+                    </nav>
                 </div>
 
                 {/* Article Header */}
@@ -137,42 +145,13 @@ function BlogPostPage({
                         <div className="overflow-hidden rounded-2xl sm:rounded-3xl shadow-lg h-[260px] sm:h-[400px] border-2 border-violet-100">
                             <BlogImage
                                 src={blog.coverImage}
-                                alt={blog.title}
+                                alt={blog.image_metadata?.alt || blog.title}
                                 priority
                                 className="w-full h-full"
+                                width={1200}
+                                height={675}
                             />
                         </div>
-                        {blog.image_metadata?.provider === 'pixabay' && (
-                            <p className="mt-3 text-xs text-slate-500">
-                                Photo by{' '}
-                                <a
-                                    href={blog.image_metadata.photographerUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="font-semibold text-violet-700 underline"
-                                >
-                                    {blog.image_metadata.photographer}
-                                </a>
-                                {' '}on{' '}
-                                <a
-                                    href={blog.image_metadata.photoUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="font-semibold text-violet-700 underline"
-                                >
-                                    Pixabay
-                                </a>
-                                {' '}·{' '}
-                                <a
-                                    href="https://pixabay.com/"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="font-black text-violet-700 underline"
-                                >
-                                    Photos provided by Pixabay
-                                </a>
-                            </p>
-                        )}
                     </div>
                 )}
 

@@ -30,10 +30,6 @@ function BlogPage({
     ? filteredBlogs.filter(blog => blog.id !== featuredBlog.id)
     : filteredBlogs
   const pageCount = Math.ceil(totalCount / pageSize)
-  const changePage = nextPage => {
-    if (nextPage >= 0 && nextPage < pageCount) onPageChange?.(nextPage)
-  }
-
   return (
     <div className="pt-20 md:pt-24 pb-4">
       {/* Page Header */}
@@ -202,7 +198,9 @@ function BlogPage({
                     {blog.coverImage ? (
                       <BlogImage
                         src={blog.coverImage}
-                        alt={blog.title}
+                        alt={blog.image_metadata?.alt || blog.title}
+                        width={1200}
+                        height={675}
                         className="w-full h-full group-hover:scale-105 transition-transform duration-500"
                         fallback={
                           <div
@@ -271,25 +269,33 @@ function BlogPage({
 
         {pageCount > 1 && (
           <nav aria-label="Blog pagination" className="mt-10 flex items-center justify-center gap-4">
-            <button
-              type="button"
-              onClick={() => changePage(page - 1)}
-              disabled={page === 0}
-              className="rounded-full border border-violet-200 px-5 py-2 text-xs font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Previous
-            </button>
+            {page > 0 ? (
+              <Link
+                to={`/blog?page=${page}`}
+                className="rounded-full border border-violet-200 px-5 py-2 text-xs font-bold text-slate-700"
+              >
+                Previous
+              </Link>
+            ) : (
+              <span aria-disabled="true" className="rounded-full border border-violet-200 px-5 py-2 text-xs font-bold text-slate-400">
+                Previous
+              </span>
+            )}
             <span className="text-xs font-semibold text-slate-500">
               Page {page + 1} of {pageCount}
             </span>
-            <button
-              type="button"
-              onClick={() => changePage(page + 1)}
-              disabled={page >= pageCount - 1}
-              className="rounded-full border border-violet-200 px-5 py-2 text-xs font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next
-            </button>
+            {page < pageCount - 1 ? (
+              <Link
+                to={`/blog?page=${page + 2}`}
+                className="rounded-full border border-violet-200 px-5 py-2 text-xs font-bold text-slate-700"
+              >
+                Next
+              </Link>
+            ) : (
+              <span aria-disabled="true" className="rounded-full border border-violet-200 px-5 py-2 text-xs font-bold text-slate-400">
+                Next
+              </span>
+            )}
           </nav>
         )}
 

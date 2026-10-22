@@ -7,6 +7,38 @@ import handler, {
   generateSitemapXml,
 } from './sitemap.js'
 
+function createSitemapClient({
+  pages = [{ content_key: 'seo', updated_at: '2026-10-22T00:00:00Z' }],
+  posts = [
+    {
+      slug: 'mastering-post-purchase-upselling-turning-one-time-buyers-into-loyal-customers',
+      published_at: '2026-10-20T00:00:00Z',
+      updated_at: '2026-10-22T00:00:00Z',
+      is_published: true,
+    },
+    { slug: 'draft-post', is_published: false },
+    { slug: 'bad/slug', is_published: true },
+  ],
+  error = null,
+} = {}) {
+  return {
+    from(table) {
+      const data = table === 'site_content' ? pages : posts
+      let start = 0
+      let end = Number.POSITIVE_INFINITY
+      return {
+        select() { return this },
+        eq() { return this },
+        order() { return this },
+        range(rangeStart, rangeEnd) { start = rangeStart; end = rangeEnd; return this },
+        then(resolve, reject) {
+          return Promise.resolve({ data: data.slice(start, end + 1), error }).then(resolve, reject)
+        },
+      }
+    },
+  }
+}
+
 test('escapeXml correctly escapes all XML special characters', () => {
   assert.equal(escapeXml('hello & world'), 'hello &amp; world')
   assert.equal(escapeXml('<foo>'), '&lt;foo&gt;')
@@ -50,7 +82,7 @@ test('buildSitemapXmlString properly escapes URLs with XML-sensitive characters'
 })
 
 test('generateSitemapXml generates complete sitemap with public static routes and published posts', async () => {
-  const xml = await generateSitemapXml({ forceFresh: true })
+  const xml = await generateSitemapXml({ forceFresh: true, supabaseClient: createSitemapClient() })
 
   // 1. Valid XML header and namespace
   assert.ok(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>'))
@@ -59,10 +91,8 @@ test('generateSitemapXml generates complete sitemap with public static routes an
   // 2. Required static pages
   const requiredStaticUrls = [
     'https://ecomxtra.in/',
-    'https://ecomxtra.in/about',
     'https://ecomxtra.in/philosophy',
     'https://ecomxtra.in/services',
-    'https://ecomxtra.in/service',
     'https://ecomxtra.in/showcase',
     'https://ecomxtra.in/testimonials',
     'https://ecomxtra.in/contact',
@@ -74,6 +104,10 @@ test('generateSitemapXml generates complete sitemap with public static routes an
 
   // 3. Dynamic published blog posts
   assert.ok(xml.includes('/blog/mastering-post-purchase-upselling-turning-one-time-buyers-into-loyal-customers'))
+  assert.ok(!xml.includes('draft-post'))
+  assert.ok(!xml.includes('bad%2Fslug'))
+  assert.ok(!xml.includes('<loc>https://ecomxtra.in/about</loc>'))
+  assert.ok(!xml.includes('<loc>https://ecomxtra.in/service</loc>'))
 
   // 4. Ensure no private, administrative, or internal URLs exist
   const forbiddenPatterns = [
@@ -117,6 +151,22 @@ test('generateSitemapXml generates complete sitemap with public static routes an
   }
 })
 
+test('generateSitemapXml paginates published articles beyond Supabase default page size', async () => {
+  const posts = Array.from({ length: 1001 }, (_, index) => ({
+    slug: `published-article-${index}`,
+    published_at: '2026-10-20T00:00:00Z',
+    is_published: true,
+  }))
+  const xml = await generateSitemapXml({
+    forceFresh: true,
+    supabaseClient: createSitemapClient({ posts }),
+  })
+
+  assert.match(xml, /\/blog\/published-article-0/)
+  assert.match(xml, /\/blog\/published-article-1000/)
+  assert.equal((xml.match(/<url>/g) || []).length, 1008)
+})
+
 test('handler sets HTTP 200, Content-Type application/xml; charset=utf-8, and security/cache headers', async () => {
   const headers = {}
   let body = null
@@ -136,7 +186,7 @@ test('handler sets HTTP 200, Content-Type application/xml; charset=utf-8, and se
     },
   }
 
-  await handler({ method: 'GET' }, res)
+  await handler({ method: 'GET' }, res, { supabaseClient: createSitemapClient() })
 
   assert.equal(res.statusCode, 200)
   assert.equal(headers['Content-Type'], 'application/xml; charset=utf-8')
@@ -167,13 +217,31 @@ test('handler responds to HEAD requests with headers and no body', async () => {
     },
   }
 
-  await handler({ method: 'HEAD' }, res)
+  await handler({ method: 'HEAD' }, res, { supabaseClient: createSitemapClient() })
 
   assert.equal(res.statusCode, 200)
   assert.equal(headers['Content-Type'], 'application/xml; charset=utf-8')
   assert.ok(headers['Content-Length'] > 0)
   assert.equal(ended, true)
   assert.equal(body, null)
+})
+
+test('handler fails explicitly when sitemap content cannot be fetched', async () => {
+  const headers = {}
+  let body = null
+  const res = {
+    statusCode: 200,
+    setHeader(key, value) { headers[key] = value },
+    end(value) { body = value },
+  }
+
+  await handler({ method: 'GET' }, res, {
+    supabaseClient: createSitemapClient({ error: new Error('database unavailable') }),
+  })
+
+  assert.equal(res.statusCode, 503)
+  assert.equal(headers['Cache-Control'], 'no-store')
+  assert.match(body, /temporarily unavailable/)
 })
 
 test('handler rejects unsupported HTTP methods with 405', async () => {

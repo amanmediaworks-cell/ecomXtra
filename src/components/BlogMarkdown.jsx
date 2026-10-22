@@ -1,5 +1,3 @@
-import React from 'react'
-
 function renderInline(text, keyPrefix = '') {
   if (!text) return null
   const regex = /(\[([^\]]+)\]\((https?:\/\/[^)]+)\)|\*\*([^*]+)\*\*|`([^`]+)`|\*([^*]+)\*)/g
@@ -162,12 +160,12 @@ function BlogMarkdown({ content = '' }) {
     }
 
     // Check headings
-    // Level 1: # Title
+    // The article page already owns the primary H1.
     if (trimmed.startsWith('# ')) {
       elements.push(
-        <h1 key={`h1-${key++}`} className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-10 mb-5">
+        <h2 key={`h1-${key++}`} className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-10 mb-5">
           {renderInline(trimmed.slice(2), `h1-t-${key}`)}
-        </h1>,
+        </h2>,
       )
       continue
     }

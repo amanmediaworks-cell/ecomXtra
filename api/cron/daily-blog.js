@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { timingSafeEqual, randomUUID } from 'node:crypto'
 import { Buffer } from 'node:buffer'
 import process from 'node:process'
+import { getBlogImageForCategory } from '../../src/data/blogImageUtils.js'
 
 const CATEGORIES = [
   'AI Automation',
@@ -16,7 +17,6 @@ const ARTICLE_MAX_WORDS = 1800
 const RUN_LEASE_MS = 10 * 60 * 1000
 const MAX_SUPABASE_REQUEST_MS = 4000
 const GEMINI_REQUEST_TIMEOUT_MS = 28000
-const PIXABAY_REQUEST_TIMEOUT_MS = 8000
 
 class JobError extends Error {
   constructor(code, status = 500, reason = null) {
@@ -203,7 +203,7 @@ function getArticleValidationIssues(article, category) {
     return ['response must be a JSON object']
   }
   const issues = []
-  const stringFields = ['title', 'excerpt', 'seo_title', 'meta_description', 'content', 'image_search_query']
+  const stringFields = ['title', 'excerpt', 'seo_title', 'meta_description', 'content']
   for (const field of stringFields) {
     if (typeof article[field] !== 'string' || !article[field].trim()) {
       issues.push(`${field} must be a non-empty string`)
@@ -227,10 +227,6 @@ function getArticleValidationIssues(article, category) {
     issues.push('tags must contain 3–6 strings')
   } else if (article.tags.some(tag => typeof tag !== 'string' || !tag.trim() || tag.length > 32)) {
     issues.push('every tag must be a non-empty string of at most 32 characters')
-  }
-  if (typeof article.image_search_query === 'string'
-    && !/^[\p{L}\p{N}][\p{L}\p{N} '&-]{1,58}$/u.test(article.image_search_query.trim())) {
-    issues.push('image_search_query must contain 2–60 valid characters')
   }
   if (typeof article.content === 'string') {
     const content = normalizeArticleContent(article.content)
@@ -388,7 +384,6 @@ function buildPrompt(category, titles, recentTopics) {
     '- excerpt: 60–240 characters. Compelling summary highlighting key takeaways.',
     '- seo_title: maximum 60 characters. Clean, keyword-focused meta title for Google SERPs.',
     '- meta_description: maximum 160 characters. Action-oriented meta description to drive organic clicks.',
-    '- image_search_query: 2–5 concise visual keywords describing a relevant photo for Pixabay (e.g. "ecommerce warehouse logistics" or "marketplace seller inventory").',
     '- tags: 3–6 distinct strings, each at most 32 characters.',
     '- content: complete Markdown article meeting every structural and length requirement above.',
 
@@ -469,10 +464,6 @@ async function generateArticle(category, titles, recentTopics) {
         items: { type: 'STRING' },
         description: 'Array of 3 to 6 distinct topic tags, each at most 32 characters.',
       },
-      image_search_query: {
-        type: 'STRING',
-        description: '2 to 5 concise visual keywords for Pixabay photo search (e.g. "ecommerce warehouse logistics").',
-      },
       content: {
         type: 'STRING',
         description: 'Full Markdown article content. Strict requirement: 800–1000+ words (minimum 750 words). Must include introduction, at least 3 main body sections starting with "## " (at least 180 words each), exactly "## Conclusion" (50+ words), and exactly "## Frequently Asked Questions" with 2–4 questions starting with "### " and ending with "?". No HTML, no single "#" headings.',
@@ -484,7 +475,6 @@ async function generateArticle(category, titles, recentTopics) {
       'seo_title',
       'meta_description',
       'tags',
-      'image_search_query',
       'content',
     ],
   }
@@ -766,102 +756,8 @@ async function generateArticle(category, titles, recentTopics) {
   throw new JobError('gemini_output_validation_failed', 502)
 }
 
-function safeProviderUrl(value, allowedHosts) {
-  if (typeof value !== 'string') return ''
-  try {
-    const url = new URL(value)
-    const hosts = Array.isArray(allowedHosts) ? allowedHosts : [allowedHosts]
-    if (url.protocol !== 'https:' || !hosts.includes(url.hostname)) return ''
-    return url.href
-  } catch {
-    return ''
-  }
-}
-
-async function findPixabayImage(query) {
-  if (!process.env.PIXABAY_API_KEY) return null;
-
-  try {
-    const url = new URL('https://pixabay.com/api/');
-    url.searchParams.set('key', process.env.PIXABAY_API_KEY);
-    url.searchParams.set('q', String(query || '').slice(0, 100));
-    url.searchParams.set('image_type', 'photo');
-    url.searchParams.set('orientation', 'horizontal');
-    url.searchParams.set('per_page', '10');
-    url.searchParams.set('safesearch', 'true');
-
-    let response;
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      response = await fetch(url, {
-        signal: AbortSignal.timeout(PIXABAY_REQUEST_TIMEOUT_MS),
-      });
-
-      if (response.status === 429 && attempt < 3) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-        continue;
-      }
-      break;
-    }
-
-    if (!response || !response.ok) return null;
-
-    const payload = await response.json();
-    if (!Array.isArray(payload?.hits) || !payload.hits.length) return null;
-
-    const queryWords = String(query || '').toLowerCase().split(/\s+/).filter(Boolean);
-
-    // Score hits to decide the best, highest quality representation
-    const sortedHits = [...payload.hits].sort((a, b) => {
-      const score = hit => {
-        let s = Math.log10((hit.likes || 0) + 1) * 20 + Math.log10((hit.views || 0) + 1) * 10;
-        if (hit.imageWidth && hit.imageHeight) {
-          const ratio = hit.imageWidth / hit.imageHeight;
-          if (ratio >= 1.3 && ratio <= 2.2) s += 30;
-          else if (ratio < 1.0) s -= 40;
-        }
-        const tags = String(hit.tags || '').toLowerCase();
-        for (const word of queryWords) {
-          if (word.length > 2 && tags.includes(word)) s += 15;
-        }
-        return s;
-      };
-      return score(b) - score(a);
-    });
-
-    for (const hit of sortedHits) {
-      // Prefer the large CDN image; fall back to webformatURL.
-      const imageUrl = safeProviderUrl(
-        hit.largeImageURL || hit.webformatURL,
-        ['cdn.pixabay.com', 'pixabay.com'],
-      );
-
-      const pageUrl = safeProviderUrl(
-        hit.pageURL,
-        ['pixabay.com', 'www.pixabay.com'],
-      );
-
-      if (!imageUrl || !pageUrl || !hit.id) continue;
-
-      return {
-        imageUrl,
-        metadata: {
-          provider: 'Pixabay',
-          photoId: hit.id,
-          photoUrl: pageUrl,
-          photographer: typeof hit.user === 'string' ? hit.user.trim() : '',
-          photographerUrl:
-            typeof hit.user === 'string' && hit.user.trim() && hit.user_id
-              ? `https://pixabay.com/users/${encodeURIComponent(hit.user.trim())}-${hit.user_id}/`
-              : '',
-          alt: typeof hit.tags === 'string' ? hit.tags.slice(0, 300) : '',
-        },
-      };
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
+function getCategoryImage(category) {
+  return getBlogImageForCategory(category)
 }
 
 async function chooseUniqueSlug(supabase, title, scheduledDate) {
@@ -1021,13 +917,7 @@ export default async function handler(req, res) {
       throw new JobError('generated_topic_too_similar', 422)
     }
 
-    let photo = null
-    try {
-      photo = await findPixabayImage(article.image_search_query)
-    } catch {
-      photo = null
-    }
-    if (!photo) logEvent('daily_blog_no_verified_photo', { requestId, runId })
+    const photo = getCategoryImage(category)
     const slug = await chooseUniqueSlug(supabase, article.title, scheduledDate)
     const publishedAt = new Date().toISOString()
     if (!Array.isArray(article.tags)
@@ -1045,15 +935,15 @@ export default async function handler(req, res) {
       author: 'EcomXtra Editorial Team',
       author_role: 'Editorial Team',
       read_time: readingTime(article.content),
-      cover_image: photo?.imageUrl || null,
+      cover_image: photo.url,
       tags,
       excerpt: article.excerpt.trim(),
       content: article.content.trim(),
       published_at: publishedAt,
       seo_title: article.seo_title.trim(),
       meta_description: article.meta_description.trim(),
-      social_image: photo?.imageUrl || null,
-      image_metadata: photo?.metadata || null,
+      social_image: photo.url,
+      image_metadata: { provider: 'Unsplash', alt: photo.alt },
     }
     if (!isValidImagePayload(postPayload.cover_image, postPayload.social_image, postPayload.image_metadata)) {
       throw new JobError('generated_image_metadata_invalid', 422)
@@ -1105,13 +995,12 @@ export {
   getInvalidEnvironment,
   getClaimedRun,
   getScheduledDate,
-  findPixabayImage,
+  getCategoryImage,
   generateArticle,
   getArticleValidationIssues,
   isValidImagePayload,
   isValidArticle,
   RUN_LEASE_MS,
-  safeProviderUrl,
   secureSecretMatch,
   slugify,
   titleSimilarity,

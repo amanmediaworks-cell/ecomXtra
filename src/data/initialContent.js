@@ -1,4 +1,4 @@
-import { defaultBlogs } from './defaultBlogs'
+import { defaultBlogs } from './defaultBlogs.js'
 
 export const initialContent = {
   services: [

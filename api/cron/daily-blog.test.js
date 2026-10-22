@@ -6,7 +6,7 @@ import process from 'node:process'
 import {
   chooseCategory,
   countWords,
-  findPixabayImage,
+  getCategoryImage,
   generateArticle,
   getArticleValidationIssues,
   getClaimedRun,
@@ -14,7 +14,6 @@ import {
   isValidImagePayload,
   isValidArticle,
   RUN_LEASE_MS,
-  safeProviderUrl,
   secureSecretMatch,
   slugify,
   titleSimilarity,
@@ -46,7 +45,6 @@ function validArticle(heading = '###') {
     seo_title: 'Improve Shopify Checkout: Practical Guide',
     meta_description: 'Learn practical, low-risk ways to make a Shopify checkout clearer and easier for customers.',
     tags: ['Shopify', 'Checkout', 'Conversion'],
-    image_search_query: 'online shopping checkout',
     content: `${heading} Start Here\n\n${practicalBody}\n\n${heading} Next Steps\n\n${practicalBody}\n\n${heading} Conclusion\n\n${conclusion}\n\n${heading} Frequently Asked Questions\n\n${faq}`,
   }
 }
@@ -80,19 +78,18 @@ test('scheduled dates allow authorized recovery of past UTC dates only', () => {
 test('handler passes the claimed token to both publishing and failure RPCs', () => {
   assert.match(endpoint, /const claim = getClaimedRun\(claimedRun\)[\s\S]*?attemptToken = claim\?\.attempt_token/)
   assert.match(endpoint, /publish_daily_blog_post[\s\S]*?p_attempt_token: attemptToken/)
-  assert.match(endpoint, /markRunFailed\(supabase, runId, attemptToken, errorCode\)/)
+  assert.match(endpoint, /markRunFailed\(supabase, runId, attemptToken, errorCode, errorReason\)/)
   assert.match(endpoint, /fail_daily_blog_run[\s\S]*?p_attempt_token: attemptToken/)
 })
 
 test('ten-minute lease exceeds configured function maximum and provider timeouts', () => {
   const maxDurationSeconds = vercelConfig.functions['api/cron/daily-blog.js'].maxDuration
   const leaseSeconds = RUN_LEASE_MS / 1000
-  assert.equal(maxDurationSeconds, 120)
+  assert.equal(maxDurationSeconds, 300)
   assert.ok(leaseSeconds > maxDurationSeconds)
   assert.match(endpoint, /EXPECTED_GEMINI_MODEL = 'gemini-3\.1-flash-lite'/)
   assert.match(endpoint, /models\/\$\{EXPECTED_GEMINI_MODEL\}:generateContent/)
   assert.match(endpoint, /GEMINI_REQUEST_TIMEOUT_MS = 28000/)
-  assert.match(endpoint, /PIXABAY_REQUEST_TIMEOUT_MS = 8000/)
   assert.match(endpoint, /MAX_SUPABASE_REQUEST_MS = 4000/)
 })
 
@@ -176,27 +173,19 @@ test('article validation rejects malformed tag values and image URLs', () => {
   assert.equal(isValidArticle({ ...article, tags: [] }, 'Shopify & Tech'), false)
   assert.equal(isValidImagePayload(null, null, null), true)
   assert.equal(isValidImagePayload('http://images.pexels.com/x', 'http://images.pexels.com/x', {}), false)
-  assert.equal(isValidImagePayload(
-    'https://cdn.pixabay.com/photo/1/photo.jpg',
-    'https://cdn.pixabay.com/photo/1/photo.jpg',
-    {
-      provider: 'Pixabay',
-      photoUrl: 'https://pixabay.com/photos/1/',
-      photographerUrl: 'https://pixabay.com/users/photographer-1/',
-      photographer: 'Photographer',
-    },
-  ), true)
+  const image = getCategoryImage('Marketplace SEO')
+  assert.match(image.url, /^https:\/\/images\.unsplash\.com\//)
+  assert.ok(image.alt)
+  assert.equal(isValidImagePayload(image.url, image.url, { provider: 'Unsplash', alt: image.alt }), true)
 })
 
-test('Pexels is optional and missing API key skips the network request', async () => {
-  const oldKey = process.env.PIXABAY_API_KEY
-  delete process.env.PIXABAY_API_KEY
-  try {
-    assert.equal(await findPixabayImage('ecommerce checkout'), null)
-  } finally {
-    if (oldKey === undefined) delete process.env.PIXABAY_API_KEY
-    else process.env.PIXABAY_API_KEY = oldKey
+test('automated articles use curated Unsplash URLs without an image provider API', () => {
+  for (const category of ['AI Automation', 'Shopify & Tech', 'Marketplace SEO', 'CRO & Growth']) {
+    const image = getCategoryImage(category)
+    assert.match(image.url, /^https:\/\/images\.unsplash\.com\//)
+    assert.ok(image.alt)
   }
+  assert.doesNotMatch(endpoint, /pixabay\.com|PIXABAY_API_KEY/i)
 })
 
 test('SQL contract covers invalid tags, duplicate posts, and rollback on publish failure', () => {
@@ -245,11 +234,8 @@ test('article validation enforces length and required article sections', () => {
   assert.equal(isValidArticle({ ...article, content: article.content.replace('### Frequently Asked Questions', '### More') }, 'Shopify & Tech'), false)
 })
 
-test('title similarity and Pexels URLs reject inappropriate matches and hosts', () => {
+test('title similarity continues to distinguish near-duplicate topics', () => {
   assert.ok(titleSimilarity('Shopify checkout conversion guide', 'A Shopify checkout conversion guide') > 0.7)
-  assert.equal(safeProviderUrl('https://images.pexels.com/photos/1/large.jpeg', 'images.pexels.com'), 'https://images.pexels.com/photos/1/large.jpeg')
-  assert.equal(safeProviderUrl('http://images.pexels.com/photos/1/large.jpeg', 'images.pexels.com'), '')
-  assert.equal(safeProviderUrl('https://example.com/photo.jpg', 'images.pexels.com'), '')
 })
 
 test('cron endpoint rejects unauthorized and non-GET requests', async () => {

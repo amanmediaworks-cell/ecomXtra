@@ -1,7 +1,7 @@
 
 import SafeImage from './SafeImage'
 
-const DEFAULT_ABOUT_IMAGE = 'https://cdn.pixabay.com/photo/2024/05/21/19/57/computer-8779036_1280.jpg'
+const DEFAULT_ABOUT_IMAGE = 'https://images.unsplash.com/photo-1523726491678-bf852e717f6a?auto=format&fit=crop&w=1600&q=80'
 
 function About({ content }) {
     const about = content || {}

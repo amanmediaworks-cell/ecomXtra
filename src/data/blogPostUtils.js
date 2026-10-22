@@ -13,7 +13,9 @@ export function isValidBlogUrl(value, requireHttps = false) {
   if (!requireHttps && value.startsWith('/') && !value.startsWith('//')) return true
   try {
     const url = new URL(value)
-    return requireHttps ? url.protocol === 'https:' : ['http:', 'https:'].includes(url.protocol)
+    if (url.protocol !== 'https:') return false
+    if (requireHttps) return true
+    return ['ecomxtra.in', 'images.unsplash.com', 'images.pexels.com'].includes(url.hostname)
   } catch {
     return false
   }
@@ -31,10 +33,9 @@ export function validateBlogPost(article) {
   for (const [field, label] of [
     ['coverImage', 'Cover image URL'],
     ['socialImage', 'Social-sharing image URL'],
-    ['canonicalUrl', 'Canonical URL'],
   ]) {
-    if (!isValidBlogUrl(article[field], field === 'canonicalUrl')) {
-      return `${label} must be a valid ${field === 'canonicalUrl' ? 'HTTPS' : 'HTTP(S)'} URL.`
+    if (!isValidBlogUrl(article[field])) {
+      return `${label} must be a valid HTTPS image URL or a site-relative path.`
     }
   }
   return ''

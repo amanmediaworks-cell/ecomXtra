@@ -86,16 +86,12 @@ function BlogEditorFields({ article, onChange, inputClassName, labelClassName, s
 
       {textArea('excerpt', 'Excerpt / Summary', { rows: 2, required: true })}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {textField('slug', 'URL Slug', {
-          required: true,
-          placeholder: 'readable-lowercase-slug',
-          hint: 'Suggested from the title. Change it only when you intend to change the article URL.',
-        })}
-        {textField('canonicalUrl', 'Canonical URL (optional)', {
-          placeholder: 'https://example.com/blog/article-slug',
-        })}
-      </div>
+      {textField('slug', 'URL Slug', {
+        required: true,
+        placeholder: 'readable-lowercase-slug',
+        hint: 'Suggested from the title. Change it only when you intend to change the article URL.',
+        wrapperClass: 'block',
+      })}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <label>

@@ -17,7 +17,6 @@ function mapBlogPost(post) {
     coverImage: post.cover_image || '',
     seoTitle: post.seo_title || '',
     metaDescription: post.meta_description || '',
-    canonicalUrl: post.canonical_url || '',
     socialImage: post.social_image || '',
     date: post.published_at
       ? new Date(post.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -41,7 +40,6 @@ function toBlogPost(blog) {
     cover_image: blog.coverImage || null,
     seo_title: blog.seoTitle?.trim() || null,
     meta_description: blog.metaDescription?.trim() || null,
-    canonical_url: blog.canonicalUrl?.trim() || null,
     social_image: blog.socialImage?.trim() || blog.coverImage?.trim() || null,
     tags,
     excerpt: blog.excerpt,
@@ -567,7 +565,6 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
     readTime: '5 min read',
     coverImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
     socialImage: '',
-    canonicalUrl: '',
     seoTitle: '',
     metaDescription: '',
     slug: '',
@@ -903,7 +900,6 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
                     readTime: '5 min read',
                     coverImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
                     socialImage: '',
-                    canonicalUrl: '',
                     seoTitle: '',
                     metaDescription: '',
                     slug: '',

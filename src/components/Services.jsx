@@ -3,12 +3,12 @@ import { ArrowUpRight, Code, Cpu, LineChart, Link2, ShoppingBag, Zap } from 'luc
 import SafeImage from './SafeImage'
 
 const SERVICE_VISUALS = [
-  'https://cdn.pixabay.com/photo/2017/03/13/17/26/ecommerce-2140603_640.jpg', // Shopify & WooCommerce
-  'https://cdn.pixabay.com/photo/2018/07/26/09/56/ecommerce-3563183_640.jpg', // eCommerce Store Development
-  'https://cdn.pixabay.com/photo/2016/12/20/22/32/holiday-shopping-1921658_640.jpg', // AI Chatbots & Whatsapp
-  'https://cdn.pixabay.com/photo/2017/08/10/04/44/analytics-2618277_640.jpg', // Growth Marketing & CRO
-  'https://cdn.pixabay.com/photo/2016/03/09/13/58/online-marketing-1246457_640.jpg', // Marketing Automation
-  'https://cdn.pixabay.com/photo/2020/10/01/17/11/store-5619201_640.jpg', // Custom Integrations
+  'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=900&q=80',
 ]
 
 function Services({

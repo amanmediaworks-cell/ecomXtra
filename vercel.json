@@ -1,12 +1,29 @@
 {
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.ecomxtra.in"
+        }
+      ],
+      "destination": "https://ecomxtra.in/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/sitemap.xml",
       "destination": "/api/sitemap"
     },
     {
-      "source": "/(.*)",
-      "destination": "/"
+      "source": "/",
+      "destination": "/api/render-page?path=/"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/api/render-page?path=/:path*"
     }
   ],
   "crons": [
@@ -25,6 +42,10 @@
     },
     "api/sitemap.js": {
       "maxDuration": 30
+    },
+    "api/render-page.js": {
+      "maxDuration": 30,
+      "includeFiles": "dist/**"
     }
   }
 }
