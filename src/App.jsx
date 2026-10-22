@@ -206,7 +206,7 @@ function App() {
     const blogPostSlug = requestedBlogPostSlug
     const requiredTables = pathname === '/'
       ? ['services', 'showcases', 'testimonials']
-      : pathname === '/services'
+      : pathname === '/services' || pathname === '/service'
         ? ['services']
         : pathname === '/showcase'
           ? ['showcases']
@@ -296,9 +296,11 @@ function App() {
               />
             }
           />
+          <Route path="/about" element={<PhilosophyPage siteContent={siteContent} />} />
           <Route path="/philosophy" element={<PhilosophyPage siteContent={siteContent} />} />
           <Route path="/showcase" element={<ShowcasePage showcases={showcases} siteContent={siteContent} />} />
           <Route path="/services" element={<ServicesPage services={services} />} />
+          <Route path="/service" element={<ServicesPage services={services} />} />
           <Route path="/blog" element={<BlogPage blogs={blogs} page={blogPage} pageSize={PAGE_SIZE} totalCount={blogCount} onPageChange={setBlogPage} />} />
           <Route path="/blogs" element={<BlogPage blogs={blogs} page={blogPage} pageSize={PAGE_SIZE} totalCount={blogCount} onPageChange={setBlogPage} />} />
           <Route

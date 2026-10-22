@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
       "source": "/(.*)",
       "destination": "/"
     }
@@ -18,6 +22,9 @@
   "functions": {
     "api/cron/daily-blog.js": {
       "maxDuration": 300
+    },
+    "api/sitemap.js": {
+      "maxDuration": 30
     }
   }
 }
