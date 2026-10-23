@@ -4,14 +4,14 @@ export const siteContentDefaults = [
     display_order: 10,
     is_public: true,
     content: {
-      badge: 'High-Converting Storefronts & AI Automation',
+      badge: 'Marketplace Account Management for Indian Sellers',
       heading: 'ECOMXTRA',
-      subheading: 'We build high-converting ecommerce storefronts, custom integrations, and smart Hinglish AI automation that automatically closes sales for growth-minded brands.',
+      subheading: 'EcomXtra manages your ecommerce marketplace operations—from product listings and catalogue updates to seller claims, returns, refunds, and account support.',
       description: '',
       imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1600&q=80',
       buttons: [
         { label: 'Book Consultation', href: '/contact' },
-        { label: 'Chat With AI Agent', href: 'https://wa.me/918700259557?text=Hi%20EcomXtra%2C%20I%20want%20to%20chat%20with%20an%20AI%20agent%20and%20get%20a%20quote' },
+        { label: 'WhatsApp Us', href: 'https://wa.me/918700259557?text=Hi%20EcomXtra%2C%20I%20need%20help%20with%20marketplace%20account%20management.' },
       ],
     },
   },
@@ -107,7 +107,7 @@ export const siteContentDefaults = [
     content: {
       eyebrow: '[ GET IN TOUCH ]',
       heading: 'Scale Your Marketplace Presence',
-      description: 'Whether you are looking to audit your marketplace rankings, automate deals via Hinglish WhatsApp chatbots, or build a custom headless Shopify storefront—we can help.',
+      description: 'Need help managing product listings, catalogue updates, seller claims, returns, refunds, or day-to-day marketplace account operations? Talk to EcomXtra about support for your business.',
       email: 'info@ecomxtra.in',
       phone: '+91 8700259557',
       whatsappNumber: '918700259557',
@@ -149,8 +149,8 @@ export const siteContentDefaults = [
     display_order: 100,
     is_public: true,
     content: {
-      title: 'EcomXtra | eCommerce Growth & AI Automation',
-      description: 'High-converting ecommerce storefronts, custom integrations, and smart AI automation for growth-minded brands.',
+      title: 'Marketplace Account Management India | EcomXtra',
+      description: 'EcomXtra manages Amazon, Flipkart, Meesho and more for Indian sellers—listings, catalogues, returns, claims and day-to-day marketplace operations.',
       socialImage: '/logo.png',
     },
   },

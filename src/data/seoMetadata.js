@@ -3,8 +3,8 @@ const DEFAULT_IMAGE = `${SITE_ORIGIN}/logo.png`
 
 const pageMetadata = {
   '/': {
-    title: 'EcomXtra | eCommerce Growth & AI Automation',
-    description: 'EcomXtra helps eCommerce brands grow with high-converting storefronts, marketplace SEO, and practical AI automation.',
+    title: 'Marketplace Account Management India | EcomXtra',
+    description: 'EcomXtra manages Amazon, Flipkart, Meesho and more for Indian sellers—listings, catalogues, returns, claims and day-to-day marketplace operations.',
   },
   '/philosophy': {
     title: 'Our Philosophy | EcomXtra',
@@ -15,20 +15,20 @@ const pageMetadata = {
     description: 'Explore EcomXtra eCommerce projects, marketplace work, and growth systems.',
   },
   '/services': {
-    title: 'eCommerce Growth Services | EcomXtra',
-    description: 'Explore EcomXtra services for eCommerce storefronts, marketplace optimization, and AI-powered automation.',
+    title: 'Marketplace Account Management Services | EcomXtra',
+    description: 'Outsource marketplace operations to EcomXtra: product listings, catalogue updates, seller claims, returns and account support for Indian platforms.',
   },
   '/blog': {
-    title: 'eCommerce Strategy & AI Playbooks | EcomXtra',
-    description: 'Practical eCommerce strategy, marketplace SEO, storefront technology, and automation guides from EcomXtra.',
+    title: 'Marketplace Seller Operations Guides | EcomXtra',
+    description: 'Practical guides for Indian marketplace sellers on account management, product listings, returns, seller claims and daily operations.',
   },
   '/testimonials': {
     title: 'Client Stories | EcomXtra',
     description: 'Read feedback from eCommerce brands working with EcomXtra.',
   },
   '/contact': {
-    title: 'Contact EcomXtra | eCommerce Growth Consultation',
-    description: 'Talk with EcomXtra about eCommerce development, marketplace growth, and automation for your brand.',
+    title: 'Hire Marketplace Account Support | Contact EcomXtra',
+    description: 'Need help managing Amazon, Flipkart, Meesho or other marketplace operations? Contact EcomXtra about account-management support for your business.',
   },
 }
 

@@ -11,7 +11,7 @@ function Hero({ content }) {
       <div className="mb-3 inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-gray-300/40 bg-white/70 backdrop-blur-md shadow-xs transition-all hover:scale-105">
         <img src="/logo.png" alt="EcomXtra" className="w-3.5 h-3.5 rounded-full object-contain shrink-0" />
         <span className="font-outfit text-slate-800 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider">
-          {hero.badge || 'High-Converting Storefronts & AI Automation'}
+          {hero.badge || 'Marketplace Account Management for Indian Sellers'}
         </span>
       </div>
 
@@ -42,7 +42,7 @@ function Hero({ content }) {
       {/* Subhead and CTAs */}
       <div className="max-w-3xl mt-1">
         <p className="font-outfit text-slate-800 text-sm sm:text-base md:text-lg font-bold tracking-tight leading-relaxed px-4">
-          {hero.subheading || 'We build high-converting ecommerce storefronts, custom integrations, and smart Hinglish AI automation that automatically closes sales for growth-minded brands.'}
+          {hero.subheading || 'EcomXtra manages your ecommerce marketplace operations—from product listings and catalogue updates to seller claims, returns, refunds, and account support.'}
         </p>
         {hero.description && (
           <p className="mt-2.5 px-4 text-xs sm:text-sm leading-relaxed text-slate-600">{hero.description}</p>

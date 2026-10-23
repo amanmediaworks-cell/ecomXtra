@@ -8,6 +8,7 @@ import {
   renderSeoHead,
 } from './seoMetadata.js'
 import { getBlogImageForCategory, normalizeBlogImageUrl } from './blogImageUtils.js'
+import { siteContentDefaults } from './siteContentDefaults.js'
 
 test('canonical URLs use the preferred origin and normalized route path', () => {
   assert.equal(getCanonicalUrl('/'), 'https://ecomxtra.in/')
@@ -15,6 +16,18 @@ test('canonical URLs use the preferred origin and normalized route path', () => 
   assert.equal(getCanonicalUrl('/blogs'), 'https://ecomxtra.in/blog')
   assert.equal(getCanonicalUrl('/service/'), 'https://ecomxtra.in/services')
   assert.equal(normalizeRoutePath('/blog//post-name///'), '/blog/post-name')
+})
+
+test('homepage metadata targets Indian sellers seeking marketplace account management', () => {
+  const metadata = getRouteMetadata('/')
+  assert.equal(metadata.title, 'Marketplace Account Management India | EcomXtra')
+  assert.match(metadata.description, /Amazon, Flipkart, Meesho/)
+  assert.match(metadata.description, /listings, catalogues, returns, claims/)
+  assert.match(renderSeoHead('/'), /<meta name="description" content="EcomXtra manages Amazon, Flipkart, Meesho/)
+  const hero = siteContentDefaults.find(section => section.content_key === 'hero')
+  assert.match(hero.content.subheading, /seller claims, returns, refunds/)
+  assert.equal(hero.content.buttons[1].label, 'WhatsApp Us')
+  assert.match(hero.content.buttons[1].href, /marketplace%20account%20management/)
 })
 
 test('article metadata and structured data use the real article title, date, and URL', () => {

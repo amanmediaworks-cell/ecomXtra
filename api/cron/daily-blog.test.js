@@ -45,6 +45,8 @@ function validArticle(heading = '###') {
     seo_title: 'Improve Shopify Checkout: Practical Guide',
     meta_description: 'Learn practical, low-risk ways to make a Shopify checkout clearer and easier for customers.',
     tags: ['Shopify', 'Checkout', 'Conversion'],
+    image_url: 'https://images.unsplash.com/photo-test?auto=format&fit=crop&w=1200&q=80',
+    image_alt: 'Marketplace seller reviewing a product listing on a laptop',
     content: `${heading} Start Here\n\n${practicalBody}\n\n${heading} Next Steps\n\n${practicalBody}\n\n${heading} Conclusion\n\n${conclusion}\n\n${heading} Frequently Asked Questions\n\n${faq}`,
   }
 }
@@ -99,17 +101,23 @@ test('generation prompt states every article requirement enforced by validation'
   assert.match(endpoint, /## Frequently Asked Questions/)
   assert.match(endpoint, /meta_description: maximum 160 characters/)
   assert.match(endpoint, /tags: 3–6 distinct strings/)
+  assert.match(endpoint, /Amazon India, Flipkart, Meesho, Blinkit, JioMart, Swiggy Instamart, and Zepto/)
+  assert.match(endpoint, /return\/refund requests/)
+  assert.match(endpoint, /image_url: a direct, publicly accessible HTTPS image URL/)
+  assert.match(endpoint, /as an aspiration or slogan, never as a factual ranking/)
 })
 
 test('generation retry reinforces validation requirements after invalid output', async () => {
   const originalFetch = globalThis.fetch
   const oldApiKey = process.env.GEMINI_API_KEY
   const prompts = []
+  const schemas = []
   let requestCount = 0
   process.env.GEMINI_API_KEY = 'unit-test-key'
   globalThis.fetch = async (_url, options) => {
     const request = JSON.parse(options.body)
     prompts.push(request.contents[0].parts[0].text)
+    schemas.push(request.generationConfig.responseSchema)
     const article = validArticle()
     if (requestCount++ === 0) {
       article.content = article.content.replace('### Frequently Asked Questions', '### Additional Notes')
@@ -125,6 +133,9 @@ test('generation retry reinforces validation requirements after invalid output',
     const article = await generateArticle('Shopify & Tech', [], [])
     assert.equal(isValidArticle(article, 'Shopify & Tech'), true)
     assert.equal(prompts.length, 2)
+    assert.deepEqual(schemas[0].required.slice(-2), ['image_url', 'image_alt'])
+    assert.equal(article.image_url, 'https://images.unsplash.com/photo-test?auto=format&fit=crop&w=1200&q=80')
+    assert.match(prompts[0], /final direct image URL that can be used in an HTML img src or as the image inside an anchor tag/)
     assert.match(prompts[1], /previous response failed these validation checks/i)
     assert.match(prompts[1], /Frequently Asked Questions or FAQs section/)
   } finally {
@@ -171,6 +182,9 @@ test('article validation rejects malformed tag values and image URLs', () => {
   const article = validArticle()
   assert.equal(isValidArticle({ ...article, tags: ['one', 2, 'three'] }, 'Shopify & Tech'), false)
   assert.equal(isValidArticle({ ...article, tags: [] }, 'Shopify & Tech'), false)
+  assert.equal(isValidArticle({ ...article, image_url: 'https://unsplash.com/photos/example' }, 'Shopify & Tech'), false)
+  assert.equal(isValidArticle({ ...article, image_url: 'http://images.unsplash.com/photo-test' }, 'Shopify & Tech'), false)
+  assert.equal(isValidArticle({ ...article, image_alt: 'x'.repeat(161) }, 'Shopify & Tech'), false)
   assert.equal(isValidImagePayload(null, null, null), true)
   assert.equal(isValidImagePayload('http://images.pexels.com/x', 'http://images.pexels.com/x', {}), false)
   const image = getCategoryImage('Marketplace SEO')
@@ -179,7 +193,7 @@ test('article validation rejects malformed tag values and image URLs', () => {
   assert.equal(isValidImagePayload(image.url, image.url, { provider: 'Unsplash', alt: image.alt }), true)
 })
 
-test('automated articles use curated Unsplash URLs without an image provider API', () => {
+test('category fallback images use curated Unsplash URLs without an image provider API', () => {
   for (const category of ['AI Automation', 'Shopify & Tech', 'Marketplace SEO', 'CRO & Growth']) {
     const image = getCategoryImage(category)
     assert.match(image.url, /^https:\/\/images\.unsplash\.com\//)
