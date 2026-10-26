@@ -54,22 +54,21 @@ function Logo() {
   )
 }
 
-function Navbar({ content }) {
+function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [servicesOpen, setServicesOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const servicesMenuRef = useRef(null)
   const servicesMenuCloseTimeoutRef = useRef(null)
 
   const openServicesMenu = () => {
     window.clearTimeout(servicesMenuCloseTimeoutRef.current)
-    setServicesOpen(true)
+    onServicesMenuOpenChange(true)
   }
 
   const scheduleServicesMenuClose = () => {
     window.clearTimeout(servicesMenuCloseTimeoutRef.current)
     servicesMenuCloseTimeoutRef.current = window.setTimeout(() => {
-      setServicesOpen(false)
+      onServicesMenuOpenChange(false)
     }, 250)
   }
 
@@ -86,13 +85,13 @@ function Navbar({ content }) {
   }, [])
 
   useEffect(() => {
-    if (!servicesOpen) return undefined
+    if (!servicesMenuOpen) return undefined
 
     const closeOnOutsideClick = event => {
-      if (!servicesMenuRef.current?.contains(event.target)) setServicesOpen(false)
+      if (!servicesMenuRef.current?.contains(event.target)) onServicesMenuOpenChange(false)
     }
     const closeOnEscape = event => {
-      if (event.key === 'Escape') setServicesOpen(false)
+      if (event.key === 'Escape') onServicesMenuOpenChange(false)
     }
     document.addEventListener('pointerdown', closeOnOutsideClick)
     document.addEventListener('keydown', closeOnEscape)
@@ -100,15 +99,15 @@ function Navbar({ content }) {
       document.removeEventListener('pointerdown', closeOnOutsideClick)
       document.removeEventListener('keydown', closeOnEscape)
     }
-  }, [servicesOpen])
+  }, [servicesMenuOpen, onServicesMenuOpenChange])
 
   const navLinks = normalizeNavigationLinks(content?.navigationLinks || defaultNavigationLinks)
-  const marketplaceManagement = marketplaceServiceDefaults.slice(0, 3)
-  const quickCommerce = marketplaceServiceDefaults.slice(3)
+  const marketplaceManagement = marketplaceServiceDefaults
+  const marketplaceOnboarding = marketplaceServiceDefaults
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 pt-3 px-3 sm:px-6 pointer-events-none transition-all duration-300">
-      <div className="max-w-7xl mx-auto pointer-events-auto">
+      <div ref={servicesMenuRef} className="max-w-7xl mx-auto pointer-events-auto">
         <div className={`w-full rounded-full bg-white transition-all duration-300 border ${
           isScrolled
             ? 'border-slate-300/90 shadow-xl'
@@ -123,14 +122,13 @@ function Navbar({ content }) {
               {navLinks.map(link => link.path === '/services' ? (
                 <div
                   key={link.label}
-                  ref={servicesMenuRef}
                   onMouseEnter={openServicesMenu}
                   onMouseLeave={scheduleServicesMenuClose}
                   className="relative flex items-center gap-1"
                 >
                   <NavLink
                     to={link.path}
-                    onClick={() => setServicesOpen(false)}
+                    onClick={() => onServicesMenuOpenChange(false)}
                     className={({ isActive }) =>
                       `inline-flex items-center gap-1 transition-colors ${isActive ? 'text-violet-600 font-extrabold' : 'text-slate-700 hover:text-violet-600'}`
                     }
@@ -140,69 +138,13 @@ function Navbar({ content }) {
                   <button
                     type="button"
                     aria-label="Open marketplace services menu"
-                    aria-expanded={servicesOpen}
+                    aria-expanded={servicesMenuOpen}
                     aria-controls="marketplace-services-menu"
                     onClick={openServicesMenu}
                     className="rounded p-1 text-slate-700 transition hover:bg-violet-50 hover:text-violet-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-600"
                   >
-                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${servicesOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${servicesMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
-                  {servicesOpen && (
-                  <div id="marketplace-services-menu" className="fixed left-1/2 top-20 z-50 w-[min(calc(100vw-32px),1160px)] -translate-x-1/2 rounded-2xl border border-[#eadbc9] bg-white p-5 shadow-[0_24px_70px_rgba(25,39,51,0.18)] lg:p-7">
-                    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
-                      <div className="border-r border-[#eadbc9] pr-4">
-                        <h2 className="mb-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#bd6530]">Marketplace management</h2>
-                        <div className="space-y-2">
-                          {marketplaceManagement.map(service => (
-                            <Link key={service.slug} onClick={() => setServicesOpen(false)} to={`/services/${service.slug}`} className="flex min-h-12 items-center gap-2 rounded-lg bg-[#fffdfa] px-2 py-2 text-sm font-semibold leading-5 text-[#243141] transition hover:bg-[#fff6e8] hover:text-[#a54f21]">
-                              <MarketplaceLogo service={service} />
-                              <span>{service.title.replace(' Account Management Services', '')} Account Management</span>
-                              <ArrowUpRight className="ml-auto h-3.5 w-3.5 shrink-0" />
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="border-r border-[#eadbc9] pr-4">
-                        <h2 className="mb-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#bd6530]">Marketplace onboarding</h2>
-                        <div className="space-y-2">
-                          {quickCommerce.map(service => (
-                            <Link key={service.slug} onClick={() => setServicesOpen(false)} to={`/services/${service.slug}`} className="flex min-h-12 items-center gap-2 rounded-lg bg-[#fffdfa] px-2 py-2 text-sm font-semibold leading-5 text-[#243141] transition hover:bg-[#fff6e8] hover:text-[#a54f21]">
-                              <MarketplaceLogo service={service} />
-                              <span>{service.title.replace(' Account Management Services', '')} Onboarding</span>
-                              <ArrowUpRight className="ml-auto h-3.5 w-3.5 shrink-0" />
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="border-r border-[#eadbc9] pr-4">
-                        <h2 className="mb-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#bd6530]">Seller operations</h2>
-                        <div className="space-y-3 text-sm leading-6 text-slate-600">
-                          <p>Product listings and catalogue updates</p>
-                          <p>Seller claims and support requests</p>
-                          <p>Returns, refunds, and account health</p>
-                          <div className="flex flex-wrap gap-x-4 gap-y-2 pt-1">
-                            <Link onClick={() => setServicesOpen(false)} to="/services" className="inline-flex items-center gap-1 font-bold text-[#243141] hover:text-[#a54f21]">
-                              All services <ArrowUpRight className="h-3.5 w-3.5" />
-                            </Link>
-                            <Link onClick={() => setServicesOpen(false)} to="/blog" className="inline-flex items-center gap-1 font-bold text-[#243141] hover:text-[#a54f21]">
-                              Seller guides <ArrowUpRight className="h-3.5 w-3.5" />
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col justify-between rounded-xl bg-[#243141] p-5 text-white">
-                        <div>
-                          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#ffc46d]">EcomXtra support</p>
-                          <h2 className="mt-3 font-clash text-xl font-bold">A partner for your marketplace operations.</h2>
-                          <p className="mt-2 text-xs leading-5 text-slate-200">Choose a platform to explore the service and the work we can help manage.</p>
-                        </div>
-                        <Link onClick={() => setServicesOpen(false)} to="/contact" className="mt-5 inline-flex items-center justify-between rounded-lg bg-white px-3 py-2.5 text-xs font-bold text-[#243141]">
-                          Talk to our team <ArrowUpRight className="h-4 w-4" />
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  )}
                 </div>
               ) : (
                 <NavLink
@@ -239,6 +181,75 @@ function Navbar({ content }) {
             </div>
           </div>
         </div>
+
+        {servicesMenuOpen && (
+          <section
+            id="marketplace-services-menu"
+            aria-label="Marketplace services"
+            onMouseEnter={openServicesMenu}
+            onMouseLeave={scheduleServicesMenuClose}
+            className="fixed left-1/2 top-20 z-50 max-h-[calc(100dvh-6rem)] w-[min(calc(100vw-24px),1320px)] -translate-x-1/2 overflow-y-auto rounded-2xl border border-[#eadbc9] bg-white p-4 shadow-[0_24px_70px_rgba(25,39,51,0.18)] sm:p-5 lg:p-7"
+          >
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[#eadbc9] pb-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#bd6530]">One operations partner. Seven platforms.</p>
+                <h2 className="mt-1 font-clash text-xl font-bold text-[#243141] sm:text-2xl">Marketplace growth, managed.</h2>
+              </div>
+              <Link onClick={() => onServicesMenuOpenChange(false)} to="/services" className="inline-flex items-center gap-1 text-xs font-bold text-[#a54f21] hover:underline">
+                Explore all services <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+              <div className="border-[#eadbc9] sm:border-r sm:pr-4">
+                <h3 className="mb-1 text-[11px] font-black uppercase tracking-[0.16em] text-[#bd6530]">Marketplace management</h3>
+                <p className="mb-3 text-xs leading-5 text-slate-500">Ongoing account support, listings, catalogue and seller operations.</p>
+                <div className="grid gap-1.5">
+                  {marketplaceManagement.map(service => (
+                    <Link key={service.slug} onClick={() => onServicesMenuOpenChange(false)} to={`/services/${service.slug}`} className="group flex min-h-11 items-center gap-2 rounded-lg border border-transparent bg-[#fffdfa] px-2 py-1.5 text-xs font-semibold leading-4 text-[#243141] transition hover:border-[#f0d5bb] hover:bg-[#fff6e8] hover:text-[#a54f21] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#bd6530]">
+                      <MarketplaceLogo service={service} />
+                      <span>{service.title.replace(' Account Management Services', '')}<span className="block text-[10px] font-medium text-slate-500">Account management</span></span>
+                      <ArrowUpRight className="ml-auto h-3.5 w-3.5 shrink-0 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+              <div className="border-[#eadbc9] sm:border-r sm:pr-4">
+                <h3 className="mb-1 text-[11px] font-black uppercase tracking-[0.16em] text-[#bd6530]">Marketplace onboarding</h3>
+                <p className="mb-3 text-xs leading-5 text-slate-500">Get set up and ready to sell across every supported marketplace.</p>
+                <div className="grid gap-1.5">
+                  {marketplaceOnboarding.map(service => (
+                    <Link key={service.slug} onClick={() => onServicesMenuOpenChange(false)} to={`/services/${service.slug}`} className="group flex min-h-11 items-center gap-2 rounded-lg border border-transparent bg-[#fffdfa] px-2 py-1.5 text-xs font-semibold leading-4 text-[#243141] transition hover:border-[#f0d5bb] hover:bg-[#fff6e8] hover:text-[#a54f21] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#bd6530]">
+                      <MarketplaceLogo service={service} />
+                      <span>{service.title.replace(' Account Management Services', '')}<span className="block text-[10px] font-medium text-slate-500">Seller onboarding</span></span>
+                      <ArrowUpRight className="ml-auto h-3.5 w-3.5 shrink-0 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+              <div className="border-[#eadbc9] sm:border-r sm:pr-4">
+                <h3 className="mb-3 text-[11px] font-black uppercase tracking-[0.16em] text-[#bd6530]">Seller operations</h3>
+                <div className="space-y-3 text-sm leading-6 text-slate-600">
+                  <p>Product listings and catalogue updates</p>
+                  <p>Seller claims and support requests</p>
+                  <p>Returns, refunds, and account health</p>
+                  <Link onClick={() => onServicesMenuOpenChange(false)} to="/blog" className="inline-flex items-center gap-1 pt-1 font-bold text-[#243141] hover:text-[#a54f21]">
+                    Practical seller guides <ArrowUpRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+              </div>
+              <div className="flex flex-col justify-between rounded-xl bg-[#243141] p-5 text-white">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#ffc46d]">EcomXtra support</p>
+                  <h3 className="mt-3 font-clash text-xl font-bold">A partner for your marketplace operations.</h3>
+                  <p className="mt-2 text-xs leading-5 text-slate-200">Tell us where you sell—or want to launch—and we’ll help map the next step.</p>
+                </div>
+                <Link onClick={() => onServicesMenuOpenChange(false)} to="/contact" className="mt-5 inline-flex items-center justify-between rounded-lg bg-white px-3 py-2.5 text-xs font-bold text-[#243141]">
+                  Talk to our team <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Mobile dropdown */}
         {mobileOpen && (

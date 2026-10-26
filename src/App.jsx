@@ -175,6 +175,7 @@ function RouteSeo({ pathname, blog, service, siteContent }) {
 }
 
 function App({ initialData = {} }) {
+  const [servicesMenuOpen, setServicesMenuOpen] = useState(false)
   const [services, setServices] = useState(() => initialData.services || fallbackContent.services)
   const [showcases, setShowcases] = useState(() => initialData.showcases || fallbackContent.showcases)
   const [testimonials, setTestimonials] = useState(() => initialData.testimonials || fallbackContent.testimonials)
@@ -311,7 +312,11 @@ function App({ initialData = {} }) {
         <div className="absolute top-[65%] left-[5%] w-[45vw] h-[45vw] rounded-full bg-gradient-to-tr from-amber-400/20 to-rose-400/20 blur-[120px] animate-float" style={{ animationDelay: '4s' }} />
       </div>
 
-      <Navbar content={siteContent.find(section => section.content_key === 'footer')?.content} />
+      <Navbar
+        content={siteContent.find(section => section.content_key === 'footer')?.content}
+        servicesMenuOpen={servicesMenuOpen}
+        onServicesMenuOpenChange={setServicesMenuOpen}
+      />
       {contentLoadError && (
         <div role="alert" className="relative z-10 bg-red-950 px-6 py-3 text-center text-sm text-red-100">
           Some website content could not be loaded. Please try again later.
@@ -328,6 +333,8 @@ function App({ initialData = {} }) {
                 services={services}
                 testimonials={testimonials}
                 siteContent={siteContent}
+                onOpenMarketplaceServices={() => setServicesMenuOpen(true)}
+                marketplaceServicesOpen={servicesMenuOpen}
               />
             }
           />

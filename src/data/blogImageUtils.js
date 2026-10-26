@@ -18,7 +18,7 @@ const BLOG_IMAGES = {
 }
 
 export function getBlogImageForCategory(category) {
-  return BLOG_IMAGES[category] || BLOG_IMAGES['Shopify & Tech']
+  return BLOG_IMAGES[category] || BLOG_IMAGES['Marketplace SEO']
 }
 
 export function normalizeBlogImageUrl(value, category) {

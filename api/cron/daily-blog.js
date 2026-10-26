@@ -3,13 +3,11 @@ import { timingSafeEqual, randomUUID } from 'node:crypto'
 import { Buffer } from 'node:buffer'
 import process from 'node:process'
 import { getBlogImageForCategory } from '../../src/data/blogImageUtils.js'
+import { marketplaceServiceDefaults } from '../../src/data/marketplaceServiceContent.js'
 
-const CATEGORIES = [
-  'AI Automation',
-  'Shopify & Tech',
-  'Marketplace SEO',
-  'CRO & Growth',
-]
+const CATEGORIES = marketplaceServiceDefaults.map(service => (
+  service.title.replace(' Account Management Services', '')
+))
 const EXPECTED_GEMINI_MODEL = 'gemini-3.1-flash-lite'
 const MAX_GENERATION_ATTEMPTS = 3
 const ARTICLE_MIN_WORDS = 700
@@ -354,8 +352,8 @@ function buildPrompt(category, titles, recentTopics) {
   return [
     '### ROLE AND BUSINESS CONTEXT',
     'You are a senior Indian ecommerce marketplace account-management strategist and content writer for EcomXtra, a service provider that manages marketplace accounts and day-to-day operations on behalf of Indian brands, businesses, and sellers.',
-    'EcomXtra helps customers who want a dependable operations partner—not just general ecommerce advice. Focus on the practical work of managing seller accounts across leading Indian marketplaces and commerce platforms, including Amazon India, Flipkart, Meesho, Blinkit, JioMart, Swiggy Instamart, Zepto, and other relevant platforms.',
-    'Relevant account-management work includes product listing creation, updates and optimization; catalogue maintenance; account health monitoring; raising and tracking seller support claims or cases; handling return/refund workflows and related requests; resolving listing and operational issues; and ongoing marketplace account support.',
+    'Every article must be directly about EcomXtra services: marketplace account management or seller onboarding for Amazon India, Flipkart, Meesho, Blinkit, JioMart, Swiggy Instamart, or Zepto. Supported platforms include Amazon India, Flipkart, Meesho, Blinkit, JioMart, Swiggy Instamart, and Zepto. Do not write general ecommerce, Shopify, AI, marketing, conversion, or technology articles unless they specifically explain one of these marketplace services.',
+    'Relevant service work includes new-seller onboarding and setup coordination; product listing creation, updates and optimization; catalogue maintenance; account health monitoring; raising and tracking seller support claims or cases; handling return/refund workflows and related requests; resolving listing and operational issues; and ongoing marketplace account support.',
     'Write for Indian marketplace sellers, D2C brands, manufacturers, distributors, and growing businesses that need help running these operations. Qualify the right potential customer: a business selling or planning to sell on marketplaces that needs hands-on support with recurring account work.',
     'Discuss only services relevant to the article and avoid implying that one workflow, feature, or service is available on every marketplace. Platform tools, terminology, policies, and seller eligibility can differ and change.',
     'The primary business objective is to attract qualified Indian sellers and brands looking to outsource or improve marketplace account operations, product listing management, seller claims, returns, and account support.',
@@ -363,10 +361,10 @@ function buildPrompt(category, titles, recentTopics) {
     'Do not invent marketplaces, integrations, service capabilities, client results, or guarantees that have not been verified.',
 
     '### TOPIC SELECTION AND CONTENT STRATEGY',
-    `Assigned topic category: ${category}. Choose one useful, specific, search-focused topic about Indian marketplace account management, tailored to this category. Account operations must remain the central subject even for automation, technology, SEO, or growth angles.`,
-    'Possible topics include account-management workflows for Amazon India, Flipkart, Meesho, Blinkit, JioMart, Swiggy Instamart, and Zepto; product listing and catalog management; raising or tracking claims and seller-support cases; handling return/refund requests; account health and policy issues; and coordinated multi-marketplace operations.',
-    'Do not force all platforms into one article. Choose the platform(s) genuinely relevant to the topic, and explain where processes differ rather than presenting a universal workflow.',
-    'Prioritize practical topics with high business relevance and realistic search intent, such as outsourcing marketplace account management in India, fixing listing issues, improving catalog quality, or organizing seller claims and returns.',
+    `Assigned service platform: ${category}. The article topic, title, and guidance must focus on account management or seller onboarding services for this platform. Choose one specific, search-focused customer problem connected to EcomXtra's actual services.`,
+    'Possible topics include onboarding requirements and preparation, account setup coordination, product listing and catalogue management, seller claims and support cases, return/refund workflows, account health monitoring, and ongoing account operations for the assigned platform.',
+    'Keep one assigned platform central to the article. Do not drift into general ecommerce advice or give unsupported platform-specific instructions. Explain that seller tools, eligibility, policies, and workflows can vary.',
+    'Prioritize practical service-seeking topics, such as preparing to onboard to the assigned marketplace, outsourcing ongoing account management, fixing listing issues, improving catalogue quality, or organizing seller claims and returns.',
 
     '### KEYWORD AND SEARCH INTENT REQUIREMENTS',
     'For each article:',
@@ -381,7 +379,7 @@ function buildPrompt(category, titles, recentTopics) {
     'Review the existing article titles and recent automated topics before selecting a topic.',
     '- Avoid duplicates and near-duplicates.',
     '- Do not create multiple articles targeting essentially the same search intent with slightly different wording.',
-    '- Prefer meaningful content gaps that expand EcomXtra\'s coverage of account management, listings, marketplace SEO, audits, and seller operations.',
+    '- Prefer meaningful content gaps that expand EcomXtra\'s coverage of marketplace onboarding, account management, listings, and seller operations for the seven supported platforms.',
     '- If a topic overlaps with an existing article, select a different topic unless the new article serves a clearly distinct search intent.',
 
     '### ARTICLE QUALITY AND ACCURACY',

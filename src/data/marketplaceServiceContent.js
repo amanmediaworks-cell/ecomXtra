@@ -89,16 +89,16 @@ function createDetails(platform) {
   const { name, sellerPortal, emphasis } = platform
   return {
     hero: {
-      eyebrow: `Marketplace Account Management | India`,
-      title: `${name} Account Management Services`,
-      description: `Keep your ${name} operations moving with practical account support from EcomXtra. We help manage product listings, catalogue updates, seller requests, returns, and routine account follow-up, while your business retains control of its seller account.`,
+      eyebrow: `Marketplace Onboarding & Account Management | India`,
+      title: `${name} Account Management & Onboarding Services`,
+      description: `Launch and manage your ${name} seller operations with practical support from EcomXtra. We help coordinate onboarding preparation, product listings, catalogue updates, seller requests, returns, and ongoing account follow-up while your business retains control of its seller account.`,
       imageUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1400&q=80',
       imageAlt: `${name} marketplace account operations and performance review`,
     },
     overview: {
-      title: `A dedicated operations partner for your ${name} account`,
+      title: `A dedicated onboarding and operations partner for your ${name} account`,
       paragraphs: [
-        `Selling through ${name} involves more than publishing products. Product information, account notifications, customer-related requests, and operational issues all need regular attention. EcomXtra provides hands-on marketplace account-management support to help sellers organize this ongoing work, with a focus on ${emphasis.toLowerCase()}`,
+        `Starting on ${name} and managing it over time both require consistent operational attention. EcomXtra can help prepare onboarding information and coordinate setup tasks, then support ongoing product information, account notifications, customer-related requests, and operational follow-up, with a focus on ${emphasis.toLowerCase()}`,
         `Our team can support agreed tasks through ${sellerPortal} or the partner channels available to your business. The exact tools and eligibility vary by account and platform, so we confirm the scope with you before work begins. Marketplace approvals, policy decisions, and final account control remain with you and the platform.`,
       ],
     },
@@ -142,13 +142,13 @@ function createDetails(platform) {
       ],
     },
     process: {
-      title: `How our ${name} account-management process works`,
-      intro: `We agree on account access, responsibilities, and communication before recurring work starts.`,
+      title: `How ${name} onboarding and account management works`,
+      intro: `Whether you are preparing to start selling or already operating, we agree on access, responsibilities, and communication before work begins.`,
       steps: [
         {
-          title: 'Initial consultation and account review',
-          summary: 'Understand your products, current operations, priorities, and the tasks you want help with.',
-          article: `We begin by learning how your ${name} business currently operates. Together we review the catalogue, recurring account tasks, visible operational concerns, and the internal approvals needed. This helps define an achievable scope without assuming that every seller has the same access or platform eligibility.`,
+          title: 'Onboarding or account review',
+          summary: 'Understand whether you are preparing to launch or need help with an existing seller account.',
+          article: `We learn about your ${name} plans, products, current account status, and the support you need. For onboarding, we help organize the information and tasks you may need to prepare, subject to the platform's current eligibility and process. For existing accounts, we review catalogue work, recurring operations, and open issues.`,
         },
         {
           title: 'Scope and operating plan',
@@ -204,7 +204,7 @@ function createDetails(platform) {
     },
     seo: {
       title: `${name} Account Management Services in India | EcomXtra`,
-      description: `EcomXtra supports Indian ${name} sellers with listings, catalogue updates, seller claims, return workflows, and day-to-day account operations.`,
+      description: `EcomXtra supports Indian ${name} sellers with onboarding, listings, catalogue updates, seller claims, return workflows, and day-to-day account operations.`,
     },
   }
 }

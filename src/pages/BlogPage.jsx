@@ -6,7 +6,7 @@ import BlogImage from '../components/BlogImage'
 function BlogPage({
   blogs = [],
   page = 0,
-  pageSize = 6,
+  pageSize = 7,
   totalCount = blogs.length,
   onPageChange,
 }) {

@@ -11,6 +11,8 @@ function HomePage({
     services,
     testimonials,
     siteContent = [],
+    onOpenMarketplaceServices,
+    marketplaceServicesOpen,
 }) {
     const rows = Object.fromEntries(siteContent.map(row => [row.content_key, row]))
     const sectionContent = key => ({
@@ -18,7 +20,13 @@ function HomePage({
         ...rows[key]?.content,
     })
     const sections = [
-        { key: 'hero', render: () => <Hero content={sectionContent('hero')} /> },
+        { key: 'hero', render: () => (
+            <Hero
+                content={sectionContent('hero')}
+                onOpenMarketplaceServices={onOpenMarketplaceServices}
+                marketplaceServicesOpen={marketplaceServicesOpen}
+            />
+        ) },
         { key: 'stats', render: () => <StatsSection metrics={sectionContent('stats').metrics} /> },
         { key: 'showcase_section', render: () => <ShowcaseGrid showcases={showcases} content={sectionContent('showcase_section')} /> },
         { key: 'services_section', render: () => <Services services={services} content={sectionContent('services_section')} /> },

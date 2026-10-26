@@ -60,9 +60,9 @@ test('daily blog slug generation is lowercase, readable, and strips accents', ()
 })
 
 test('category rotation advances and wraps through the fixed list', () => {
-  assert.equal(chooseCategory(undefined), 'AI Automation')
-  assert.equal(chooseCategory('AI Automation'), 'Shopify & Tech')
-  assert.equal(chooseCategory('CRO & Growth'), 'AI Automation')
+  assert.equal(chooseCategory(undefined), 'Amazon')
+  assert.equal(chooseCategory('Amazon'), 'Flipkart')
+  assert.equal(chooseCategory('Zepto'), 'Amazon')
 })
 
 test('claim RPC result handles the table-returning response shape', () => {
@@ -106,7 +106,10 @@ test('generation prompt states every article requirement enforced by validation'
   assert.match(endpoint, /meta_description: maximum 160 characters/)
   assert.match(endpoint, /tags: 3–6 distinct strings/)
   assert.match(endpoint, /Amazon India, Flipkart, Meesho, Blinkit, JioMart, Swiggy Instamart, and Zepto/)
-  assert.match(endpoint, /return\/refund requests/)
+  assert.match(endpoint, /return\/refund workflows/)
+  assert.match(endpoint, /Every article must be directly about EcomXtra services/)
+  assert.match(endpoint, /Assigned service platform: \$\{category\}/)
+  assert.match(endpoint, /seller onboarding services for this platform/)
   assert.match(endpoint, /image_url: a direct, publicly accessible HTTPS image URL/)
   assert.match(endpoint, /responds with HTTP 200 and an image content type/)
   assert.match(endpoint, /as an aspiration or slogan, never as a factual ranking/)
@@ -138,8 +141,8 @@ test('generation retry reinforces validation requirements after invalid output',
     }), { status: 200, headers: { 'Content-Type': 'application/json' } })
   }
   try {
-    const article = await generateArticle('Shopify & Tech', [], [])
-    assert.equal(isValidArticle(article, 'Shopify & Tech'), true)
+    const article = await generateArticle('Amazon', [], [])
+    assert.equal(isValidArticle(article, 'Amazon'), true)
     assert.equal(prompts.length, 2)
     assert.deepEqual(schemas[0].required.slice(-2), ['image_url', 'image_alt'])
     assert.equal(article.image_url, 'https://images.unsplash.com/photo-test?auto=format&fit=crop&w=1200&q=80')
@@ -178,7 +181,7 @@ test('generation rejects unavailable images and asks Gemini to replace them', as
     }), { status: 200, headers: { 'Content-Type': 'application/json' } })
   }
   try {
-    const article = await generateArticle('Shopify & Tech', [], [])
+    const article = await generateArticle('Amazon', [], [])
     assert.equal(article.image_url, validArticle().image_url)
     assert.equal(generationCount, 2)
     assert.equal(imageCount, 2)
@@ -235,11 +238,12 @@ test('schema preflight checks generated columns, text arrays, and PostgreSQL agg
 
 test('article validation rejects malformed tag values and image URLs', () => {
   const article = validArticle()
-  assert.equal(isValidArticle({ ...article, tags: ['one', 2, 'three'] }, 'Shopify & Tech'), false)
-  assert.equal(isValidArticle({ ...article, tags: [] }, 'Shopify & Tech'), false)
-  assert.equal(isValidArticle({ ...article, image_url: 'https://unsplash.com/photos/example' }, 'Shopify & Tech'), false)
-  assert.equal(isValidArticle({ ...article, image_url: 'http://images.unsplash.com/photo-test' }, 'Shopify & Tech'), false)
-  assert.equal(isValidArticle({ ...article, image_alt: 'x'.repeat(161) }, 'Shopify & Tech'), false)
+  assert.equal(isValidArticle({ ...article, tags: ['one', 2, 'three'] }, 'Amazon'), false)
+  assert.equal(isValidArticle({ ...article, tags: [] }, 'Amazon'), false)
+  assert.equal(isValidArticle({ ...article, image_url: 'https://unsplash.com/photos/example' }, 'Amazon'), false)
+  assert.equal(isValidArticle({ ...article, image_url: 'http://images.unsplash.com/photo-test' }, 'Amazon'), false)
+  assert.equal(isValidArticle({ ...article, image_alt: 'x'.repeat(161) }, 'Amazon'), false)
+  assert.equal(isValidArticle(article, 'Shopify & Tech'), false)
   assert.equal(isValidImagePayload(null, null), true)
   assert.equal(isValidImagePayload('http://images.pexels.com/x', {}), false)
   const image = getCategoryImage('Marketplace SEO')
@@ -249,7 +253,7 @@ test('article validation rejects malformed tag values and image URLs', () => {
 })
 
 test('category fallback images use curated Unsplash URLs without an image provider API', () => {
-  for (const category of ['AI Automation', 'Shopify & Tech', 'Marketplace SEO', 'CRO & Growth']) {
+  for (const category of ['Amazon', 'Flipkart', 'Meesho', 'Blinkit', 'JioMart', 'Swiggy Instamart', 'Zepto']) {
     const image = getCategoryImage(category)
     assert.match(image.url, /^https:\/\/images\.unsplash\.com\//)
     assert.ok(image.alt)
@@ -275,32 +279,32 @@ test('secret comparison accepts only the exact bearer token', () => {
 test('article validation enforces length and required article sections', () => {
   const article = validArticle()
   assert.ok(countWords(article.content) >= 700)
-  assert.equal(isValidArticle(article, 'Shopify & Tech'), true)
-  assert.equal(isValidArticle(validArticle('##'), 'Shopify & Tech'), true)
+  assert.equal(isValidArticle(article, 'Amazon'), true)
+  assert.equal(isValidArticle(validArticle('##'), 'Amazon'), true)
   assert.equal(isValidArticle({
     ...article,
     content: article.content
       .replace('### Conclusion', '## Conclusion:')
       .replace('### Frequently Asked Questions', '## Frequently Asked Questions:'),
-  }, 'Shopify & Tech'), true)
+  }, 'Amazon'), true)
   assert.equal(isValidArticle({
     ...article,
     content: article.content
       .replace('### Frequently Asked Questions', '## Frequently Asked Questions (FAQ)'),
-  }, 'Shopify & Tech'), true)
+  }, 'Amazon'), true)
   assert.equal(isValidArticle({
     ...article,
     content: article.content.replace(/###/g, '#'),
-  }, 'Shopify & Tech'), true)
+  }, 'Amazon'), true)
   const issues = getArticleValidationIssues({
     ...article,
     meta_description: 'x'.repeat(170),
     content: article.content.replace('### Frequently Asked Questions', '### Additional Notes'),
-  }, 'Shopify & Tech')
+  }, 'Amazon')
   assert.ok(issues.includes('meta_description must be at most 160 characters'))
   assert.ok(issues.includes('content must include a Frequently Asked Questions or FAQs section'))
-  assert.equal(isValidArticle({ ...article, content: `${article.content}<script>alert(1)</script>` }, 'Shopify & Tech'), false)
-  assert.equal(isValidArticle({ ...article, content: article.content.replace('### Frequently Asked Questions', '### More') }, 'Shopify & Tech'), false)
+  assert.equal(isValidArticle({ ...article, content: `${article.content}<script>alert(1)</script>` }, 'Amazon'), false)
+  assert.equal(isValidArticle({ ...article, content: article.content.replace('### Frequently Asked Questions', '### More') }, 'Amazon'), false)
 })
 
 test('title similarity continues to distinguish near-duplicate topics', () => {

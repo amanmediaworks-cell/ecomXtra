@@ -8,7 +8,7 @@ const SUPABASE_TIMEOUT_MS = 4000
 const CACHE_TTL_MS = 60 * 1000 // 1 minute in-memory cache
 const SITEMAP_URL_LIMIT = 50000
 const SUPABASE_PAGE_SIZE = 1000
-const STATIC_PAGE_LASTMOD = '2026-10-22'
+const SITEMAP_LASTMOD = '2026-10-26'
 
 // In-memory cache for serverless execution environment
 let inMemoryCache = {
@@ -21,17 +21,15 @@ const DISALLOWED_ROUTE_PATTERN = /^(admin|login|register|signup|logout|dashboard
 
 // Explicit allowlist of static public routes with corresponding content_key in site_content table
 const STATIC_PUBLIC_ROUTES = [
-  { path: '/', contentKey: 'seo', lastmod: STATIC_PAGE_LASTMOD },
-  { path: '/philosophy', contentKey: 'about', lastmod: STATIC_PAGE_LASTMOD },
-  { path: '/services', contentKey: 'services_section', lastmod: STATIC_PAGE_LASTMOD },
-  { path: '/showcase', contentKey: 'showcase_section', lastmod: STATIC_PAGE_LASTMOD },
-  { path: '/testimonials', contentKey: 'testimonials_section', lastmod: STATIC_PAGE_LASTMOD },
-  { path: '/contact', contentKey: 'contact', lastmod: STATIC_PAGE_LASTMOD },
-  { path: '/blog', contentKey: null }, // Uses latest published blog post timestamp
+  { path: '/' },
+  { path: '/philosophy' },
+  { path: '/services' },
+  { path: '/showcase' },
+  { path: '/testimonials' },
+  { path: '/contact' },
+  { path: '/blog' },
   ...marketplaceServiceDefaults.map(service => ({
     path: `/services/${service.slug}`,
-    contentKey: null,
-    lastmod: STATIC_PAGE_LASTMOD,
   })),
 ]
 
@@ -57,14 +55,6 @@ export function formatLastmodDate(dateValue) {
   const date = new Date(dateValue)
   if (Number.isNaN(date.getTime())) return null
   return date.toISOString().slice(0, 10)
-}
-
-function latestLastmodDate(...dates) {
-  return dates
-    .map(formatLastmodDate)
-    .filter(Boolean)
-    .sort()
-    .at(-1) || null
 }
 
 /**
@@ -110,7 +100,7 @@ export function buildSitemapXmlString(entries) {
 
 /**
  * Generates the dynamic XML sitemap string.
- * Queries Supabase for published blog posts and site_content modification dates.
+ * Queries Supabase for published blog posts.
  * Fails explicitly when published-route data cannot be read.
  */
 export async function generateSitemapXml({ forceFresh = false, supabaseClient = null } = {}) {
@@ -123,24 +113,13 @@ export async function generateSitemapXml({ forceFresh = false, supabaseClient = 
   if (!supabase) {
     throw new Error('Sitemap generation requires Supabase configuration.')
   }
-  const [contentResult, firstBlogResult] = await Promise.all([
-    supabase
-      .from('site_content')
-      .select('content_key, updated_at')
-      .eq('is_public', true),
-    supabase
-      .from('blog_posts')
-      .select('slug, published_at, updated_at, is_published')
-      .eq('is_published', true)
-      .order('published_at', { ascending: false })
-      .range(0, SUPABASE_PAGE_SIZE - 1),
-  ])
-  if (contentResult.error) throw new Error(`Failed to fetch sitemap page dates: ${contentResult.error.message}`)
+  const firstBlogResult = await supabase
+    .from('blog_posts')
+    .select('slug, published_at, updated_at, is_published')
+    .eq('is_published', true)
+    .order('published_at', { ascending: false })
+    .range(0, SUPABASE_PAGE_SIZE - 1)
   if (firstBlogResult.error) throw new Error(`Failed to fetch published sitemap articles: ${firstBlogResult.error.message}`)
-  const contentDates = {}
-  for (const row of contentResult.data || []) {
-    if (row.content_key && row.updated_at) contentDates[row.content_key] = row.updated_at
-  }
   const publishedBlogPosts = [...(firstBlogResult.data || [])]
   const maxArticleCount = SITEMAP_URL_LIMIT - STATIC_PUBLIC_ROUTES.length
   for (let start = SUPABASE_PAGE_SIZE; start <= maxArticleCount; start += SUPABASE_PAGE_SIZE) {
@@ -160,18 +139,6 @@ export async function generateSitemapXml({ forceFresh = false, supabaseClient = 
     throw new Error('Sitemap exceeds the 50,000 URL limit.')
   }
 
-  // Find latest published blog date to serve as lastmod for /blog
-  let latestBlogLastmod = null
-  let latestBlogTimestamp = 0
-  for (const post of publishedBlogPosts) {
-    const candidate = post.updated_at || post.published_at
-    const timestamp = candidate ? new Date(candidate).getTime() : Number.NaN
-    if (Number.isFinite(timestamp) && timestamp > latestBlogTimestamp) {
-      latestBlogTimestamp = timestamp
-      latestBlogLastmod = formatLastmodDate(candidate)
-    }
-  }
-
   const entries = []
   const seenUrls = new Set()
 
@@ -184,10 +151,9 @@ export async function generateSitemapXml({ forceFresh = false, supabaseClient = 
     }
 
     seenUrls.add(trimmedLoc)
-    const validLastmod = formatLastmodDate(lastmodDate)
     entries.push({
       loc: trimmedLoc,
-      lastmod: validLastmod,
+      lastmod: formatLastmodDate(lastmodDate),
     })
   }
 
@@ -197,14 +163,7 @@ export async function generateSitemapXml({ forceFresh = false, supabaseClient = 
       ? `${CANONICAL_ORIGIN}/`
       : `${CANONICAL_ORIGIN}${staticRoute.path}`
 
-    const lastmod = staticRoute.path === '/blog'
-      ? latestBlogLastmod
-      : latestLastmodDate(
-        staticRoute.lastmod,
-        staticRoute.contentKey ? contentDates[staticRoute.contentKey] : null,
-      )
-
-    addUrl(loc, lastmod)
+    addUrl(loc, SITEMAP_LASTMOD)
   }
 
   // 2. Dynamic published blog posts
@@ -219,8 +178,7 @@ export async function generateSitemapXml({ forceFresh = false, supabaseClient = 
     if (DISALLOWED_ROUTE_PATTERN.test(cleanSlug)) continue
 
     const postLoc = `${CANONICAL_ORIGIN}/blog/${encodeURIComponent(cleanSlug)}`
-    const postLastmod = post.updated_at || post.published_at
-    addUrl(postLoc, postLastmod)
+    addUrl(postLoc, post.updated_at || post.published_at)
   }
 
   const xml = buildSitemapXmlString(entries)

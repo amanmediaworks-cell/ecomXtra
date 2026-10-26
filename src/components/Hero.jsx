@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, ArrowUpRight } from 'lucide-react'
 
-function Hero({ content }) {
+function Hero({ content, onOpenMarketplaceServices, marketplaceServicesOpen = false }) {
   const hero = content || {}
   const buttons = hero.buttons || []
 
@@ -68,6 +68,17 @@ function Hero({ content }) {
             )
           })}
         </div>
+        {onOpenMarketplaceServices && (
+          <button
+            type="button"
+            aria-controls="marketplace-services-menu"
+            aria-expanded={marketplaceServicesOpen}
+            onClick={onOpenMarketplaceServices}
+            className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-full border border-[#eadbc9] bg-white/80 px-5 py-2 text-xs font-bold text-[#243141] shadow-sm transition hover:border-[#bd6530] hover:bg-[#fffdfa] hover:text-[#a54f21] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#bd6530]"
+          >
+            Explore marketplace services <ArrowUpRight className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
     </section>
   );

@@ -107,7 +107,7 @@ test('marketplace service requests return SSR copy, canonical metadata, and Serv
   assert.equal(res.statusCode, 200)
   assert.match(res.body, /<title>Amazon Account Management Services in India \| EcomXtra<\/title>/)
   assert.match(res.body, /href="https:\/\/ecomxtra\.in\/services\/amazon-account-management"/)
-  assert.match(res.body, /Keep your Amazon operations moving/)
+  assert.match(res.body, /Launch and manage your Amazon seller operations/)
   assert.match(res.body, /"@type":"Service"/)
   assert.match(res.body, /"areaServed":\{"@type":"Country","name":"India"\}/)
   assert.match(res.body, /Read more/)
