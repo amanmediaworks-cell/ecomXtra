@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import handler from './render-page.js'
+import { marketplaceServiceDefaults } from '../src/data/marketplaceServiceContent.js'
 
 const article = {
   id: 1,
@@ -16,7 +17,6 @@ const article = {
   published_at: '2026-10-20T12:00:00.000Z',
   updated_at: '2026-10-22T12:00:00.000Z',
   cover_image: 'https://images.unsplash.com/photo-1556761175-b413da4baf72',
-  social_image: 'https://images.unsplash.com/photo-1556761175-b413da4baf72',
   image_metadata: { provider: 'Unsplash', alt: 'Team collaborating around a table' },
 }
 
@@ -32,6 +32,26 @@ function createBlogClient(post = article) {
         limit() { return this },
         range() { return this },
         maybeSingle: async () => ({ data: post && filters.slug === post.slug && filters.is_published ? post : null, error: null }),
+        then(resolve, reject) {
+          return Promise.resolve({ data: [], error: null }).then(resolve, reject)
+        },
+      }
+    },
+  }
+}
+
+function createServiceClient(service) {
+  return {
+    from(table) {
+      const filters = {}
+      return {
+        select() { return this },
+        eq(field, value) { filters[field] = value; return this },
+        order() { return this },
+        maybeSingle: async () => ({
+          data: table === 'services' && filters.slug === service?.slug ? service : null,
+          error: null,
+        }),
         then(resolve, reject) {
           return Promise.resolve({ data: [], error: null }).then(resolve, reject)
         },
@@ -73,6 +93,35 @@ test('published article requests return SSR HTML with unique SEO tags and articl
   assert.equal((res.body.match(/rel="canonical"/g) || []).length, 1)
   assert.match(res.body, /window\.__ECOMXTRA_INITIAL_DATA__/)
   assert.match(res.body, /window\.__ECOMXTRA_SSR__=true/)
+})
+
+test('marketplace service requests return SSR copy, canonical metadata, and Service schema', async () => {
+  const service = marketplaceServiceDefaults[0]
+  const res = createResponse()
+  await handler(
+    { method: 'GET', url: `/api/render-page?path=%2Fservices%2F${service.slug}` },
+    res,
+    { supabaseClient: createServiceClient(service) },
+  )
+
+  assert.equal(res.statusCode, 200)
+  assert.match(res.body, /<title>Amazon Account Management Services in India \| EcomXtra<\/title>/)
+  assert.match(res.body, /href="https:\/\/ecomxtra\.in\/services\/amazon-account-management"/)
+  assert.match(res.body, /Keep your Amazon operations moving/)
+  assert.match(res.body, /"@type":"Service"/)
+  assert.match(res.body, /"areaServed":\{"@type":"Country","name":"India"\}/)
+  assert.match(res.body, /Read more/)
+})
+
+test('unknown marketplace service pages receive HTTP 404', async () => {
+  const res = createResponse()
+  await handler(
+    { method: 'GET', url: '/api/render-page?path=%2Fservices%2Fmissing-marketplace' },
+    res,
+    { supabaseClient: createServiceClient(null) },
+  )
+
+  assert.equal(res.statusCode, 404)
 })
 
 test('missing articles and unknown routes receive HTTP 404 and noindex metadata', async () => {

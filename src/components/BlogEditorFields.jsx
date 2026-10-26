@@ -76,13 +76,7 @@ function BlogEditorFields({ article, onChange, inputClassName, labelClassName, s
         {textField('tags', 'Tags (comma-separated)')}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {textField('coverImage', 'Cover Image URL', { placeholder: 'https://... or /image.png' })}
-        {textField('socialImage', 'Social-sharing Image URL', {
-          placeholder: article.coverImage || 'Defaults to the cover image',
-          hint: 'If blank, the cover image is used.',
-        })}
-      </div>
+      {textField('coverImage', 'Cover Image URL', { placeholder: 'https://... or /image.png' })}
 
       {textArea('excerpt', 'Excerpt / Summary', { rows: 2, required: true })}
 

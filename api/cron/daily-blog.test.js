@@ -24,6 +24,10 @@ const migration = await readFile(
   fileURLToPath(new URL('../../supabase/migrations/20261020000000_daily_ai_blog_automation.sql', import.meta.url)),
   'utf8',
 )
+const singleImageMigration = await readFile(
+  fileURLToPath(new URL('../../supabase/migrations/20261026000000_single_blog_cover_image.sql', import.meta.url)),
+  'utf8',
+)
 const endpoint = await readFile(fileURLToPath(new URL('./daily-blog.js', import.meta.url)), 'utf8')
 const vercelConfig = JSON.parse(await readFile(
   fileURLToPath(new URL('../../vercel.json', import.meta.url)),
@@ -104,6 +108,7 @@ test('generation prompt states every article requirement enforced by validation'
   assert.match(endpoint, /Amazon India, Flipkart, Meesho, Blinkit, JioMart, Swiggy Instamart, and Zepto/)
   assert.match(endpoint, /return\/refund requests/)
   assert.match(endpoint, /image_url: a direct, publicly accessible HTTPS image URL/)
+  assert.match(endpoint, /responds with HTTP 200 and an image content type/)
   assert.match(endpoint, /as an aspiration or slogan, never as a factual ranking/)
 })
 
@@ -115,6 +120,9 @@ test('generation retry reinforces validation requirements after invalid output',
   let requestCount = 0
   process.env.GEMINI_API_KEY = 'unit-test-key'
   globalThis.fetch = async (_url, options) => {
+    if (String(_url).startsWith('https://images.unsplash.com/')) {
+      return new Response(null, { status: 200, headers: { 'Content-Type': 'image/jpeg' } })
+    }
     const request = JSON.parse(options.body)
     prompts.push(request.contents[0].parts[0].text)
     schemas.push(request.generationConfig.responseSchema)
@@ -143,6 +151,53 @@ test('generation retry reinforces validation requirements after invalid output',
     if (oldApiKey === undefined) delete process.env.GEMINI_API_KEY
     else process.env.GEMINI_API_KEY = oldApiKey
   }
+})
+
+test('generation rejects unavailable images and asks Gemini to replace them', async () => {
+  const originalFetch = globalThis.fetch
+  const oldApiKey = process.env.GEMINI_API_KEY
+  const prompts = []
+  let generationCount = 0
+  let imageCount = 0
+  process.env.GEMINI_API_KEY = 'unit-test-key'
+  globalThis.fetch = async (url, options) => {
+    if (String(url).startsWith('https://images.unsplash.com/')) {
+      imageCount += 1
+      return new Response(null, {
+        status: imageCount === 1 ? 404 : 200,
+        headers: { 'Content-Type': 'image/jpeg' },
+      })
+    }
+    prompts.push(JSON.parse(options.body).contents[0].parts[0].text)
+    generationCount += 1
+    return new Response(JSON.stringify({
+      candidates: [{
+        content: { parts: [{ text: JSON.stringify(validArticle()) }] },
+        finishReason: 'STOP',
+      }],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  }
+  try {
+    const article = await generateArticle('Shopify & Tech', [], [])
+    assert.equal(article.image_url, validArticle().image_url)
+    assert.equal(generationCount, 2)
+    assert.equal(imageCount, 2)
+    assert.match(prompts[1], /previous response failed these validation checks/i)
+    assert.match(prompts[1], /HTTP 404/)
+  } finally {
+    globalThis.fetch = originalFetch
+    if (oldApiKey === undefined) delete process.env.GEMINI_API_KEY
+    else process.env.GEMINI_API_KEY = oldApiKey
+  }
+})
+
+test('single-image migration preserves cover URLs and removes social_image storage', () => {
+  assert.match(singleImageMigration, /set cover_image = coalesce/)
+  assert.match(singleImageMigration, /drop column social_image/)
+  assert.match(singleImageMigration, /insert into public\.blog_posts[\s\S]*?cover_image,[\s\S]*?image_metadata,[\s\S]*?automation_run_id/)
+  const publisherFunction = singleImageMigration.split('create or replace function')[1]
+  assert.ok(publisherFunction)
+  assert.doesNotMatch(publisherFunction, /social_image/)
 })
 
 test('migration guards concurrent claims, expired leases, and stale attempts', () => {
@@ -185,12 +240,12 @@ test('article validation rejects malformed tag values and image URLs', () => {
   assert.equal(isValidArticle({ ...article, image_url: 'https://unsplash.com/photos/example' }, 'Shopify & Tech'), false)
   assert.equal(isValidArticle({ ...article, image_url: 'http://images.unsplash.com/photo-test' }, 'Shopify & Tech'), false)
   assert.equal(isValidArticle({ ...article, image_alt: 'x'.repeat(161) }, 'Shopify & Tech'), false)
-  assert.equal(isValidImagePayload(null, null, null), true)
-  assert.equal(isValidImagePayload('http://images.pexels.com/x', 'http://images.pexels.com/x', {}), false)
+  assert.equal(isValidImagePayload(null, null), true)
+  assert.equal(isValidImagePayload('http://images.pexels.com/x', {}), false)
   const image = getCategoryImage('Marketplace SEO')
   assert.match(image.url, /^https:\/\/images\.unsplash\.com\//)
   assert.ok(image.alt)
-  assert.equal(isValidImagePayload(image.url, image.url, { provider: 'Unsplash', alt: image.alt }), true)
+  assert.equal(isValidImagePayload(image.url, { provider: 'Unsplash', alt: image.alt }), true)
 })
 
 test('category fallback images use curated Unsplash URLs without an image provider API', () => {

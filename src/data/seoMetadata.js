@@ -1,3 +1,5 @@
+import { getServicePageDetails } from './marketplaceServiceContent.js'
+
 const SITE_ORIGIN = 'https://ecomxtra.in'
 const DEFAULT_IMAGE = `${SITE_ORIGIN}/logo.png`
 
@@ -60,7 +62,7 @@ function absoluteImageUrl(value) {
   }
 }
 
-export function getRouteMetadata(pathname = '/', blog = null) {
+export function getRouteMetadata(pathname = '/', blog = null, service = null) {
   const normalizedPath = normalizeRoutePath(pathname)
   const canonicalPath = canonicalPathAliases[normalizedPath] || normalizedPath
   const canonicalUrl = getCanonicalUrl(normalizedPath)
@@ -70,13 +72,26 @@ export function getRouteMetadata(pathname = '/', blog = null) {
   if (publishedArticle && isArticleRoute) {
     const title = blog.seoTitle?.trim() || blog.title
     const description = blog.metaDescription?.trim() || blog.excerpt
-    const image = absoluteImageUrl(blog.socialImage || blog.coverImage)
+    const image = absoluteImageUrl(blog.coverImage)
     return {
       title,
       description,
       canonicalUrl,
       image,
       type: 'article',
+      robots: 'index,follow',
+    }
+  }
+
+  const isServiceRoute = Boolean(service?.slug && normalizedPath === `/services/${service.slug}`)
+  if (isServiceRoute) {
+    const details = getServicePageDetails(service)
+    return {
+      title: details.seo?.title?.trim() || service.title,
+      description: details.seo?.description?.trim() || service.description,
+      canonicalUrl,
+      image: absoluteImageUrl(details.hero?.imageUrl),
+      type: 'website',
       robots: 'index,follow',
     }
   }
@@ -102,9 +117,9 @@ export function getRouteMetadata(pathname = '/', blog = null) {
   }
 }
 
-export function getStructuredData(pathname = '/', blog = null) {
+export function getStructuredData(pathname = '/', blog = null, service = null) {
   const normalizedPath = normalizeRoutePath(pathname)
-  const metadata = getRouteMetadata(normalizedPath, blog)
+  const metadata = getRouteMetadata(normalizedPath, blog, service)
   const organization = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -144,6 +159,21 @@ export function getStructuredData(pathname = '/', blog = null) {
     return [organization, article, breadcrumb]
   }
 
+  if (service?.slug && normalizedPath === `/services/${service.slug}`) {
+    const details = getServicePageDetails(service)
+    return [organization, {
+      '@context': 'https://schema.org',
+      '@type': 'Service',
+      name: details.hero?.title || service.title,
+      description: metadata.description,
+      serviceType: 'Ecommerce marketplace account management',
+      provider: { '@id': `${SITE_ORIGIN}/#organization` },
+      areaServed: { '@type': 'Country', name: 'India' },
+      image: [metadata.image],
+      url: metadata.canonicalUrl,
+    }]
+  }
+
   const website = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
@@ -154,9 +184,9 @@ export function getStructuredData(pathname = '/', blog = null) {
   return [organization, website]
 }
 
-export function renderSeoHead(pathname = '/', blog = null) {
-  const metadata = getRouteMetadata(pathname, blog)
-  const structuredData = getStructuredData(pathname, blog)
+export function renderSeoHead(pathname = '/', blog = null, service = null) {
+  const metadata = getRouteMetadata(pathname, blog, service)
+  const structuredData = getStructuredData(pathname, blog, service)
   const tags = [
     `<title>${escapeHtml(metadata.title)}</title>`,
     `<meta name="description" content="${escapeHtml(metadata.description)}" />`,

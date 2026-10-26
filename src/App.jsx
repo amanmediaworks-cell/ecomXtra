@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage'
 import PhilosophyPage from './pages/PhilosophyPage'
 import ShowcasePage from './pages/ShowcasePage'
 import ServicesPage from './pages/ServicesPage'
+import ServiceDetailPage from './pages/ServiceDetailPage'
 import BlogPage from './pages/BlogPage'
 import BlogPostPage from './pages/BlogPostPage'
 import TestimonialsPage from './pages/TestimonialsPage'
@@ -18,6 +19,7 @@ import { loadCachedContent } from './data/contentCache'
 import { siteContentDefaults } from './data/siteContentDefaults'
 import { getRouteMetadata, getStructuredData } from './data/seoMetadata'
 import { getBlogImageForCategory, normalizeBlogImageUrl } from './data/blogImageUtils'
+import { marketplaceServiceDefaults, mergeMarketplaceServiceRows } from './data/marketplaceServiceContent'
 
 const PAGE_SIZE = 6
 
@@ -76,7 +78,7 @@ function requestPublicBlogPost(slug) {
 }
 
 function mapPublicBlogPost(post) {
-  const coverImage = normalizeBlogImageUrl(post.cover_image || post.social_image, post.category)
+  const coverImage = normalizeBlogImageUrl(post.cover_image, post.category)
   const fallbackImage = getBlogImageForCategory(post.category)
   return {
     ...post,
@@ -85,7 +87,6 @@ function mapPublicBlogPost(post) {
     coverImage,
     seoTitle: post.seo_title || '',
     metaDescription: post.meta_description || '',
-    socialImage: coverImage,
     image_metadata: {
       ...post.image_metadata,
       alt: post.image_metadata?.provider === 'Unsplash'
@@ -118,9 +119,9 @@ function upsertMeta(selector, attribute, value) {
   element.content = value
 }
 
-function RouteSeo({ pathname, blog, siteContent }) {
+function RouteSeo({ pathname, blog, service, siteContent }) {
   useEffect(() => {
-    const metadata = getRouteMetadata(pathname, blog)
+    const metadata = getRouteMetadata(pathname, blog, service)
     const homeSeo = pathname === '/'
       ? siteContent.find(section => section.content_key === 'seo')?.content
       : null
@@ -161,14 +162,14 @@ function RouteSeo({ pathname, blog, siteContent }) {
     }
 
     document.head.querySelectorAll('script[id^="structured-data-"]').forEach(script => script.remove())
-    getStructuredData(pathname, blog).forEach((data, index) => {
+    getStructuredData(pathname, blog, service).forEach((data, index) => {
       const script = document.createElement('script')
       script.id = `structured-data-${index}`
       script.type = 'application/ld+json'
       script.textContent = JSON.stringify(data).replace(/</g, '\\u003c')
       document.head.appendChild(script)
     })
-  }, [pathname, blog, siteContent])
+  }, [pathname, blog, service, siteContent])
 
   return null
 }
@@ -192,6 +193,7 @@ function App({ initialData = {} }) {
   const blogPage = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage - 1 : 0
   const setBlogPage = page => navigate(page > 0 ? `/blog?page=${page + 1}` : '/blog')
   const requestedBlogPostSlug = pathname.match(/^\/blog\/([^/]+)$/)?.[1]
+  const requestedServiceSlug = pathname.match(/^\/services\/([^/]+)$/)?.[1]
   const decodedBlogPostSlug = requestedBlogPostSlug ? decodeRouteSegment(requestedBlogPostSlug) : null
   const currentBlogPostDetail = blogPostDetail
     && (blogPostDetail.slug === decodedBlogPostSlug || String(blogPostDetail.id) === decodedBlogPostSlug)
@@ -232,7 +234,7 @@ function App({ initialData = {} }) {
     const blogPostSlug = requestedBlogPostSlug
     const requiredTables = pathname === '/'
       ? ['services', 'showcases', 'testimonials']
-      : pathname === '/services'
+      : pathname === '/services' || requestedServiceSlug
         ? ['services']
         : pathname === '/showcase'
           ? ['showcases']
@@ -261,7 +263,7 @@ function App({ initialData = {} }) {
             continue
           }
           const { rows, count } = result
-          if (table === 'services') setServices(rows.length ? rows : fallbackContent.services)
+          if (table === 'services') setServices(mergeMarketplaceServiceRows(rows))
           if (table === 'showcases') setShowcases(rows.length
             ? rows.map(({ showcase_key, ...row }) => ({ ...row, key: showcase_key }))
             : fallbackContent.showcases)
@@ -289,14 +291,20 @@ function App({ initialData = {} }) {
     return () => {
       active = false
     }
-  }, [pathname, requestedBlogPostSlug, blogPage, testimonialsPage, search])
+  }, [pathname, requestedBlogPostSlug, requestedServiceSlug, blogPage, testimonialsPage, search])
 
   return (
     <div className="min-h-screen flex flex-col justify-between relative overflow-x-hidden bg-[#faf8ff] text-slate-900 font-outfit">
       <ScrollToTop />
-      <RouteSeo pathname={pathname} blog={currentBlogPostDetail} siteContent={siteContent} />
+      <RouteSeo
+        pathname={pathname}
+        blog={currentBlogPostDetail}
+        service={services.find(item => item.slug === requestedServiceSlug)
+          || marketplaceServiceDefaults.find(item => item.slug === requestedServiceSlug)}
+        siteContent={siteContent}
+      />
       {/* Colourful ambient glowing blobs + subtle mesh (fixed, overflow-hidden so they don't affect layout) */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="softly-grain-overlay" />
         <div className="absolute top-[5%] left-[-10%] w-[55vw] h-[55vw] rounded-full bg-gradient-to-tr from-pink-400/25 to-violet-500/25 blur-[120px] animate-float" />
         <div className="absolute top-[45%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-br from-violet-400/25 to-cyan-400/25 blur-[120px] animate-float" style={{ animationDelay: '2s' }} />
@@ -310,7 +318,7 @@ function App({ initialData = {} }) {
         </div>
       )}
 
-      <main className="flex-1 w-full">
+      <main className="relative z-10 flex-1 w-full">
         <Routes>
           <Route
             path="/"
@@ -326,6 +334,15 @@ function App({ initialData = {} }) {
           <Route path="/philosophy" element={<PhilosophyPage siteContent={siteContent} />} />
           <Route path="/showcase" element={<ShowcasePage showcases={showcases} siteContent={siteContent} />} />
           <Route path="/services" element={<ServicesPage services={services} />} />
+          <Route
+            path="/services/:slug"
+            element={(
+              <ServiceDetailPage
+                service={services.find(item => item.slug === requestedServiceSlug)
+                  || marketplaceServiceDefaults.find(item => item.slug === requestedServiceSlug)}
+              />
+            )}
+          />
           <Route path="/blog" element={<BlogPage blogs={blogs} page={blogPage} pageSize={PAGE_SIZE} totalCount={blogCount} onPageChange={setBlogPage} />} />
           <Route path="/about" element={<Navigate to={`/philosophy${search}`} replace />} />
           <Route path="/service" element={<Navigate to={`/services${search}`} replace />} />
@@ -352,7 +369,9 @@ function App({ initialData = {} }) {
       </main>
 
       {(!siteContentLoaded || siteContent.some(section => section.content_key === 'footer')) && (
-        <Footer content={siteContent.find(section => section.content_key === 'footer')?.content} />
+        <div className="relative z-10">
+          <Footer content={siteContent.find(section => section.content_key === 'footer')?.content} />
+        </div>
       )}
       <Chatbot />
     </div>

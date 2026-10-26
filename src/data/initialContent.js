@@ -1,14 +1,8 @@
 import { defaultBlogs } from './defaultBlogs.js'
+import { marketplaceServiceDefaults } from './marketplaceServiceContent.js'
 
 export const initialContent = {
-  services: [
-    { id: 'fallback-service-1', title: 'Shopify & WooCommerce Solutions', description: 'Bespoke store setups, theme design, custom plugin development, and secure transactional setups.', category: 'Development' },
-    { id: 'fallback-service-2', title: 'eCommerce Store Development', description: 'End-to-end headless architecture, ultra-fast loading speeds, and multi-currency storefront structures.', category: 'Development' },
-    { id: 'fallback-service-3', title: 'AI Chatbots & Whatsapp Automation', description: 'Smart English/Hinglish custom-trained chatbots that automatically close deals and nurture leads 24/7.', category: 'AI Automation' },
-    { id: 'fallback-service-4', title: 'Growth Marketing & CRO', description: 'Data-driven marketing, search engine optimization, email list nurturing, and continuous landing page optimization.', category: 'Growth' },
-    { id: 'fallback-service-5', title: 'Marketing Automation', description: 'Set-and-forget marketing campaigns, automated customer retargeting, and post-purchase follow-ups.', category: 'Marketing' },
-    { id: 'fallback-service-6', title: 'Custom Integrations', description: 'Flawlessly sync your storefront with ERP, CRM, logistics, inventory management, and financial dashboards.', category: 'Integrations' },
-  ],
+  services: marketplaceServiceDefaults.map((service, index) => ({ id: `fallback-service-${index + 1}`, ...service })),
   showcases: [
     { id: 'fallback-showcase-1', key: 'amazon', title: 'Amazon Ranking Boost', metric: '#1 Best Seller', description: 'Boosted search rankings to the first page, resulting in a 2.4x organic sales increase within 60 days.', link: '#' },
     { id: 'fallback-showcase-2', key: 'flipkart', title: 'Flipkart Visibility Multiplier', metric: '1.8x Conversions', description: 'Ranked accessories catalog into the top 3 spots, optimizing images and titles for search visibility.', link: '#' },

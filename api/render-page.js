@@ -6,6 +6,7 @@ import { renderSeoHead, normalizeRoutePath } from '../src/data/seoMetadata.js'
 import { fallbackContent } from '../src/data/initialContent.js'
 import { siteContentDefaults } from '../src/data/siteContentDefaults.js'
 import { getBlogImageForCategory, normalizeBlogImageUrl } from '../src/data/blogImageUtils.js'
+import { marketplaceServiceDefaults, mergeMarketplaceServiceRows } from '../src/data/marketplaceServiceContent.js'
 
 const SITE_ORIGIN = 'https://ecomxtra.in'
 const PAGE_SIZE = 6
@@ -49,7 +50,7 @@ function getSupabaseClient() {
 }
 
 function mapPost(post) {
-  const coverImage = normalizeBlogImageUrl(post.cover_image || post.social_image, post.category)
+  const coverImage = normalizeBlogImageUrl(post.cover_image, post.category)
   const fallbackImage = getBlogImageForCategory(post.category)
   return {
     ...post,
@@ -58,7 +59,6 @@ function mapPost(post) {
     coverImage,
     seoTitle: post.seo_title || '',
     metaDescription: post.meta_description || '',
-    socialImage: coverImage,
     image_metadata: {
       ...post.image_metadata,
       alt: post.image_metadata?.provider === 'Unsplash'
@@ -88,6 +88,22 @@ async function getInitialData(pathname, searchParams, injectedSupabaseClient) {
   if (siteContentError) throw siteContentError
   if (publicSiteContent?.length) initialData.siteContent = publicSiteContent
 
+  const serviceMatch = pathname.match(/^\/services\/([^/]+)$/)
+  if (serviceMatch) {
+    const serviceSlug = decodeURIComponent(serviceMatch[1])
+    const { data: service, error } = await supabase
+      .from('services')
+      .select('*')
+      .eq('slug', serviceSlug)
+      .maybeSingle()
+    if (error) throw error
+    const serviceContent = service
+      || marketplaceServiceDefaults.find(item => item.slug === serviceSlug)
+    if (!serviceContent) return { notFound: true }
+    initialData.services = mergeMarketplaceServiceRows(service ? [service] : [])
+    return { initialData, service: serviceContent }
+  }
+
   const tablesByPage = {
     '/': ['services', 'showcases', 'testimonials'],
     '/services': ['services'],
@@ -104,7 +120,7 @@ async function getInitialData(pathname, searchParams, injectedSupabaseClient) {
     const { data, error, count } = await query
     if (error) throw error
     const rows = data || []
-    if (table === 'services') initialData.services = rows.length ? rows : fallbackContent.services
+    if (table === 'services') initialData.services = mergeMarketplaceServiceRows(rows)
     if (table === 'showcases') {
       initialData.showcases = rows.length
         ? rows.map(({ showcase_key, ...row }) => ({ ...row, key: showcase_key }))
@@ -174,8 +190,8 @@ async function getInitialData(pathname, searchParams, injectedSupabaseClient) {
   return { initialData }
 }
 
-function withSeoHead(html, pathname, blog) {
-  const seoHead = renderSeoHead(pathname, blog)
+function withSeoHead(html, pathname, blog, service) {
+  const seoHead = renderSeoHead(pathname, blog, service)
   return html.replace(
     /<!-- SEO_META_START -->[\s\S]*?<!-- SEO_META_END -->/,
     `<!-- SEO_META_START -->\n    ${seoHead}\n    <!-- SEO_META_END -->`,
@@ -217,7 +233,8 @@ export default async function handler(req, res, { supabaseClient = null } = {}) 
     }
 
     const isArticle = pathname.startsWith('/blog/')
-    if (!KNOWN_ROUTES.has(pathname) && !isArticle) {
+    const isServicePage = /^\/services\/[^/]+$/.test(pathname)
+    if (!KNOWN_ROUTES.has(pathname) && !isArticle && !isServicePage) {
       const { renderPage } = await import('../dist/server/entry-server.js')
       const html = await readFile(fileURLToPath(new URL('../dist/index.html', import.meta.url)), 'utf8')
       const initialData = { siteContent: FALLBACK_SITE_CONTENT }
@@ -270,7 +287,7 @@ export default async function handler(req, res, { supabaseClient = null } = {}) 
     browserSearchParams.delete('path')
     const browserSearch = browserSearchParams.toString()
     const body = renderPage(`${routePath}${browserSearch ? `?${browserSearch}` : ''}`, pageData.initialData)
-    const rendered = withSeoHead(html, routePath, pageData.blog)
+    const rendered = withSeoHead(html, routePath, pageData.blog, pageData.service)
       .replace('<div id="root"></div>', `<div id="root">${body}</div>`)
       .replace('</head>', `${initialDataScript(pageData.initialData)}\n  </head>`)
 

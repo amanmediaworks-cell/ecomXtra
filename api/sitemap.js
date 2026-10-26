@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import process from 'node:process'
 import { Buffer } from 'node:buffer'
+import { marketplaceServiceDefaults } from '../src/data/marketplaceServiceContent.js'
 
 const CANONICAL_ORIGIN = 'https://ecomxtra.in'
 const SUPABASE_TIMEOUT_MS = 4000
@@ -27,6 +28,11 @@ const STATIC_PUBLIC_ROUTES = [
   { path: '/testimonials', contentKey: 'testimonials_section', lastmod: STATIC_PAGE_LASTMOD },
   { path: '/contact', contentKey: 'contact', lastmod: STATIC_PAGE_LASTMOD },
   { path: '/blog', contentKey: null }, // Uses latest published blog post timestamp
+  ...marketplaceServiceDefaults.map(service => ({
+    path: `/services/${service.slug}`,
+    contentKey: null,
+    lastmod: STATIC_PAGE_LASTMOD,
+  })),
 ]
 
 /**

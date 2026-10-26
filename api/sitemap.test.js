@@ -101,6 +101,17 @@ test('generateSitemapXml generates complete sitemap with public static routes an
   for (const url of requiredStaticUrls) {
     assert.ok(xml.includes(`<loc>${url}</loc>`), `Expected ${url} to be present in sitemap`)
   }
+  for (const slug of [
+    'amazon-account-management',
+    'flipkart-account-management',
+    'meesho-account-management',
+    'blinkit-account-management',
+    'jiomart-account-management',
+    'swiggy-instamart-account-management',
+    'zepto-account-management',
+  ]) {
+    assert.ok(xml.includes(`<loc>https://ecomxtra.in/services/${slug}</loc>`))
+  }
 
   // 3. Dynamic published blog posts
   assert.ok(xml.includes('/blog/mastering-post-purchase-upselling-turning-one-time-buyers-into-loyal-customers'))
@@ -194,7 +205,7 @@ test('generateSitemapXml paginates published articles beyond Supabase default pa
 
   assert.match(xml, /\/blog\/published-article-0/)
   assert.match(xml, /\/blog\/published-article-1000/)
-  assert.equal((xml.match(/<url>/g) || []).length, 1008)
+  assert.equal((xml.match(/<url>/g) || []).length, 1015)
 })
 
 test('handler sets HTTP 200, Content-Type application/xml; charset=utf-8, and security/cache headers', async () => {

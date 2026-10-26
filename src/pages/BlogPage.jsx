@@ -36,15 +36,15 @@ function BlogPage({
       <section className="py-6 md:py-8 px-4 sm:px-6 lg:px-8 xl:px-12 max-w-7xl mx-auto border-b border-slate-200/60">
         <span className={`text-xs font-black tracking-widest uppercase block mb-2 ${'font-outfit text-violet-600 font-extrabold'
           }`}>
-          [ ECOMXTRA INSIGHTS & BLOGS ]
+          [ ECOMXTRA MARKETPLACE GUIDES ]
         </span>
         <h1 className={`text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight ${'font-outfit text-slate-900 font-extrabold'
           }`}>
-          eCommerce Strategy & AI Playbooks
+          Marketplace Account Management & Seller Guides
         </h1>
         <p className={`mt-3 text-xs sm:text-sm md:text-base max-w-3xl leading-relaxed ${'font-outfit text-slate-600 font-medium'
           }`}>
-          Actionable technical breakdowns, Hinglish conversational agent blueprints, and marketplace ranking case studies written by the architects at EcomXtra.
+          Practical guidance for Indian marketplace sellers on listings, catalogue updates, account health, claims, returns, and everyday operations across leading platforms.
         </p>
 
         {/* Search & Category Filter Bar */}
@@ -78,7 +78,7 @@ function BlogPage({
                 setSearchQuery(e.target.value)
                 onPageChange?.(0)
               }}
-              placeholder="Search articles & playbooks..."
+              placeholder="Search marketplace seller guides..."
               className={`w-full pl-8 pr-3.5 py-1.5 text-xs transition-all focus:outline-none ${'bg-white/90 border border-violet-150 rounded-full text-slate-900 placeholder:text-slate-400 focus:border-violet-500 shadow-sm'
                 }`}
             />
@@ -303,18 +303,18 @@ function BlogPage({
         <div className={`mt-14 mb-6 p-8 md:p-12 text-center ${'bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white rounded-3xl shadow-xl'
           }`}>
           <h3 className="text-2xl md:text-3xl font-bold font-outfit text-white">
-            Want us to implement these growth playbooks for your brand?
+            Need hands-on support with your marketplace operations?
           </h3>
           <p className="mt-3 text-xs md:text-sm max-w-xl mx-auto opacity-90">
-            Book a complimentary 30-minute technical architecture and marketplace audit with our core team.
+            Talk to EcomXtra about account management for Amazon, Flipkart, Meesho, and other leading platforms.
           </p>
           <div className="mt-6 flex justify-center">
             <Link
-              to="/contact"
+              to="/services"
               className={`inline-flex items-center gap-2 px-8 py-4 text-xs font-black tracking-widest uppercase transition-all ${'bg-white text-slate-900 rounded-full hover:bg-slate-100 shadow-md transform hover:scale-105'
                 }`}
             >
-              Book Strategy Consultation <ArrowRight className="w-4 h-4" />
+              Explore Marketplace Services <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>

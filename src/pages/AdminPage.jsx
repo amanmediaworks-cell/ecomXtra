@@ -6,9 +6,20 @@ import { invalidateCachedContent, loadCachedContent, updateCachedContent } from 
 import { siteContentDefaults } from '../data/siteContentDefaults'
 import WebsiteContentEditor from '../components/WebsiteContentEditor'
 import BlogEditorFields from '../components/BlogEditorFields'
+import ServicePageEditor from '../components/ServicePageEditor'
 import { validateBlogPost } from '../data/blogPostUtils'
+import { getServicePageDetails } from '../data/marketplaceServiceContent'
 
 const PAGE_SIZE = 6
+
+function serviceSlug(value) {
+  return String(value || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
 function mapBlogPost(post) {
   return {
     ...post,
@@ -17,7 +28,6 @@ function mapBlogPost(post) {
     coverImage: post.cover_image || '',
     seoTitle: post.seo_title || '',
     metaDescription: post.meta_description || '',
-    socialImage: post.social_image || '',
     date: post.published_at
       ? new Date(post.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
       : '',
@@ -40,7 +50,6 @@ function toBlogPost(blog) {
     cover_image: blog.coverImage || null,
     seo_title: blog.seoTitle?.trim() || null,
     meta_description: blog.metaDescription?.trim() || null,
-    social_image: blog.socialImage?.trim() || blog.coverImage?.trim() || null,
     tags,
     excerpt: blog.excerpt,
     content: blog.content,
@@ -53,7 +62,9 @@ function toBlogPost(blog) {
 const adminTableConfig = {
   services: {
     orderBy: 'created_at',
-    seed: initialContent.services.map(({ title, description, category }) => ({ title, description, category })),
+    seed: initialContent.services.map(({ title, description, category, slug, details }) => ({
+      title, description, category, slug, details,
+    })),
   },
   showcases: {
     orderBy: 'created_at',
@@ -353,13 +364,24 @@ function AdminDashboard({ onLogout, authError }) {
       invalidateCachedContent('public:site-content')
     }, 'Website section saved.'),
     addService: (service) => runCrud(async () => {
-      const { data, error } = await supabase.from('services').insert(service).select().single()
+      const fields = {
+        ...service,
+        slug: serviceSlug(service.slug || service.title),
+        details: service.details || {},
+      }
+      const { data, error } = await supabase.from('services').insert(fields).select().single()
       if (error) throw error
       invalidateContentForTable('services', loadedPagesRef)
       setServices(current => [...current, data])
     }, 'Service created.'),
     updateService: (id, service) => runCrud(async () => {
-      const fields = { title: service.title, description: service.description, category: service.category }
+      const fields = {
+        title: service.title,
+        description: service.description,
+        category: service.category,
+        slug: serviceSlug(service.slug || service.title),
+        details: service.details || {},
+      }
       const { data, error } = await supabase.from('services').update(fields).eq('id', id).select().single()
       if (error) throw error
       invalidateContentForTable('services', loadedPagesRef)
@@ -545,7 +567,7 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
   const [testimonialPage, setTestimonialPage] = useState(0)
   const [blogPage, setBlogPage] = useState(0)
 
-  const [newService, setNewService] = useState({ title: '', description: '', category: 'Development' })
+  const [newService, setNewService] = useState({ title: '', description: '', category: 'Marketplace Account Management', slug: '' })
   const [editingServiceId, setEditingServiceId] = useState(null)
   const [editingService, setEditingService]     = useState({})
 
@@ -564,7 +586,6 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
     authorRole: 'Head of Growth Architecture',
     readTime: '5 min read',
     coverImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
-    socialImage: '',
     seoTitle: '',
     metaDescription: '',
     slug: '',
@@ -689,7 +710,7 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
             {/* ── SERVICES ── */}
             {dbSubTab === 'services' && (
               <div className="space-y-8">
-                <form onSubmit={async (e) => { e.preventDefault(); if (!newService.title.trim()) return; if (await handleCRUD.addService(newService)) setNewService({ title: '', description: '', category: 'Development' }) }}
+                <form onSubmit={async (e) => { e.preventDefault(); if (!newService.title.trim()) return; if (await handleCRUD.addService(newService)) setNewService({ title: '', description: '', category: 'Marketplace Account Management', slug: '' }) }}
                   className="border border-[#f2f2f2]/10 bg-[#141414] p-6 space-y-4">
                   <h3 className="text-[10px] font-black tracking-[0.25em] uppercase text-[#f2f2f2]/50">[ New Service Record ]</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -697,10 +718,11 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
                     <div>
                       <label className={labelCls}>Category</label>
                       <select value={newService.category} onChange={e => setNewService({...newService, category: e.target.value})} className={inputCls}>
-                        {['Development','AI Automation','Growth','Marketing','Integrations'].map(c => <option key={c}>{c}</option>)}
+                        {['Marketplace Account Management','Development','AI Automation','Growth','Marketing','Integrations'].map(c => <option key={c}>{c}</option>)}
                       </select>
                     </div>
                   </div>
+                  <div><label className={labelCls}>Page slug (optional)</label><input value={newService.slug} onChange={e => setNewService({...newService, slug: e.target.value})} placeholder="amazon-account-management" className={inputCls} /></div>
                   <div><label className={labelCls}>Description</label><textarea required rows={3} value={newService.description} onChange={e => setNewService({...newService, description: e.target.value})} placeholder="Describe the service..." className={`${inputCls} resize-none`} /></div>
                   <button type="submit" disabled={isSaving} className={btnCreate}>+ Add Service</button>
                 </form>
@@ -711,8 +733,21 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
                     <div key={s.id} className={cardCls}>
                       {editingServiceId === s.id ? (
                         <div className="flex-1 space-y-3">
-                          <input value={editingService.title} onChange={e => setEditingService({...editingService, title: e.target.value})} className={inputCls} />
-                          <textarea rows={3} value={editingService.description} onChange={e => setEditingService({...editingService, description: e.target.value})} className={`${inputCls} resize-none`} />
+                          <input aria-label="Service title" value={editingService.title} onChange={e => setEditingService({...editingService, title: e.target.value})} className={inputCls} />
+                          <input aria-label="Service page slug" value={editingService.slug || ''} onChange={e => setEditingService({...editingService, slug: e.target.value})} placeholder="service-page-slug" className={inputCls} />
+                          <textarea aria-label="Service card description" rows={3} value={editingService.description} onChange={e => setEditingService({...editingService, description: e.target.value})} className={`${inputCls} resize-none`} />
+                          <ServicePageEditor
+                            details={editingService.details || getServicePageDetails(s)}
+                            onChange={details => setEditingService({ ...editingService, details })}
+                          />
+                          <a
+                            href={`/services/${serviceSlug(editingService.slug || s.slug || editingService.title)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 text-xs font-semibold text-[#ffc46d] hover:underline"
+                          >
+                            Preview public service page <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
                           <div className="flex gap-2">
                             <button disabled={isSaving} onClick={async () => { if (await handleCRUD.updateService(s.id, editingService)) setEditingServiceId(null) }} className="p-1.5 bg-green-600 text-white"><Check className="w-4 h-4" /></button>
                             <button onClick={() => setEditingServiceId(null)} className="p-1.5 bg-[#f2f2f2]/10 text-[#f2f2f2]"><X className="w-4 h-4" /></button>
@@ -728,7 +763,7 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
                         </div>
                       )}
                       <div className="flex gap-2 items-start justify-end shrink-0">
-                        <button onClick={() => { setEditingServiceId(s.id); setEditingService(s) }} className="p-2 border border-[#f2f2f2]/10 text-[#f2f2f2]/50 hover:text-[#f2f2f2] hover:border-[#f2f2f2]/30"><Edit className="w-4 h-4" /></button>
+                        <button onClick={() => { setEditingServiceId(s.id); setEditingService({ ...s, details: getServicePageDetails(s) }) }} className="p-2 border border-[#f2f2f2]/10 text-[#f2f2f2]/50 hover:text-[#f2f2f2] hover:border-[#f2f2f2]/30"><Edit className="w-4 h-4" /></button>
                         <button disabled={isSaving} onClick={() => handleCRUD.deleteService(s.id)} className="p-2 border border-red-500/20 text-red-400/60 hover:text-red-400 hover:border-red-500/40"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
@@ -899,7 +934,6 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
                     authorRole: 'Head of Growth Architecture',
                     readTime: '5 min read',
                     coverImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
-                    socialImage: '',
                     seoTitle: '',
                     metaDescription: '',
                     slug: '',

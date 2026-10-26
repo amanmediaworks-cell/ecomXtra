@@ -86,9 +86,9 @@ export const siteContentDefaults = [
     display_order: 60,
     is_public: true,
     content: {
-      eyebrow: '[ AGENCY CAPABILITIES ]',
-      heading: 'Bespoke eCommerce Solutions',
-      description: '',
+      eyebrow: '[ MARKETPLACE ACCOUNT OPERATIONS ]',
+      heading: 'Marketplace Account Management',
+      description: 'Hands-on marketplace support for product listings, catalogue updates, seller claims, returns, refunds, account health, and everyday operations.',
     },
   },
   {
@@ -129,11 +129,11 @@ export const siteContentDefaults = [
       phone: '+91 8700259557',
       navigationLinks: [
         { label: 'Home', path: '/' },
-        { label: 'Philosophy', path: '/philosophy' },
-        { label: 'Showcase', path: '/showcase' },
         { label: 'Services', path: '/services' },
-        { label: 'Blog', path: '/blog' },
+        { label: 'Showcase', path: '/showcase' },
         { label: 'Testimonials', path: '/testimonials' },
+        { label: 'About', path: '/philosophy' },
+        { label: 'Blog', path: '/blog' },
         { label: 'Contact', path: '/contact' },
       ],
       socialLinks: [

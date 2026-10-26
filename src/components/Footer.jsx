@@ -1,18 +1,9 @@
 import { Link } from 'react-router-dom'
 import { ExternalLink } from 'lucide-react'
+import { defaultNavigationLinks, normalizeNavigationLinks } from '../data/navigationLinks'
 
 function Footer({ content }) {
-
-    const defaultLinks = [
-        { label: 'Home', path: '/' },
-        { label: 'Philosophy', path: '/philosophy' },
-        { label: 'Showcase', path: '/showcase' },
-        { label: 'Services', path: '/services' },
-        { label: 'Blog', path: '/blog' },
-        { label: 'Testimonials', path: '/testimonials' },
-        { label: 'Contact', path: '/contact' },
-    ];
-    const links = content?.navigationLinks?.length ? content.navigationLinks : defaultLinks
+    const links = normalizeNavigationLinks(content?.navigationLinks || defaultNavigationLinks)
     const socialLinks = content?.socialLinks || [
         { label: 'GitHub', url: 'https://github.com' },
         { label: 'LinkedIn', url: 'https://linkedin.com' },

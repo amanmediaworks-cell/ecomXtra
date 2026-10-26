@@ -30,13 +30,8 @@ export function validateBlogPost(article) {
   if (!article.content?.trim()) return 'Article Markdown body is required.'
   if ((article.seoTitle?.length || 0) > 60) return 'SEO title must be 60 characters or fewer.'
   if ((article.metaDescription?.length || 0) > 160) return 'Meta description must be 160 characters or fewer.'
-  for (const [field, label] of [
-    ['coverImage', 'Cover image URL'],
-    ['socialImage', 'Social-sharing image URL'],
-  ]) {
-    if (!isValidBlogUrl(article[field])) {
-      return `${label} must be a valid HTTPS image URL or a site-relative path.`
-    }
+  if (!isValidBlogUrl(article.coverImage)) {
+    return 'Cover image URL must be a valid HTTPS image URL or a site-relative path.'
   }
   return ''
 }

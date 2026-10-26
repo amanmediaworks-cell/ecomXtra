@@ -17,6 +17,7 @@ const ARTICLE_MAX_WORDS = 1800
 const RUN_LEASE_MS = 10 * 60 * 1000
 const MAX_SUPABASE_REQUEST_MS = 4000
 const GEMINI_REQUEST_TIMEOUT_MS = 28000
+const IMAGE_REQUEST_TIMEOUT_MS = 10000
 
 class JobError extends Error {
   constructor(code, status = 500, reason = null) {
@@ -290,14 +291,12 @@ function isValidArticle(article, category) {
 }
 
 
-function isValidImagePayload(imageUrl, socialImage, metadata) {
-  // All-null = no image, always valid (article published without a photo).
-  if (imageUrl === null && socialImage === null && metadata === null) {
+function isValidImagePayload(imageUrl, metadata) {
+  if (imageUrl === null && metadata === null) {
     return true
   }
 
-  // When an image is present, cover and social must match and be HTTPS.
-  if (typeof imageUrl !== 'string' || imageUrl !== socialImage) return false
+  if (typeof imageUrl !== 'string') return false
 
   try {
     const url = new URL(imageUrl)
@@ -324,6 +323,29 @@ function isValidImagePayload(imageUrl, socialImage, metadata) {
   }
 
   return true
+}
+
+async function getImageAvailabilityIssue(imageUrl) {
+  try {
+    const response = await fetch(imageUrl, {
+      method: 'GET',
+      redirect: 'manual',
+      headers: { Accept: 'image/*' },
+      signal: AbortSignal.timeout(IMAGE_REQUEST_TIMEOUT_MS),
+    })
+    const contentType = response.headers.get('content-type') || ''
+    await response.body?.cancel()
+
+    if (response.status !== 200) {
+      return `image_url returned HTTP ${response.status}; choose an image URL that responds with HTTP 200`
+    }
+    if (!contentType.toLowerCase().startsWith('image/')) {
+      return 'image_url did not return an image content type; choose a direct image file URL'
+    }
+    return null
+  } catch (error) {
+    return `image_url could not be verified; choose a direct image URL that responds with HTTP 200 (${error?.name || 'network error'})`
+  }
 }
 
 
@@ -405,7 +427,7 @@ function buildPrompt(category, titles, recentTopics) {
     '- meta_description: maximum 160 characters. Action-oriented meta description to drive organic clicks.',
     '- tags: 3–6 distinct strings, each at most 32 characters.',
     '- content: complete Markdown article meeting every structural and length requirement above.',
-    '- image_url: a direct, publicly accessible HTTPS image URL hosted on images.unsplash.com, relevant to the specific article topic and suitable as its cover image. Return the image file/CDN URL, not an Unsplash webpage, search URL, or a link to an unrelated image. Do not use marketplace logos or imply endorsement.',
+    '- image_url: a direct, publicly accessible HTTPS image URL hosted on images.unsplash.com, relevant to the specific article topic and suitable as its cover image. Choose only an image URL you are confident is a live image; the server will request it and reject it unless it responds with HTTP 200 and an image content type. If uncertain, choose a different known-valid image URL. Return the image file/CDN URL, not an Unsplash webpage, search URL, or a link to an unrelated image. Do not use marketplace logos or imply endorsement.',
     '- image_alt: concise, accurate alt text describing the selected cover image, maximum 160 characters.',
 
     '### FACTUAL ACCURACY:',
@@ -491,7 +513,7 @@ async function generateArticle(category, titles, recentTopics) {
       },
       image_url: {
         type: 'STRING',
-        description: 'Direct HTTPS cover-image URL hosted on images.unsplash.com and relevant to this article. Return the final image/CDN URL, not a webpage URL.',
+        description: 'Direct HTTPS cover-image URL hosted on images.unsplash.com, relevant to this article and known to respond with HTTP 200 as an image. Return the final image/CDN URL, not a webpage URL.',
       },
       image_alt: {
         type: 'STRING',
@@ -747,6 +769,11 @@ async function generateArticle(category, titles, recentTopics) {
     }
 
     if (previousIssues.length === 0) {
+      const imageIssue = await getImageAvailabilityIssue(article.image_url)
+      if (imageIssue) previousIssues.push(imageIssue)
+    }
+
+    if (previousIssues.length === 0) {
       log('info', 'gemini_generation_succeeded', {
         attempt,
         maxAttempts: MAX_GENERATION_ATTEMPTS,
@@ -972,10 +999,9 @@ export default async function handler(req, res) {
       published_at: publishedAt,
       seo_title: article.seo_title.trim(),
       meta_description: article.meta_description.trim(),
-      social_image: article.image_url.trim(),
       image_metadata: { provider: 'Unsplash', alt: article.image_alt.trim() },
     }
-    if (!isValidImagePayload(postPayload.cover_image, postPayload.social_image, postPayload.image_metadata)) {
+    if (!isValidImagePayload(postPayload.cover_image, postPayload.image_metadata)) {
       throw new JobError('generated_image_metadata_invalid', 422)
     }
 

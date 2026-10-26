@@ -15,6 +15,9 @@ function Services({
   services,
   content,
 }) {
+  const marketplaceServices = services.filter(service => service.category === 'Marketplace Account Management')
+  const visibleServices = marketplaceServices.length ? marketplaceServices : services
+
   const getIcon = (idx, tClass) => {
     switch (idx % 6) {
       case 0: return <ShoppingBag className={tClass} />;
@@ -40,24 +43,14 @@ function Services({
       </div>
 
       {content?.description && <p className="mb-5 max-w-3xl text-xs md:text-sm text-slate-600">{content.description}</p>}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        {services.map((service, idx) => {
-          const cardThemes = [
-            { bg: 'bg-gradient-to-br from-emerald-500/10 via-white to-teal-500/5 border-emerald-200', icon: 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20', hoverText: 'hover:text-emerald-600' },
-            { bg: 'bg-gradient-to-br from-violet-500/10 via-white to-indigo-500/5 border-violet-200', icon: 'bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/20', hoverText: 'hover:text-violet-600' },
-            { bg: 'bg-gradient-to-br from-pink-500/10 via-white to-rose-500/5 border-pink-200', icon: 'bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-md shadow-pink-500/20', hoverText: 'hover:text-pink-600' },
-            { bg: 'bg-gradient-to-br from-amber-500/10 via-white to-orange-500/5 border-amber-200', icon: 'bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/20', hoverText: 'hover:text-amber-600' },
-            { bg: 'bg-gradient-to-br from-cyan-500/10 via-white to-sky-500/5 border-cyan-200', icon: 'bg-gradient-to-br from-cyan-500 to-sky-600 text-white shadow-md shadow-cyan-500/20', hoverText: 'hover:text-cyan-600' },
-            { bg: 'bg-gradient-to-br from-fuchsia-500/10 via-white to-purple-500/5 border-fuchsia-200', icon: 'bg-gradient-to-br from-fuchsia-500 to-purple-600 text-white shadow-md shadow-fuchsia-500/20', hoverText: 'hover:text-fuchsia-600' },
-          ];
-
-          const t = cardThemes[idx % cardThemes.length];
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-3">
+        {visibleServices.map((service, idx) => {
           const serviceImage = service.imageUrl || SERVICE_VISUALS[idx % SERVICE_VISUALS.length];
 
           return (
             <div
               key={service.id || idx}
-              className={`${t.bg} border-2 p-5 md:p-6 rounded-2xl shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group overflow-hidden`}
+              className="service-card group flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_24px_rgba(25,39,51,0.07)] md:p-6"
             >
               <div>
                 {/* Visual Thumbnail Header with Safe Caching */}
@@ -69,7 +62,7 @@ function Services({
                     imgClassName="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-black/20 to-transparent pointer-events-none" />
-                  <div className={`absolute bottom-2.5 left-2.5 w-10 h-10 rounded-xl flex items-center justify-center ${t.icon} group-hover:rotate-12 transition-transform duration-300`}>
+                  <div className="absolute bottom-2.5 left-2.5 flex h-10 w-10 items-center justify-center rounded-xl bg-[#243141] text-[#ffc46d] shadow-md transition-transform duration-300 group-hover:rotate-6">
                     {getIcon(idx, "w-4 h-4")}
                   </div>
                 </div>
@@ -83,10 +76,10 @@ function Services({
               </div>
 
               <Link
-                to="/contact"
-                className={`inline-flex items-center gap-1.5 text-xs font-bold text-slate-800 ${t.hoverText} transition-colors mt-4 pt-3 border-t border-slate-100 uppercase tracking-wider`}
+                to={service.slug ? `/services/${service.slug}` : '/contact'}
+                className="mt-4 inline-flex items-center gap-1.5 border-t border-slate-100 pt-3 text-xs font-bold uppercase tracking-wider text-[#243141] transition-colors hover:text-[#b85f25]"
               >
-                Inquire Service <ArrowUpRight className="w-3.5 h-3.5" />
+                {service.slug ? 'Explore Service' : 'Inquire Service'} <ArrowUpRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           );

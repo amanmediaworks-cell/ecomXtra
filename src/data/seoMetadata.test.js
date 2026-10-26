@@ -8,6 +8,7 @@ import {
   renderSeoHead,
 } from './seoMetadata.js'
 import { getBlogImageForCategory, normalizeBlogImageUrl } from './blogImageUtils.js'
+import { marketplaceServiceDefaults, mergeMarketplaceServiceRows } from './marketplaceServiceContent.js'
 import { siteContentDefaults } from './siteContentDefaults.js'
 
 test('canonical URLs use the preferred origin and normalized route path', () => {
@@ -28,6 +29,48 @@ test('homepage metadata targets Indian sellers seeking marketplace account manag
   assert.match(hero.content.subheading, /seller claims, returns, refunds/)
   assert.equal(hero.content.buttons[1].label, 'WhatsApp Us')
   assert.match(hero.content.buttons[1].href, /marketplace%20account%20management/)
+})
+
+test('marketplace service pages expose canonical, searchable service metadata', () => {
+  const service = marketplaceServiceDefaults[0]
+  const path = `/services/${service.slug}`
+  const metadata = getRouteMetadata(path, null, service)
+  const [, structuredService] = getStructuredData(path, null, service)
+
+  assert.equal(metadata.title, 'Amazon Account Management Services in India | EcomXtra')
+  assert.equal(metadata.canonicalUrl, `https://ecomxtra.in${path}`)
+  assert.match(metadata.description, /seller claims, return workflows/)
+  assert.equal(structuredService['@type'], 'Service')
+  assert.equal(structuredService.areaServed.name, 'India')
+  assert.equal(structuredService.url, metadata.canonicalUrl)
+  assert.match(renderSeoHead(path, null, service), /<title>Amazon Account Management Services in India \| EcomXtra<\/title>/)
+})
+
+test('each marketplace has editable default article sections and operational FAQs', () => {
+  assert.equal(marketplaceServiceDefaults.length, 7)
+  for (const service of marketplaceServiceDefaults) {
+    assert.ok(service.slug)
+    assert.ok(service.details.hero.description.length > 100)
+    assert.ok(service.details.included.items.length >= 6)
+    assert.ok(service.details.process.steps.every(step => step.article.length > 100))
+    assert.ok(service.details.faq.items.length >= 4)
+    assert.ok(service.details.seo.description.length <= 160)
+  }
+})
+
+test('saved marketplace records override defaults while missing platforms remain available', () => {
+  const savedAmazon = {
+    ...marketplaceServiceDefaults[0],
+    title: 'Custom Amazon Service Title',
+    details: { hero: { title: 'Custom hero title' } },
+  }
+  const merged = mergeMarketplaceServiceRows([savedAmazon, { id: 99, title: 'Legacy service' }])
+
+  assert.equal(merged.length, 8)
+  assert.equal(merged[0].title, 'Custom Amazon Service Title')
+  assert.equal(merged[0].details.hero.title, 'Custom hero title')
+  assert.ok(merged.some(service => service.slug === 'zepto-account-management'))
+  assert.ok(merged.some(service => service.title === 'Legacy service'))
 })
 
 test('article metadata and structured data use the real article title, date, and URL', () => {
