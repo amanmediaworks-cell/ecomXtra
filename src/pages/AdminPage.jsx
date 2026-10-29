@@ -586,6 +586,7 @@ function CronPanel({ session }) {
   const [cronStatus, setCronStatus] = useState('idle') // idle | running | success | error | already_running
   const [cronResult, setCronResult] = useState(null)
   const [cronError, setCronError]   = useState(null)
+  const [maxAttempts, setMaxAttempts] = useState(10)
   const dismissTimer = useRef(null)
 
   const clearDismiss = () => {
@@ -623,6 +624,7 @@ function CronPanel({ session }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
+        body: JSON.stringify({ maxAttempts }),
       })
       const data = await res.json().catch(() => ({ ok: false, error: 'invalid_json_response' }))
 
@@ -672,19 +674,34 @@ function CronPanel({ session }) {
             <h3 className="font-clash text-lg font-bold text-[#f2f2f2] mb-1">Daily Blog Generator</h3>
             <p className="text-xs text-[#f2f2f2]/40 leading-relaxed max-w-md">
               Runs the full generation pipeline: picks a marketplace category, calls Gemini AI,
-              validates the article, and publishes it to the blog. Takes up to 30 seconds.
+              validates the article, and publishes it to the blog. Invalid drafts can be regenerated
+              up to the selected attempt limit.
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
               {[
                 { label: 'Endpoint', val: '/api/cron/daily-blog' },
                 { label: 'Model', val: 'Gemini Flash Lite' },
-                { label: 'Max Attempts', val: '3' },
+                { label: 'Max Attempts', val: String(maxAttempts) },
               ].map(({ label, val }) => (
                 <span key={label} className="text-[9px] font-black tracking-wider uppercase border border-[#f2f2f2]/10 px-2 py-1 text-[#f2f2f2]/35">
                   {label}: <span className="text-[#f2f2f2]/60">{val}</span>
                 </span>
               ))}
             </div>
+            <label className="mt-4 inline-flex items-center gap-3 text-[10px] font-bold uppercase tracking-wider text-[#f2f2f2]/50">
+              Max generation attempts
+              <select
+                value={maxAttempts}
+                onChange={event => setMaxAttempts(Number(event.target.value))}
+                disabled={isRunning}
+                className="border border-[#f2f2f2]/15 bg-[#1a1a1a] px-3 py-2 text-xs text-[#f2f2f2] disabled:opacity-50"
+              >
+                {Array.from({ length: 10 }, (_, index) => index + 1).map(attempt => (
+                  <option key={attempt} value={attempt}>{attempt}</option>
+                ))}
+              </select>
+              <span className="normal-case tracking-normal text-[#f2f2f2]/30">1–10 tries per run</span>
+            </label>
           </div>
 
           {/* Run Button */}
@@ -719,7 +736,7 @@ function CronPanel({ session }) {
               />
             </div>
             <p className="text-[10px] text-[#f2f2f2]/40 mt-2 tracking-wider">
-              Generating article with Gemini AI… this may take up to 30 seconds
+              Generating article with Gemini AI… retries may increase run time
             </p>
           </div>
         )}

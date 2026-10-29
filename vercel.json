@@ -40,6 +40,9 @@
     "api/cron/daily-blog.js": {
       "maxDuration": 300
     },
+    "api/admin/trigger-cron.js": {
+      "maxDuration": 300
+    },
     "api/sitemap.js": {
       "maxDuration": 30
     },
