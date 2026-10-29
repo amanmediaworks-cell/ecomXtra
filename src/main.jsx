@@ -1,6 +1,7 @@
 import React from 'react'
 import { createRoot, hydrateRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { domAnimation, LazyMotion } from 'motion/react'
 import App from './App.jsx'
 import AdminPage from './pages/AdminPage.jsx'
 import './index.css'
@@ -14,7 +15,14 @@ const app = (
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/admin" element={<AdminPage />} />
+        <Route
+          path="/admin"
+          element={(
+            <LazyMotion features={domAnimation}>
+              <AdminPage />
+            </LazyMotion>
+          )}
+        />
         <Route path="/*" element={<App initialData={initialData} />} />
       </Routes>
     </BrowserRouter>

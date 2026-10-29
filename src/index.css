@@ -141,3 +141,10 @@ html {
     transition-duration: 0.01ms !important;
   }
 }
+/* Hide scrollbar utility (used for mobile tab overflow) */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

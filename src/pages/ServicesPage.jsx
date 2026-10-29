@@ -44,7 +44,7 @@ function ServicesPage({
                 </h1>
                 <p className={`mt-3 text-xs sm:text-sm md:text-base max-w-3xl leading-relaxed ${'font-outfit text-slate-600 font-medium'
                     }`}>
-                    EcomXtra supports Indian sellers with the day-to-day work behind marketplace selling: product listings, catalogue updates, seller claims, return workflows, account health, and operational follow-up.
+                    EcomXtra supports sellers with the day-to-day work behind marketplace selling: product listings, catalogue updates, seller claims, return workflows, account health, and operational follow-up.
                 </p>
             </section>
 

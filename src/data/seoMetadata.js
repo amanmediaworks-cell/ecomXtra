@@ -6,7 +6,7 @@ const DEFAULT_IMAGE = `${SITE_ORIGIN}/logo.png`
 const pageMetadata = {
   '/': {
     title: 'Ecommerce Account Management | EcomXtra',
-    description: 'EcomXtra manages Amazon, Flipkart, Meesho and more for Indian sellers—listings, catalogues, returns, claims and day-to-day marketplace operations.',
+    description: 'EcomXtra manages Amazon, Flipkart, Meesho and more for sellers—listings, catalogues, returns, claims and day-to-day marketplace operations.',
   },
   '/philosophy': {
     title: 'Our Philosophy | EcomXtra',

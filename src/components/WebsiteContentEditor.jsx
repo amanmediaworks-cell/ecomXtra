@@ -20,7 +20,7 @@ function isValidContentUrl(value, allowRelative = true) {
   }
 }
 
-function WebsiteContentEditor({ sections, onSave, isSaving, isLoading, errorMessage, successMessage }) {
+function WebsiteContentEditor({ sections, onSave, isSaving, isLoading }) {
   const [selectedKey, setSelectedKey] = useState(sections[0]?.content_key || '')
   const selectedSection = sections.find(section => section.content_key === selectedKey) || sections[0]
 
@@ -50,8 +50,6 @@ function WebsiteContentEditor({ sections, onSave, isSaving, isLoading, errorMess
         </select>
       </label>
 
-      {errorMessage && <p role="alert" className="border border-red-500/30 bg-red-500/5 p-3 text-xs text-red-300">{errorMessage}</p>}
-      {successMessage && <p role="status" className="border border-green-500/30 bg-green-500/5 p-3 text-xs text-green-300">{successMessage}</p>}
       {isLoading && <p role="status" className="text-xs text-[#f2f2f2]/50">Loading website content…</p>}
       <WebsiteContentForm
         key={`${selectedSection.content_key}:${selectedSection.updated_at || 'default'}`}

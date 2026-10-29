@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ExternalLink, X, Trash2, Edit, Check, List, BookOpen, LayoutTemplate } from 'lucide-react'
+import { ExternalLink, X, Trash2, Edit, Check, List, BookOpen, LayoutTemplate, Zap, RefreshCw, CheckCircle2, AlertCircle, Clock, Menu } from 'lucide-react'
+import { AnimatePresence, m } from 'motion/react'
 import { supabase } from '../src/lib/supabase'
 import { initialContent } from '../data/initialContent'
 import { invalidateCachedContent, loadCachedContent, updateCachedContent } from '../data/contentCache'
@@ -11,6 +12,12 @@ import { validateBlogPost } from '../data/blogPostUtils'
 import { getServicePageDetails } from '../data/marketplaceServiceContent'
 
 const PAGE_SIZE = 6
+const ADMIN_IDLE_TIMEOUT_MS = 30 * 60 * 1000
+const ADMIN_ACTIVITY_STORAGE_KEY = 'ecomxtra-admin-last-activity'
+
+function getAdminActivityKey(userId) {
+  return `${ADMIN_ACTIVITY_STORAGE_KEY}:${userId}`
+}
 
 function serviceSlug(value) {
   return String(value || '')
@@ -259,7 +266,7 @@ function LoginScreen({ onLogin, error, loading }) {
 }
 
 // ── Admin Dashboard (post-login) ────────────────────────────────────────────
-function AdminDashboard({ onLogout, authError }) {
+function AdminDashboard({ onLogout, authError, session }) {
   const [services, setServices] = useState([])
   const [showcases, setShowcases] = useState([])
   const [testimonials, setTestimonials] = useState([])
@@ -494,16 +501,28 @@ function AdminDashboard({ onLogout, authError }) {
   return (
     <div className="min-h-screen bg-[#0e0e0e] font-satoshi">
       {/* Admin Top Header Bar */}
-      <header className="sticky top-0 z-50 bg-[#111111] border-b border-[#f2f2f2]/10 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-50 bg-[#111111] border-b border-[#f2f2f2]/10 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          {/* Mobile hamburger */}
+          <button
+            className="lg:hidden p-1.5 text-[#f2f2f2]/40 hover:text-[#f2f2f2] transition-colors"
+            onClick={() => {
+              // Dispatch a custom event that AdminConsoleInline listens to
+              window.dispatchEvent(new CustomEvent('admin-toggle-sidebar'))
+            }}
+            aria-label="Open navigation"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
           <a href="/" title="Go to website" className="shrink-0 transition-transform hover:scale-105">
             <img src="/logo.png" alt="EcomXtra" className="w-8 h-8 rounded-full object-contain" />
           </a>
           <div>
-            <span className="font-clash text-sm font-black text-[#f2f2f2] tracking-widest uppercase">
+            <span className="font-clash text-xs sm:text-sm font-black text-[#f2f2f2] tracking-widest uppercase">
               ECOMXTRA CONTROL HUB
             </span>
-            <span className="font-satoshi text-[10px] text-[#f2f2f2]/40 block tracking-widest uppercase">
+            <span className="font-satoshi text-[10px] text-[#f2f2f2]/40 hidden sm:block tracking-widest uppercase">
               Admin ·{' '}
               <a href="https://quadranex-seven.vercel.app/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:underline">
                 Quadranex IT Solutions
@@ -513,11 +532,11 @@ function AdminDashboard({ onLogout, authError }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Back to site link */}
           <a
             href="/"
-            className="text-[10px] font-black tracking-widest uppercase text-[#f2f2f2]/40 hover:text-[#f2f2f2]/80 transition-colors border border-[#f2f2f2]/10 px-3 py-1.5 hover:border-[#f2f2f2]/30"
+            className="hidden sm:inline-flex text-[10px] font-black tracking-widest uppercase text-[#f2f2f2]/40 hover:text-[#f2f2f2]/80 transition-colors border border-[#f2f2f2]/10 px-3 py-1.5 hover:border-[#f2f2f2]/30"
           >
             ← Back to Site
           </a>
@@ -525,7 +544,7 @@ function AdminDashboard({ onLogout, authError }) {
           {/* Logout */}
           <button
             onClick={onLogout}
-            className="text-[10px] font-black tracking-widest uppercase bg-[#f2f2f2] text-[#111111] px-4 py-1.5 hover:bg-[#f2f2f2]/80 transition-colors"
+            className="text-[10px] font-black tracking-widest uppercase bg-[#f2f2f2] text-[#111111] px-3 sm:px-4 py-1.5 hover:bg-[#f2f2f2]/80 transition-colors"
           >
             Logout
           </button>
@@ -554,18 +573,255 @@ function AdminDashboard({ onLogout, authError }) {
           errorMessage={errorMessage}
           successMessage={successMessage}
           setErrorMessage={setErrorMessage}
+          setSuccessMessage={setSuccessMessage}
+          session={session}
         />
       </div>
     </div>
   )
 }
 
+// ── Cron Panel ───────────────────────────────────────────────────────────────
+function CronPanel({ session }) {
+  const [cronStatus, setCronStatus] = useState('idle') // idle | running | success | error | already_running
+  const [cronResult, setCronResult] = useState(null)
+  const [cronError, setCronError]   = useState(null)
+  const dismissTimer = useRef(null)
+
+  const clearDismiss = () => {
+    if (dismissTimer.current) {
+      clearTimeout(dismissTimer.current)
+      dismissTimer.current = null
+    }
+  }
+
+  const scheduleDismiss = () => {
+    clearDismiss()
+    dismissTimer.current = setTimeout(() => {
+      setCronStatus('idle')
+      setCronResult(null)
+      setCronError(null)
+    }, 8000)
+  }
+
+  useEffect(() => () => clearDismiss(), [])
+
+  const handleRun = async () => {
+    if (cronStatus === 'running') return
+    clearDismiss()
+    setCronStatus('running')
+    setCronResult(null)
+    setCronError(null)
+
+    try {
+      const accessToken = session?.access_token
+      if (!accessToken) throw new Error('No active session token.')
+
+      const res = await fetch('/api/admin/trigger-cron', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+      const data = await res.json().catch(() => ({ ok: false, error: 'invalid_json_response' }))
+
+      if (data.status === 'already_running') {
+        setCronStatus('already_running')
+        setCronResult(data)
+      } else if (data.ok && data.status === 'published') {
+        setCronStatus('success')
+        setCronResult(data)
+      } else {
+        setCronStatus('error')
+        setCronError(data)
+      }
+    } catch (err) {
+      setCronStatus('error')
+      setCronError({ error: err.message || 'network_error' })
+    }
+
+    scheduleDismiss()
+  }
+
+  const dismiss = () => {
+    clearDismiss()
+    setCronStatus('idle')
+    setCronResult(null)
+    setCronError(null)
+  }
+
+  const isRunning = cronStatus === 'running'
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h2 className="font-clash text-xl font-bold text-[#f2f2f2] tracking-tight">Cron Automation</h2>
+        <p className="text-xs text-[#f2f2f2]/35 mt-1">Manually trigger the AI blog-generation cron job on demand.</p>
+      </div>
+
+      {/* Trigger Card */}
+      <div className="border border-[#f2f2f2]/10 bg-[#141414] p-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
+              <span className="text-[10px] font-black tracking-[0.3em] uppercase text-violet-400">AI Content Engine</span>
+            </div>
+            <h3 className="font-clash text-lg font-bold text-[#f2f2f2] mb-1">Daily Blog Generator</h3>
+            <p className="text-xs text-[#f2f2f2]/40 leading-relaxed max-w-md">
+              Runs the full generation pipeline: picks a marketplace category, calls Gemini AI,
+              validates the article, and publishes it to the blog. Takes up to 30 seconds.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-3">
+              {[
+                { label: 'Endpoint', val: '/api/cron/daily-blog' },
+                { label: 'Model', val: 'Gemini Flash Lite' },
+                { label: 'Max Attempts', val: '3' },
+              ].map(({ label, val }) => (
+                <span key={label} className="text-[9px] font-black tracking-wider uppercase border border-[#f2f2f2]/10 px-2 py-1 text-[#f2f2f2]/35">
+                  {label}: <span className="text-[#f2f2f2]/60">{val}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Run Button */}
+          <button
+            onClick={handleRun}
+            disabled={isRunning}
+            className={`relative shrink-0 group flex items-center gap-2.5 px-7 py-4 font-clash font-black text-xs tracking-[0.25em] uppercase transition-all duration-300 overflow-hidden ${
+              isRunning
+                ? 'bg-[#f2f2f2]/10 text-[#f2f2f2]/40 cursor-not-allowed border border-[#f2f2f2]/10'
+                : 'bg-violet-600 text-white border border-violet-500 hover:bg-violet-500 hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-violet-900/40'
+            }`}
+          >
+            {/* Shimmer sweep on hover */}
+            {!isRunning && (
+              <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
+            )}
+            {isRunning
+              ? <RefreshCw className="w-4 h-4 animate-spin" />
+              : <Zap className="w-4 h-4" />
+            }
+            {isRunning ? 'Running…' : 'Run Now'}
+          </button>
+        </div>
+
+        {/* Progress bar when running */}
+        {isRunning && (
+          <div className="mt-6">
+            <div className="h-px bg-[#f2f2f2]/8 w-full overflow-hidden rounded-full">
+              <div
+                className="h-full bg-violet-500 rounded-full animate-pulse"
+                style={{ width: '100%', animation: 'cron-progress 2s ease-in-out infinite' }}
+              />
+            </div>
+            <p className="text-[10px] text-[#f2f2f2]/40 mt-2 tracking-wider">
+              Generating article with Gemini AI… this may take up to 30 seconds
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Result notification */}
+      {cronStatus === 'success' && cronResult && (
+        <div className="border border-green-500/30 bg-green-500/5 p-5 flex items-start gap-4 relative animate-[fadeInUp_0.3s_ease]">
+          <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-black tracking-widest uppercase text-green-400 mb-1">Blog Published Successfully</p>
+            <p className="text-[11px] text-green-300/80 leading-relaxed">
+              <span className="font-semibold text-green-300">{cronResult.slug}</span>
+              {' '}· Category: <span className="font-semibold">{cronResult.category}</span>
+              {' '}· Triggered by: <span className="font-semibold">{cronResult.triggeredBy}</span>
+            </p>
+            <a
+              href={`/blog/${cronResult.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 mt-2 text-[10px] font-black tracking-widest uppercase text-green-400 hover:underline"
+            >
+              View Post <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+          <button onClick={dismiss} className="shrink-0 text-green-400/50 hover:text-green-400 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {cronStatus === 'already_running' && (
+        <div className="border border-amber-500/30 bg-amber-500/5 p-5 flex items-start gap-4 relative animate-[fadeInUp_0.3s_ease]">
+          <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-xs font-black tracking-widest uppercase text-amber-400 mb-1">Already Running</p>
+            <p className="text-[11px] text-amber-300/80">Another cron run is currently in progress. Please wait a few minutes before trying again.</p>
+          </div>
+          <button onClick={dismiss} className="shrink-0 text-amber-400/50 hover:text-amber-400 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {cronStatus === 'error' && cronError && (
+        <div className="border border-red-500/30 bg-red-500/5 p-5 flex items-start gap-4 relative animate-[fadeInUp_0.3s_ease]">
+          <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-black tracking-widest uppercase text-red-400 mb-1">Cron Run Failed</p>
+            <p className="text-[11px] text-red-300/80 font-mono break-all">
+              {cronError.error || 'Unknown error'}
+              {cronError.message ? ` — ${cronError.message}` : ''}
+            </p>
+          </div>
+          <button onClick={dismiss} className="shrink-0 text-red-400/50 hover:text-red-400 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Keyframe style */}
+      <style>{`
+        @keyframes cron-progress {
+          0%   { transform: translateX(-100%); }
+          50%  { transform: translateX(0%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 // ── Inline variant of AdminConsole (no drawer overlay, full page) ────────────
-function AdminConsoleInline({ services, showcases, testimonials, blogs, siteContent, testimonialCount, blogCount, loadContent, handleCRUD, isLoading, isSaving, errorMessage, successMessage, setErrorMessage }) {
+function AdminConsoleInline({ services, showcases, testimonials, blogs, siteContent, testimonialCount, blogCount, loadContent, handleCRUD, isLoading, isSaving, errorMessage, successMessage, setErrorMessage, setSuccessMessage, session }) {
   const [activeTab, setActiveTab]   = useState('db')
   const [dbSubTab, setDbSubTab]     = useState('services')
   const [testimonialPage, setTestimonialPage] = useState(0)
   const [blogPage, setBlogPage] = useState(0)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const notifTimer = useRef(null)
+
+  // Auto-dismiss success/error notifications after 5 s, and allow manual close
+  useEffect(() => {
+    if (!successMessage && !errorMessage) return
+    if (notifTimer.current) clearTimeout(notifTimer.current)
+    notifTimer.current = setTimeout(() => {
+      if (successMessage) setSuccessMessage('')
+      if (errorMessage)   setErrorMessage('')
+    }, 5000)
+    return () => clearTimeout(notifTimer.current)
+  }, [successMessage, errorMessage, setSuccessMessage, setErrorMessage])
+
+  // Wire header hamburger button to sidebar state
+  useEffect(() => {
+    const handler = () => setSidebarOpen(prev => !prev)
+    window.addEventListener('admin-toggle-sidebar', handler)
+    return () => window.removeEventListener('admin-toggle-sidebar', handler)
+  }, [])
 
   const [newService, setNewService] = useState({ title: '', description: '', category: 'Marketplace Account Management', slug: '' })
   const [editingServiceId, setEditingServiceId] = useState(null)
@@ -602,6 +858,7 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
     { id: 'db',            label: 'CRUD Manager',   icon: <List      className="w-4 h-4" /> },
     { id: 'blogs',         label: 'Manage Blogs',   icon: <BookOpen  className="w-4 h-4" /> },
     { id: 'site',          label: 'Website Content', icon: <LayoutTemplate className="w-4 h-4" /> },
+    { id: 'cron',          label: 'Cron Jobs',       icon: <Zap       className="w-4 h-4" /> },
   ]
 
   useEffect(() => {
@@ -616,71 +873,168 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
   const cardCls   = "border border-[#f2f2f2]/10 bg-[#1a1a1a] p-4 flex flex-col sm:flex-row justify-between gap-4"
 
   return (
-    <div className="min-h-screen flex">
-      {/* Sidebar tabs */}
-      <aside className="w-[220px] shrink-0 bg-[#111111] border-r border-[#f2f2f2]/10 flex flex-col py-6 px-0">
-        <div className="px-5 mb-8">
-          <span className="text-[9px] font-black tracking-[0.3em] uppercase text-[#f2f2f2]/25">NAVIGATION</span>
-        </div>
-        {tabs.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            className={`flex items-center gap-3 px-5 py-3.5 text-xs font-black tracking-widest uppercase text-left transition-all duration-200 border-l-2 ${
-              activeTab === t.id
-                ? 'bg-[#f2f2f2]/5 border-[#f2f2f2] text-[#f2f2f2]'
-                : 'border-transparent text-[#f2f2f2]/35 hover:text-[#f2f2f2]/65 hover:bg-[#f2f2f2]/3'
-            }`}
+    <div className="min-h-screen flex relative">
+      {/* ── Mobile sidebar drawer backdrop ── */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <m.div
+            key="sidebar-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ── Sidebar: always visible on lg+, drawer on mobile ── */}
+      <AnimatePresence mode="wait">
+        {(sidebarOpen || true) && (
+          <m.aside
+            key="sidebar"
+            initial={false}
+            className={`
+              fixed lg:static inset-y-0 left-0 z-50 lg:z-auto
+              w-[220px] shrink-0 bg-[#111111] border-r border-[#f2f2f2]/10
+              flex flex-col py-6 px-0
+              transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
+              ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            `}
+            style={{ willChange: 'transform' }}
           >
-            <span className={activeTab === t.id ? 'text-[#f2f2f2]' : 'text-[#f2f2f2]/30'}>{t.icon}</span>
-            {t.label}
-          </button>
-        ))}
+            {/* Mobile close button */}
+            <button
+              className="lg:hidden absolute top-4 right-4 p-1.5 text-[#f2f2f2]/40 hover:text-[#f2f2f2] transition-colors"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close navigation"
+            >
+              <X className="w-4 h-4" />
+            </button>
 
-        <div className="mt-auto px-5 space-y-4 pt-8 border-t border-[#f2f2f2]/8">
-          {[
-            { label: 'Services',     val: services.length },
-            { label: 'Case Studies', val: showcases.length },
-            { label: 'Reviews',      val: testimonialCount },
-            { label: 'Blog Posts',   val: blogCount },
-          ].map(s => (
-            <div key={s.label} className="flex justify-between items-center">
-              <span className="text-[10px] text-[#f2f2f2]/30 uppercase tracking-wider">{s.label}</span>
-              <span className="font-clash font-bold text-sm text-[#f2f2f2]/70">{s.val}</span>
+            <div className="px-5 mb-8">
+              <span className="text-[9px] font-black tracking-[0.3em] uppercase text-[#f2f2f2]/25">NAVIGATION</span>
             </div>
-          ))}
-        </div>
-      </aside>
+            {tabs.map((t, i) => (
+              <m.button
+                key={t.id}
+                onClick={() => { setActiveTab(t.id); setSidebarOpen(false) }}
+                whileHover={{ x: 2 }}
+                whileTap={{ scale: 0.97 }}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.25, delay: i * 0.05, ease: 'easeOut' }}
+                className={`flex items-center gap-3 px-5 py-3.5 text-xs font-black tracking-widest uppercase text-left transition-all duration-200 border-l-2 ${
+                  activeTab === t.id
+                    ? 'bg-[#f2f2f2]/5 border-[#f2f2f2] text-[#f2f2f2]'
+                    : 'border-transparent text-[#f2f2f2]/35 hover:text-[#f2f2f2]/65 hover:bg-[#f2f2f2]/[0.03]'
+                }`}
+              >
+                <span className={activeTab === t.id ? 'text-[#f2f2f2]' : 'text-[#f2f2f2]/30'}>{t.icon}</span>
+                {t.label}
+              </m.button>
+            ))}
 
-      {/* Main content area */}
-      <main className="flex-1 p-8 overflow-y-auto bg-[#0e0e0e]">
-        {errorMessage && (
-          <div role="alert" className="mb-6 border border-red-500/30 bg-red-500/5 p-4 text-xs text-red-300">
-            {errorMessage}
-          </div>
+            <div className="mt-auto px-5 space-y-4 pt-8 border-t border-[#f2f2f2]/8">
+              {[
+                { label: 'Services',     val: services.length },
+                { label: 'Case Studies', val: showcases.length },
+                { label: 'Reviews',      val: testimonialCount },
+                { label: 'Blog Posts',   val: blogCount },
+              ].map((s, i) => (
+                <m.div
+                  key={s.label}
+                  className="flex justify-between items-center"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 + i * 0.06 }}
+                >
+                  <span className="text-[10px] text-[#f2f2f2]/30 uppercase tracking-wider">{s.label}</span>
+                  <span className="font-clash font-bold text-sm text-[#f2f2f2]/70">{s.val}</span>
+                </m.div>
+              ))}
+            </div>
+          </m.aside>
         )}
-        {successMessage && (
-          <div role="status" className="mb-6 border border-green-500/30 bg-green-500/5 p-4 text-xs text-green-300">
-            {successMessage}
-          </div>
-        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {errorMessage ? (
+          <m.div
+            key="error-toast"
+            role="alert"
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed right-4 top-4 z-[100] flex w-[calc(100%-2rem)] max-w-md items-start gap-3 border border-red-500/30 bg-[#1a1010] p-4 text-xs text-red-200 shadow-2xl sm:right-6 sm:top-6"
+          >
+            <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+            <div className="min-w-0 flex-1">
+              <p className="mb-1 font-bold text-red-300">Something went wrong</p>
+              <p className="break-words leading-relaxed">{errorMessage}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setErrorMessage('')}
+              aria-label="Dismiss error notification"
+              className="shrink-0 text-red-300/60 transition-colors hover:text-red-200"
+            >
+              <X aria-hidden="true" className="h-4 w-4" />
+            </button>
+          </m.div>
+        ) : successMessage ? (
+          <m.div
+            key="success-toast"
+            role="status"
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed right-4 top-4 z-[100] flex w-[calc(100%-2rem)] max-w-md items-start gap-3 border border-green-500/30 bg-[#101a13] p-4 text-xs text-green-200 shadow-2xl sm:right-6 sm:top-6"
+          >
+            <CheckCircle2 aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-green-400" />
+            <div className="min-w-0 flex-1">
+              <p className="mb-1 font-bold text-green-300">Saved successfully</p>
+              <p className="break-words leading-relaxed">{successMessage}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSuccessMessage('')}
+              aria-label="Dismiss success notification"
+              className="shrink-0 text-green-300/60 transition-colors hover:text-green-200"
+            >
+              <X aria-hidden="true" className="h-4 w-4" />
+            </button>
+          </m.div>
+        ) : null}
+      </AnimatePresence>
+
+      {/* ── Main content area ── */}
+      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[#0e0e0e] pb-24 lg:pb-8">
         {isSaving && <p role="status" className="mb-4 text-xs text-[#f2f2f2]/50">Saving changes…</p>}
         {isLoading && (
           <p role="status" className="mb-6 text-center text-sm text-[#f2f2f2]/50">Loading admin content…</p>
         )}
-        {activeTab !== 'site' && errorMessage && services.length === 0 && showcases.length === 0 && testimonials.length === 0 && blogs.length === 0 && (
-          <p className="py-12 text-center text-sm text-[#f2f2f2]/50">Admin content could not be loaded. Check the table configuration and access policies.</p>
-        )}
-        <div className={activeTab === 'site' ? '' : 'hidden'}>
+        {/* Animated tab panels */}
+        <AnimatePresence mode="wait">
+          <m.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          >
+        {/* Each tab is uniquely keyed so AnimatePresence unmounts/mounts on switch */}
+        {activeTab === 'site' && (
           <WebsiteContentEditor
             sections={siteContent}
             onSave={handleCRUD.saveSiteContent}
             isSaving={isSaving}
             isLoading={isLoading}
-            errorMessage={errorMessage}
-            successMessage={successMessage}
           />
-        </div>
+        )}
 
         {/* ─── CRUD Manager ─── */}
         {activeTab === 'db' && (
@@ -690,8 +1044,8 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
               <p className="text-xs text-[#f2f2f2]/35 mt-1">Create, read, update and delete records saved in Supabase.</p>
             </div>
 
-            {/* Sub tabs */}
-            <div className="flex gap-1 mb-8 border-b border-[#f2f2f2]/10 pb-0">
+            {/* Sub tabs — scrollable on mobile */}
+            <div className="flex gap-1 mb-6 sm:mb-8 border-b border-[#f2f2f2]/10 pb-0 overflow-x-auto scrollbar-none">
               {['services', 'showcases', 'testimonials'].map(s => (
                 <button
                   key={s}
@@ -1105,6 +1459,38 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
           </div>
         )}
 
+          {/* ─── Cron Jobs ─── */}
+          {activeTab === 'cron' && (
+            <CronPanel session={session} />
+          )}
+
+          </m.div>
+        </AnimatePresence>
+
+        {/* ── Mobile bottom tab bar ── */}
+        <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-[#111111] border-t border-[#f2f2f2]/10 flex">
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={`relative flex-1 flex flex-col items-center justify-center gap-1 py-3 text-[9px] font-black tracking-widest uppercase transition-colors ${
+                activeTab === t.id
+                  ? 'text-[#f2f2f2] bg-[#f2f2f2]/5'
+                  : 'text-[#f2f2f2]/30 hover:text-[#f2f2f2]/60'
+              }`}
+            >
+              <span className={activeTab === t.id ? 'text-[#f2f2f2]' : 'text-[#f2f2f2]/30'}>{t.icon}</span>
+              <span className="leading-none">{t.label.split(' ')[0]}</span>
+              {activeTab === t.id && (
+                <m.span
+                  layoutId="bottom-tab-indicator"
+                  className="absolute top-0 inset-x-0 h-px bg-[#f2f2f2]"
+                />
+              )}
+            </button>
+          ))}
+        </nav>
+
       </main>
     </div>
   )
@@ -1116,6 +1502,7 @@ export default function AdminPage() {
   const [authStatus, setAuthStatus] = useState('checking')
   const [authLoading, setAuthLoading] = useState(false)
   const [authError, setAuthError] = useState('')
+  const userId = session?.user?.id
 
   useEffect(() => {
     let active = true
@@ -1163,6 +1550,13 @@ export default function AdminPage() {
         setAuthError('')
         return
       }
+      if (event === 'SIGNED_IN' && nextSession.user?.id) {
+        try {
+          localStorage.setItem(getAdminActivityKey(nextSession.user.id), String(Date.now()))
+        } catch (storageError) {
+          console.error('Unable to persist admin session activity.', storageError)
+        }
+      }
       setSession(nextSession)
       setAuthStatus('authenticated')
       setAuthError('')
@@ -1191,6 +1585,114 @@ export default function AdminPage() {
     }
   }, [])
 
+  useEffect(() => {
+    if (authStatus !== 'authenticated' || !userId) return undefined
+
+    const activityKey = getAdminActivityKey(userId)
+    const now = Date.now()
+    let lastActivityAt = now
+    let lastPersistedAt = now
+    let storageErrorReported = false
+    let expired = false
+
+    const reportStorageError = error => {
+      if (storageErrorReported) return
+      storageErrorReported = true
+      console.error('Unable to persist admin session activity.', error)
+    }
+
+    try {
+      const savedActivity = Number(localStorage.getItem(activityKey))
+      if (Number.isFinite(savedActivity) && savedActivity > 0) {
+        lastActivityAt = savedActivity
+        lastPersistedAt = savedActivity
+      } else {
+        localStorage.setItem(activityKey, String(now))
+      }
+    } catch (storageError) {
+      reportStorageError(storageError)
+    }
+
+    const expireSession = async () => {
+      if (expired) return
+      expired = true
+      setSession(null)
+      setAuthStatus('unauthenticated')
+
+      let signOutError = null
+      try {
+        const { error } = await supabase.auth.signOut({ scope: 'local' })
+        if (error) signOutError = error
+      } catch (error) {
+        signOutError = error
+      }
+
+      if (signOutError) {
+        console.error('Unable to clear the expired admin session.', signOutError)
+      }
+      try {
+        localStorage.removeItem(activityKey)
+      } catch (storageError) {
+        reportStorageError(storageError)
+      }
+      setAuthError('Your admin session expired after 30 minutes of inactivity. Please sign in again.')
+    }
+
+    const recordActivity = () => {
+      const activityAt = Date.now()
+      lastActivityAt = activityAt
+      if (activityAt - lastPersistedAt < 1000) return
+
+      try {
+        localStorage.setItem(activityKey, String(activityAt))
+        lastPersistedAt = activityAt
+      } catch (storageError) {
+        reportStorageError(storageError)
+      }
+    }
+
+    const checkIdleTimeout = () => {
+      let sharedActivityAt = lastActivityAt
+      try {
+        const savedActivity = Number(localStorage.getItem(activityKey))
+        if (Number.isFinite(savedActivity) && savedActivity > sharedActivityAt) {
+          sharedActivityAt = savedActivity
+          lastActivityAt = savedActivity
+        }
+      } catch (storageError) {
+        reportStorageError(storageError)
+      }
+
+      if (Date.now() - sharedActivityAt >= ADMIN_IDLE_TIMEOUT_MS) {
+        void expireSession()
+      }
+    }
+
+    const handleStorage = event => {
+      if (event.key !== activityKey || !event.newValue) return
+      const sharedActivityAt = Number(event.newValue)
+      if (Number.isFinite(sharedActivityAt) && sharedActivityAt > lastActivityAt) {
+        lastActivityAt = sharedActivityAt
+      }
+    }
+
+    const activityEvents = ['pointerdown', 'keydown', 'touchstart', 'scroll', 'mousemove']
+    activityEvents.forEach(eventName => {
+      window.addEventListener(eventName, recordActivity, { passive: true })
+    })
+    window.addEventListener('storage', handleStorage)
+    const timeoutCheck = window.setInterval(checkIdleTimeout, 1000)
+    checkIdleTimeout()
+
+    return () => {
+      activityEvents.forEach(eventName => {
+        window.removeEventListener(eventName, recordActivity)
+      })
+      window.removeEventListener('storage', handleStorage)
+      window.clearInterval(timeoutCheck)
+    }
+  }, [authStatus, userId])
+
   const handleLogin = async (email, password) => {
     setAuthLoading(true)
     setAuthError('')
@@ -1199,6 +1701,13 @@ export default function AdminPage() {
       if (error || !data.session) {
         setAuthError('Sign-in failed. Check your email and password, then try again.')
         return
+      }
+      if (data.session.user?.id) {
+        try {
+          localStorage.setItem(getAdminActivityKey(data.session.user.id), String(Date.now()))
+        } catch (storageError) {
+          console.error('Unable to persist admin session activity.', storageError)
+        }
       }
       setSession(data.session)
       setAuthStatus('authenticated')
@@ -1236,5 +1745,5 @@ export default function AdminPage() {
     return <LoginScreen onLogin={handleLogin} error={authError} loading={authLoading} />
   }
 
-  return <AdminDashboard onLogout={handleLogout} authError={authError} />
+  return <AdminDashboard onLogout={handleLogout} authError={authError} session={session} />
 }

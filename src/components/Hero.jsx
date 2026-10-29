@@ -12,7 +12,7 @@ function Hero({ content, onOpenMarketplaceServices, marketplaceServicesOpen = fa
       <div className="mb-3 inline-flex items-center gap-2 px-3.5 py-1 rounded-full border border-gray-300/40 bg-white/70 backdrop-blur-md shadow-xs transition-all hover:scale-105">
         <img src="/logo.png" alt="EcomXtra" className="w-3.5 h-3.5 rounded-full object-contain shrink-0" />
         <span className="font-outfit text-slate-800 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-wider">
-          {hero.badge || 'Marketplace Account Management for Indian Sellers'}
+          {hero.badge || 'Marketplace Account Management for Sellers'}
         </span>
       </div>
 

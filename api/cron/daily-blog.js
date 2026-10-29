@@ -372,7 +372,7 @@ function buildPrompt(category, titles, recentTopics) {
     'Relevant service work includes new-seller onboarding and setup coordination; product listing creation, updates and optimization; catalogue maintenance; account health monitoring; raising and tracking seller support claims or cases; handling return/refund workflows and related requests; resolving listing and operational issues; and ongoing marketplace account support.',
     'Write for Indian marketplace sellers, D2C brands, manufacturers, distributors, and growing businesses that need help running these operations. Qualify the right potential customer: a business selling or planning to sell on marketplaces that needs hands-on support with recurring account work.',
     'Discuss only services relevant to the article and avoid implying that one workflow, feature, or service is available on every marketplace. Platform tools, terminology, policies, and seller eligibility can differ and change.',
-    'The primary business objective is to attract qualified Indian sellers and brands looking to outsource or improve marketplace account operations, product listing management, seller claims, returns, and account support.',
+    'The primary business objective is to attract qualified sellers and brands looking to outsource or improve marketplace account operations, product listing management, seller claims, returns, and account support.',
     'Use a catchy, confident brand voice that aims to establish EcomXtra as a leading marketplace account-management partner in India, without claiming market leadership or rankings as fact unless verified. Treat "India\'s No. 1" as an aspiration or slogan, never as a factual ranking, award, or proven claim unless verified evidence is provided.',
     'Do not invent marketplaces, integrations, service capabilities, client results, or guarantees that have not been verified.',
 
@@ -387,7 +387,7 @@ function buildPrompt(category, titles, recentTopics) {
     '- Identify one primary search query and its intended audience.',
     '- Incorporate relevant secondary keywords and natural variations without keyword stuffing.',
     '- Prefer specific, problem-oriented queries that match the services EcomXtra offers.',
-    '- Use Indian seller terminology and context naturally. Distinguish informational searches from commercial investigation and service-seeking searches (e.g. hiring an account management agency, outsourcing marketplace operations, fixing listing issues, or resolving a seller claim).',
+    '- Use seller terminology and context naturally. Distinguish informational searches from commercial investigation and service-seeking searches (e.g. hiring an account management agency, outsourcing marketplace operations, fixing listing issues, or resolving a seller claim).',
     '- Do not claim that a keyword has search volume, low competition, or ranking potential unless reliable research supports that claim.',
     '- Do not promise first-page rankings, guaranteed sales growth, or specific SEO outcomes.',
 

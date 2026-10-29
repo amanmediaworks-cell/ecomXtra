@@ -38,7 +38,7 @@ const platforms = [
     slug: 'amazon-account-management',
     name: 'Amazon',
     sellerPortal: 'Seller Central',
-    description: 'Hands-on Amazon marketplace account support for Indian sellers, from product catalogue work to seller cases and routine account operations.',
+    description: 'Hands-on Amazon marketplace account support for sellers, from product catalogue work to seller cases and routine account operations.',
     emphasis: 'Seller Central catalogue, account health, claims, returns, and operational follow-up.',
   },
   {

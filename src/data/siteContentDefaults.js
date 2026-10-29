@@ -4,7 +4,7 @@ export const siteContentDefaults = [
     display_order: 10,
     is_public: true,
     content: {
-      badge: 'Marketplace Account Management for Indian Sellers',
+      badge: 'Marketplace Account Management for Sellers',
       heading: 'ECOMXTRA',
       subheading: 'EcomXtra manages your ecommerce marketplace operations—from product listings and catalogue updates to seller claims, returns, refunds, and account support.',
       description: '',
@@ -150,7 +150,7 @@ export const siteContentDefaults = [
     is_public: true,
     content: {
       title: 'Ecommerce Account Management | EcomXtra',
-      description: 'EcomXtra manages Amazon, Flipkart, Meesho and more for Indian sellers—listings, catalogues, returns, claims and day-to-day marketplace operations.',
+      description: 'EcomXtra manages Amazon, Flipkart, Meesho and more for sellers—listings, catalogues, returns, claims and day-to-day marketplace operations.',
       socialImage: '/logo.png',
     },
   },
