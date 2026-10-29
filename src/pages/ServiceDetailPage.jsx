@@ -13,6 +13,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import SafeImage from '../components/SafeImage'
+import ContactModalTrigger from '../components/ContactModalTrigger'
 import { getServicePageDetails, marketplaceServiceDefaults } from '../data/marketplaceServiceContent'
 
 const serviceIcons = [
@@ -34,7 +35,7 @@ function CopyBlocks({ paragraphs = [] }) {
   ))
 }
 
-function ServiceDetailPage({ service }) {
+function ServiceDetailPage({ service, serviceType = 'management' }) {
   if (!service) {
     return (
       <section className="mx-auto max-w-4xl px-5 py-28 text-center">
@@ -47,8 +48,12 @@ function ServiceDetailPage({ service }) {
     )
   }
 
-  const details = getServicePageDetails(service)
+  const isOnboarding = serviceType === 'onboarding'
+  const details = getServicePageDetails(service, serviceType)
   const relatedServices = marketplaceServiceDefaults.filter(item => item.slug !== service.slug)
+  const serviceFocusAreas = isOnboarding
+    ? ['Seller information', 'Catalogue readiness', 'Setup coordination', 'Launch planning']
+    : ['Listings', 'Account health', 'Claims', 'Returns & refunds']
 
   return (
     <article className="service-page bg-white text-slate-900">
@@ -64,19 +69,18 @@ function ServiceDetailPage({ service }) {
             <p className="mt-6 max-w-2xl text-base italic leading-8 text-slate-700 sm:text-lg">
               {details.hero.description || service.description}
             </p>
-            <div className="mt-7 flex flex-wrap gap-2" aria-label="Marketplace operations covered">
-              {['Listings', 'Account health', 'Claims', 'Returns & refunds'].map(item => (
+            <div className="mt-7 flex flex-wrap gap-2" aria-label={isOnboarding ? 'Seller onboarding support areas' : 'Marketplace operations covered'}>
+              {serviceFocusAreas.map(item => (
                 <span key={item} className="rounded-full border border-[#243141]/15 bg-white/70 px-3 py-1.5 text-xs font-semibold text-[#243141]">
                   {item}
                 </span>
               ))}
             </div>
-            <Link
-              to="/contact"
+            <ContactModalTrigger
               className="mt-8 inline-flex items-center gap-3 rounded-lg bg-[#243141] px-6 py-4 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#17222e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c96f2e]"
             >
               Book a consultation <ArrowRight className="h-4 w-4" />
-            </Link>
+            </ContactModalTrigger>
           </div>
           <div className="relative mx-auto w-full max-w-2xl">
             <div className="absolute -left-3 top-8 h-3/4 w-4 rounded-l-xl bg-[#f7a73e] sm:-left-5 sm:w-6" />
@@ -88,7 +92,7 @@ function ServiceDetailPage({ service }) {
                 imgClassName="h-full w-full object-cover"
               />
               <div className="absolute bottom-5 left-5 right-5 rounded-xl border border-white/70 bg-white/95 p-4 shadow-lg backdrop-blur sm:bottom-7 sm:left-7 sm:right-7">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#b86728]">Marketplace operations</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#b86728]">{isOnboarding ? 'Seller onboarding' : 'Marketplace operations'}</p>
                 <p className="mt-1 text-sm font-semibold text-[#243141]">{details.feature.title}</p>
               </div>
             </div>
@@ -128,7 +132,7 @@ function ServiceDetailPage({ service }) {
       <section className="service-reveal px-5 py-16 sm:px-8 md:py-20">
         <div className="mx-auto grid max-w-7xl overflow-hidden rounded-[2rem] bg-[#243141] text-white shadow-xl lg:grid-cols-2">
           <div className="flex flex-col justify-center p-7 sm:p-10 lg:p-14">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#ffc46d]">Account operations spotlight</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#ffc46d]">{isOnboarding ? 'Launch preparation spotlight' : 'Account operations spotlight'}</p>
             <h2 className="mt-4 font-clash text-3xl font-bold leading-tight sm:text-4xl">{details.feature.title}</h2>
             <p className="mt-5 text-sm leading-7 text-slate-200 sm:text-base">{details.feature.body}</p>
             <ul className="mt-5 space-y-3">
@@ -198,7 +202,7 @@ function ServiceDetailPage({ service }) {
                 className="aspect-[0.9] w-full overflow-hidden rounded-2xl bg-slate-100"
                 imgClassName="h-full w-full object-cover"
               />
-              <p className="px-3 py-4 text-sm font-semibold text-white">A clear, collaborative workflow for {service.title}</p>
+              <p className="px-3 py-4 text-sm font-semibold text-white">A clear, collaborative workflow for {isOnboarding ? 'seller onboarding' : service.title}</p>
             </div>
             <div className="space-y-3">
               {(details.process.steps || []).map((step, index) => (
@@ -240,19 +244,23 @@ function ServiceDetailPage({ service }) {
       <section className="service-reveal bg-[linear-gradient(115deg,#fffaf0_0%,#ffd18a_100%)] px-5 py-14 sm:px-8">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#aa5a24]">Ready to delegate marketplace operations?</p>
-            <h2 className="mt-2 max-w-2xl font-clash text-2xl font-bold text-[#243141] sm:text-3xl">Talk to EcomXtra about your {service.title.replace(' Services', '')} account.</h2>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#aa5a24]">{isOnboarding ? 'Preparing a marketplace launch?' : 'Ready to delegate marketplace operations?'}</p>
+            <h2 className="mt-2 max-w-2xl font-clash text-2xl font-bold text-[#243141] sm:text-3xl">
+              {isOnboarding
+                ? `Talk to EcomXtra about launching on ${service.title.replace(' Account Management Services', '')}.`
+                : `Talk to EcomXtra about your ${service.title.replace(' Services', '')} account.`}
+            </h2>
           </div>
-          <Link to="/contact" className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#243141] px-6 py-4 font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#17222e]">
-            Discuss your account <ArrowUpRight className="h-4 w-4" />
-          </Link>
+          <ContactModalTrigger className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#243141] px-6 py-4 font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#17222e]">
+            {isOnboarding ? 'Discuss your launch' : 'Discuss your account'} <ArrowUpRight className="h-4 w-4" />
+          </ContactModalTrigger>
         </div>
       </section>
 
-      <nav aria-label="Other marketplace services" className="mx-auto flex max-w-6xl flex-wrap justify-center gap-3 px-5 py-10">
+      <nav aria-label={isOnboarding ? 'Other marketplace onboarding services' : 'Other marketplace services'} className="mx-auto flex max-w-6xl flex-wrap justify-center gap-3 px-5 py-10">
         {relatedServices.map(item => (
-          <Link key={item.slug} to={`/services/${item.slug}`} className="rounded-full border border-[#243141]/20 bg-white px-4 py-2 text-sm font-semibold text-[#243141] transition hover:border-[#cb6e27] hover:text-[#a7521e]">
-            {item.title.replace(' Account Management Services', '')} support
+          <Link key={item.slug} to={`/services/${item.slug}${isOnboarding ? '/onboarding' : ''}`} className="rounded-full border border-[#243141]/20 bg-white px-4 py-2 text-sm font-semibold text-[#243141] transition hover:border-[#cb6e27] hover:text-[#a7521e]">
+            {item.title.replace(' Account Management Services', '')} {isOnboarding ? 'onboarding' : 'support'}
           </Link>
         ))}
       </nav>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { TrendingUp, ArrowUpRight } from 'lucide-react'
+import ContactModalTrigger from './ContactModalTrigger'
 
 // Animated bar chart component
 function BarChart({ bars, accent = '#111111' }) {
@@ -283,7 +284,11 @@ function ShowcaseGrid({
           }`}>
           {content?.ctaText || 'Want results like these for your brand?'}
         </span>
-        {(content?.ctaHref || '/contact').startsWith('/') ? (
+        {(/^\/contact(?:[/?#]|$)/.test(content?.ctaHref || '/contact')) ? (
+          <ContactModalTrigger className="inline-flex items-center gap-2 text-xs font-black tracking-widest uppercase px-6 py-2.5 font-outfit bg-white text-slate-900 rounded-full hover:bg-slate-100 shadow-md hover:scale-105 transition-all">
+            {content?.ctaButton || 'Get a Free Audit'} <ArrowUpRight className="w-4 h-4 text-violet-600" />
+          </ContactModalTrigger>
+        ) : (content?.ctaHref || '/contact').startsWith('/') ? (
           <Link
             to={content?.ctaHref || '/contact'}
             className="inline-flex items-center gap-2 text-xs font-black tracking-widest uppercase px-6 py-2.5 font-outfit bg-white text-slate-900 rounded-full hover:bg-slate-100 shadow-md hover:scale-105 transition-all"

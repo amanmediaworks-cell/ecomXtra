@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { MessageSquare, X, Send, ExternalLink } from 'lucide-react'
+import { MessageSquare, X, Send, ExternalLink, Phone } from 'lucide-react'
+import { AnimatePresence, m } from 'motion/react'
+import { useContactModal } from './ContactModalContext'
+import ContactModalTrigger from './ContactModalTrigger'
 
 // ── Knowledge Base ────────────────────────────────────────────────────────────
 const KB = [
@@ -59,6 +62,7 @@ const INITIAL_MESSAGE = {
 function Chatbot({
   addLog
 }) {
+  const { openContactModal } = useContactModal()
   const [isOpen, setIsOpen]     = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const [inputText, setInputText] = useState('')
@@ -221,30 +225,56 @@ function Chatbot({
 
 
   return (
-    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
-      {/* ── Floating Trigger ── */}
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          aria-label="Open AI chat assistant"
-          className={`group relative w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110 ${
-            'bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white shadow-pink-500/30'
-          } hover:shadow-2xl`}
-        >
-          <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-          {/* Notification dot */}
-          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 sm:w-3.5 sm:h-3.5 bg-green-400 rounded-full border-2 border-white animate-pulse" />
-        </button>
-      )}
-
-      {/* ── Chat Panel ── */}
-      {isOpen && (
-        <div
-          className={`flex flex-col shadow-2xl overflow-hidden transition-all duration-300 ${
-            'w-[calc(100vw-2rem)] sm:w-[400px] max-w-[400px] h-[500px] sm:h-[560px] border-2 border-violet-200 bg-white rounded-[1.8rem]'
-          }`}
-          style={{ maxHeight: 'calc(100vh - 80px)' }}
-        >
+    <div className={`fixed ${isOpen ? 'bottom-4 sm:bottom-6' : 'bottom-20 sm:bottom-[5.5rem]'} right-4 sm:right-6 z-50 flex flex-col items-end gap-3`}>
+      <AnimatePresence initial={false}>
+        {!isOpen && (
+          <m.button
+            key="contact-trigger"
+            type="button"
+            onClick={openContactModal}
+            initial={{ opacity: 0, y: 12, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="group inline-flex animate-pulse items-center gap-2 rounded-full border border-white/80 bg-white px-4 py-2.5 text-xs font-extrabold text-slate-800 shadow-lg shadow-violet-900/15 transition hover:bg-amber-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
+          >
+            <Phone className="launcher-icon-shake launcher-icon-shake-contact h-4 w-4 text-violet-600" />
+            Contact Us
+          </m.button>
+        )}
+        {!isOpen && (
+          <m.button
+            key="chat-trigger"
+            type="button"
+            onClick={() => setIsOpen(true)}
+            aria-label="Open AI Agent Chat"
+            initial={{ opacity: 0, y: 12, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ duration: 0.2, delay: 0.06, ease: 'easeOut' }}
+            className="group relative inline-flex animate-pulse items-center gap-2 rounded-full border border-white/80 bg-white px-4 py-2.5 text-xs font-extrabold text-slate-800 shadow-lg shadow-violet-900/15 transition hover:bg-amber-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
+          >
+            <MessageSquare className="launcher-icon-shake launcher-icon-shake-chat h-4 w-4 text-violet-600" />
+            AI Agent Chat
+            <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-green-400 animate-pulse" />
+          </m.button>
+        )}
+        {isOpen && (
+          <m.div
+            key="chat-panel"
+            initial={{ opacity: 0, y: 20, scale: 0.96, transformOrigin: 'bottom right' }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 14, scale: 0.97 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className={`flex flex-col shadow-2xl overflow-hidden ${
+              'w-[calc(100vw-2rem)] sm:w-[400px] max-w-[400px] h-[500px] sm:h-[560px] border-2 border-violet-200 bg-white rounded-[1.8rem]'
+            }`}
+            style={{ maxHeight: 'calc(100vh - 80px)' }}
+          >
           {/* Header */}
           <div className={`shrink-0 px-4 py-3.5 flex items-center justify-between ${
             'bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white'
@@ -288,7 +318,7 @@ function Chatbot({
                   <div className="w-6 h-6 rounded-full shrink-0 overflow-hidden mr-2 mt-0.5 p-0.5 bg-white border border-gray-200 shadow-xs">
                     <img src="/logo.png" alt="AI" className="w-full h-full object-contain" />
                   </div>
-                )}
+                  )}
                 <div className={`max-w-[82%] px-3.5 py-2.5 text-xs leading-relaxed whitespace-pre-wrap ${
                   m.sender === 'user'
                     ? 'bg-gradient-to-r from-violet-600 to-pink-500 text-white rounded-[1rem] rounded-tr-sm shadow-xs font-medium'
@@ -296,22 +326,23 @@ function Chatbot({
                 }`}>
                   {typeof m.text === 'string' && /(https:\/\/(?:wa\.me\/[^\s]+|quadranex-seven\.vercel\.app\/?))/g.test(m.text) ? (
                     m.text.split(/(https:\/\/(?:wa\.me\/[^\s]+|quadranex-seven\.vercel\.app\/?))/g).map((part, i) =>
-                      part.startsWith('https://wa.me/') || part.startsWith('https://quadranex-seven.vercel.app') ? (
+                      part.startsWith('https://wa.me/') ? (
+                        <ContactModalTrigger
+                          key={i}
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm transition-all hover:bg-emerald-700"
+                        >
+                          💬 Chat on WhatsApp (+91 8700259557)
+                        </ContactModalTrigger>
+                      ) : part.startsWith('https://quadranex-seven.vercel.app') ? (
                         <a
                           key={i}
                           href={part}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={part.startsWith('https://wa.me/')
-                            ? 'inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-full shadow-sm transition-all'
-                            : 'inline-flex items-center gap-1 underline underline-offset-2 hover:text-violet-600'}
+                          className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-violet-600"
                         >
-                          {part.startsWith('https://wa.me/') ? '💬 Chat on WhatsApp (+91 8700259557)' : (
-                            <>
-                              Quadranex IT Solutions
-                              <ExternalLink aria-hidden="true" className="h-3 w-3" />
-                            </>
-                          )}
+                          Quadranex IT Solutions
+                          <ExternalLink aria-hidden="true" className="h-3 w-3" />
                         </a>
                       ) : (
                         part
@@ -397,8 +428,9 @@ function Chatbot({
               <Send className="w-4 h-4" />
             </button>
           </form>
-        </div>
+          </m.div>
       )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -1,8 +1,8 @@
-import { Link } from 'react-router-dom'
 import ShowcaseGrid from '../components/ShowcaseGrid'
 import HomeContentSection from '../components/HomeContentSection'
 import { ArrowRight } from 'lucide-react'
 import { siteContentFallback } from '../data/siteContentDefaults'
+import ContactModalTrigger from '../components/ContactModalTrigger'
 
 function ShowcasePage({
     showcases,
@@ -51,13 +51,12 @@ function ShowcasePage({
                         Want similar marketplace ranking gains for your brand?
                     </h3>
                     <div className="mt-4 flex justify-center">
-                        <Link
-                            to="/contact"
+                        <ContactModalTrigger
                             className={`inline-flex items-center gap-2 px-6 py-3 text-xs font-black tracking-widest uppercase transition-all ${'bg-white text-slate-900 rounded-full hover:bg-slate-100 shadow-md transform hover:scale-105'
                                 }`}
                         >
                             Request Free Marketplace Audit <ArrowRight className="w-4 h-4" />
-                        </Link>
+                        </ContactModalTrigger>
                     </div>
                 </div>
             </section>

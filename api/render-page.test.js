@@ -20,7 +20,7 @@ const article = {
   image_metadata: { provider: 'Unsplash', alt: 'Team collaborating around a table' },
 }
 
-function createBlogClient(post = article) {
+function createBlogClient(post = article, ranges = []) {
   return {
     from() {
       const filters = {}
@@ -30,7 +30,7 @@ function createBlogClient(post = article) {
         neq() { return this },
         order() { return this },
         limit() { return this },
-        range() { return this },
+        range(start, end) { ranges.push({ start, end }); return this },
         maybeSingle: async () => ({ data: post && filters.slug === post.slug && filters.is_published ? post : null, error: null }),
         then(resolve, reject) {
           return Promise.resolve({ data: [], error: null }).then(resolve, reject)
@@ -95,6 +95,27 @@ test('published article requests return SSR HTML with unique SEO tags and articl
   assert.match(res.body, /window\.__ECOMXTRA_SSR__=true/)
 })
 
+test('blog pages fetch seven posts first, then six per page', async () => {
+  for (const [page, expectedRange] of [
+    [1, { start: 0, end: 6 }],
+    [2, { start: 7, end: 12 }],
+    [3, { start: 13, end: 18 }],
+  ]) {
+    const res = createResponse()
+    const ranges = []
+    await handler(
+      { method: 'GET', url: `/api/render-page?path=%2Fblog&page=${page}` },
+      res,
+      { supabaseClient: createBlogClient(null, ranges) },
+    )
+
+    assert.equal(res.statusCode, 200)
+    assert.ok(ranges.some(range => (
+      range.start === expectedRange.start && range.end === expectedRange.end
+    )))
+  }
+})
+
 test('marketplace service requests return SSR copy, canonical metadata, and Service schema', async () => {
   const service = marketplaceServiceDefaults[0]
   const res = createResponse()
@@ -105,12 +126,28 @@ test('marketplace service requests return SSR copy, canonical metadata, and Serv
   )
 
   assert.equal(res.statusCode, 200)
-  assert.match(res.body, /<title>Amazon Account Management Services in India \| EcomXtra<\/title>/)
+  assert.match(res.body, /<title>Amazon Account Management Services \| EcomXtra<\/title>/)
   assert.match(res.body, /href="https:\/\/ecomxtra\.in\/services\/amazon-account-management"/)
   assert.match(res.body, /Launch and manage your Amazon seller operations/)
   assert.match(res.body, /"@type":"Service"/)
   assert.match(res.body, /"areaServed":\{"@type":"Country","name":"India"\}/)
   assert.match(res.body, /Read more/)
+})
+
+test('marketplace onboarding requests return their dedicated SSR copy and canonical metadata', async () => {
+  const service = marketplaceServiceDefaults[0]
+  const res = createResponse()
+  await handler(
+    { method: 'GET', url: `/api/render-page?path=%2Fservices%2F${service.slug}%2Fonboarding` },
+    res,
+    { supabaseClient: createServiceClient(service) },
+  )
+
+  assert.equal(res.statusCode, 200)
+  assert.match(res.body, /<title>Amazon Seller Onboarding Services \| EcomXtra<\/title>/)
+  assert.match(res.body, /href="https:\/\/ecomxtra\.in\/services\/amazon-account-management\/onboarding"/)
+  assert.match(res.body, /Get ready to start selling on Amazon/)
+  assert.match(res.body, /"serviceType":"Ecommerce marketplace seller onboarding"/)
 })
 
 test('unknown marketplace service pages receive HTTP 404', async () => {

@@ -1,4 +1,5 @@
 import Contact from '../components/Contact'
+import ContactModalTrigger from '../components/ContactModalTrigger'
 import { Mail, Phone, Building2, ExternalLink } from 'lucide-react'
 
 function ContactPage() {
@@ -25,9 +26,9 @@ function ContactPage() {
             {/* Direct Quick Contact Grid */}
             <section className="py-6 px-4 sm:px-6 lg:px-8 xl:px-12 max-w-7xl mx-auto border-b border-slate-200/60">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                    <a
-                        href="mailto:info@ecomxtra.in"
-                        className={`p-4 sm:p-5 flex items-center gap-3.5 transition-all ${'bg-white/95 backdrop-blur-md border-2 border-violet-150 rounded-xl shadow-sm hover:border-violet-400'
+                    <ContactModalTrigger
+                        aria-label="Open contact form to email EcomXtra"
+                        className={`w-full p-4 sm:p-5 flex items-center gap-3.5 text-left transition-all ${'bg-white/95 backdrop-blur-md border-2 border-violet-150 rounded-xl shadow-sm hover:border-violet-400'
                             }`}
                     >
                         <div className="p-3 rounded-lg bg-violet-100 text-violet-600">
@@ -43,13 +44,11 @@ function ContactPage() {
                                 info@ecomxtra.in
                             </span>
                         </div>
-                    </a>
+                    </ContactModalTrigger>
 
-                    <a
-                        href="https://wa.me/918700259557?text=Hi%20EcomXtra%2C%20I%20want%20to%20request%20a%20quotation"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`p-4 sm:p-5 flex items-center gap-3.5 transition-all ${'bg-white/95 backdrop-blur-md border-2 border-pink-150 rounded-xl shadow-sm hover:border-pink-400'
+                    <ContactModalTrigger
+                        aria-label="Open contact form to contact EcomXtra by phone or WhatsApp"
+                        className={`w-full p-4 sm:p-5 flex items-center gap-3.5 text-left transition-all ${'bg-white/95 backdrop-blur-md border-2 border-pink-150 rounded-xl shadow-sm hover:border-pink-400'
                             }`}
                     >
                         <div className="p-3 rounded-lg bg-pink-100 text-pink-600">
@@ -65,7 +64,7 @@ function ContactPage() {
                                 +91 8700259557
                             </span>
                         </div>
-                    </a>
+                    </ContactModalTrigger>
 
                     <div
                         className={`p-4 sm:p-5 flex items-center gap-3.5 ${'bg-white/95 backdrop-blur-md border-2 border-amber-150 rounded-xl shadow-sm'
@@ -92,7 +91,7 @@ function ContactPage() {
             </section>
 
             {/* Main Double Portal Form */}
-            <Contact />
+            <Contact showCareers />
         </div>
     )
 }

@@ -83,9 +83,13 @@ export function getRouteMetadata(pathname = '/', blog = null, service = null) {
     }
   }
 
-  const isServiceRoute = Boolean(service?.slug && normalizedPath === `/services/${service.slug}`)
+  const serviceType = normalizedPath.endsWith('/onboarding') ? 'onboarding' : 'management'
+  const isServiceRoute = Boolean(service?.slug && (
+    normalizedPath === `/services/${service.slug}`
+    || normalizedPath === `/services/${service.slug}/onboarding`
+  ))
   if (isServiceRoute) {
-    const details = getServicePageDetails(service)
+    const details = getServicePageDetails(service, serviceType)
     return {
       title: details.seo?.title?.trim() || service.title,
       description: details.seo?.description?.trim() || service.description,
@@ -159,14 +163,20 @@ export function getStructuredData(pathname = '/', blog = null, service = null) {
     return [organization, article, breadcrumb]
   }
 
-  if (service?.slug && normalizedPath === `/services/${service.slug}`) {
-    const details = getServicePageDetails(service)
+  if (service?.slug && (
+    normalizedPath === `/services/${service.slug}`
+    || normalizedPath === `/services/${service.slug}/onboarding`
+  )) {
+    const serviceType = normalizedPath.endsWith('/onboarding') ? 'onboarding' : 'management'
+    const details = getServicePageDetails(service, serviceType)
     return [organization, {
       '@context': 'https://schema.org',
       '@type': 'Service',
       name: details.hero?.title || service.title,
       description: metadata.description,
-      serviceType: 'Ecommerce marketplace account management',
+      serviceType: serviceType === 'onboarding'
+        ? 'Ecommerce marketplace seller onboarding'
+        : 'Ecommerce marketplace account management',
       provider: { '@id': `${SITE_ORIGIN}/#organization` },
       areaServed: { '@type': 'Country', name: 'India' },
       image: [metadata.image],

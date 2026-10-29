@@ -46,6 +46,15 @@
   50% { opacity: 0.85; transform: scale(1.04); }
 }
 
+@keyframes launcherIconShake {
+  0%, 88%, 100% { transform: rotate(0deg); }
+  90% { transform: rotate(-12deg); }
+  92% { transform: rotate(12deg); }
+  94% { transform: rotate(-8deg); }
+  96% { transform: rotate(8deg); }
+  98% { transform: rotate(0deg); }
+}
+
 .animate-float {
   animation: float 8s ease-in-out infinite;
 }
@@ -80,10 +89,19 @@
 
 /* Base style resets and layout utility classes */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .launcher-icon-shake {
+    transform-origin: center;
+    animation: launcherIconShake 3.4s ease-in-out infinite;
+  }
+
+  .launcher-icon-shake-chat {
+    animation-delay: 1.7s;
+  }
+
   .service-reveal {
     animation: serviceFadeUp 500ms ease-out both;
   }

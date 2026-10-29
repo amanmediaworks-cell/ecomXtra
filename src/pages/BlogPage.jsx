@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Calendar, Clock, Search, BookOpen, Sparkles } from 'lucide-react'
+import { m } from 'motion/react'
 import BlogImage from '../components/BlogImage'
 
 function BlogPage({
   blogs = [],
   page = 0,
-  pageSize = 7,
+  pageSize = 6,
+  firstPageSize = 7,
   totalCount = blogs.length,
+  loading = false,
   onPageChange,
 }) {
 
@@ -29,7 +32,9 @@ function BlogPage({
   const regularBlogs = featuredBlog && selectedCategory === 'All' && !searchQuery
     ? filteredBlogs.filter(blog => blog.id !== featuredBlog.id)
     : filteredBlogs
-  const pageCount = Math.ceil(totalCount / pageSize)
+  const pageCount = totalCount > firstPageSize
+    ? 1 + Math.ceil((totalCount - firstPageSize) / pageSize)
+    : totalCount > 0 ? 1 : 0
   return (
     <div className="pt-20 md:pt-24 pb-4">
       {/* Page Header */}
@@ -87,8 +92,32 @@ function BlogPage({
       </section>
 
       {/* Featured Blog Hero (when viewing All and no search) */}
-      {selectedCategory === 'All' && !searchQuery && featuredBlog && (
-        <section className="py-6 md:py-8 px-4 sm:px-6 lg:px-8 xl:px-12 max-w-7xl mx-auto border-b border-slate-200/60">
+      {loading && page === 0 && selectedCategory === 'All' && !searchQuery && (
+        <section aria-hidden="true" className="py-6 md:py-8 px-4 sm:px-6 lg:px-8 xl:px-12 max-w-7xl mx-auto border-b border-slate-200/60">
+          <div className="mb-3 h-3 w-36 animate-pulse rounded bg-slate-200" />
+          <div className="grid overflow-hidden rounded-3xl border-2 border-violet-100 bg-white/80 shadow-xl lg:grid-cols-12">
+            <div className="h-64 animate-pulse bg-slate-200 sm:h-80 lg:col-span-7" />
+            <div className="space-y-5 p-8 sm:p-10 lg:col-span-5">
+              <div className="h-3 w-32 animate-pulse rounded bg-slate-200" />
+              <div className="space-y-2">
+                <div className="h-6 animate-pulse rounded bg-slate-200" />
+                <div className="h-6 w-4/5 animate-pulse rounded bg-slate-200" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 animate-pulse rounded bg-slate-100" />
+                <div className="h-3 w-5/6 animate-pulse rounded bg-slate-100" />
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+      {!loading && selectedCategory === 'All' && !searchQuery && featuredBlog && (
+        <m.section
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: 'easeOut' }}
+          className="py-6 md:py-8 px-4 sm:px-6 lg:px-8 xl:px-12 max-w-7xl mx-auto border-b border-slate-200/60"
+        >
           <div className="mb-3 flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-pulse" />
             <span className={`text-[10px] font-black uppercase tracking-widest ${'font-outfit text-pink-600 font-extrabold'
@@ -171,12 +200,34 @@ function BlogPage({
               </div>
             </div>
           </Link>
-        </section>
+        </m.section>
       )}
 
       {/* Blog Cards Grid */}
       <section className="py-8 px-6 max-w-6xl mx-auto">
-        {filteredBlogs.length === 0 ? (
+        {loading ? (
+          <div role="status" aria-label="Loading blog articles">
+            <span className="sr-only">Loading blog articles…</span>
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: page === 0 ? Math.max(firstPageSize - 1, 1) : pageSize }, (_, index) => (
+                <div key={index} aria-hidden="true" className="overflow-hidden rounded-3xl border-2 border-violet-100 bg-white/80 shadow-lg">
+                  <div className="h-48 animate-pulse bg-slate-200" />
+                  <div className="space-y-4 p-6">
+                    <div className="h-3 w-32 animate-pulse rounded bg-slate-200" />
+                    <div className="space-y-2">
+                      <div className="h-5 animate-pulse rounded bg-slate-200" />
+                      <div className="h-5 w-4/5 animate-pulse rounded bg-slate-200" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-3 animate-pulse rounded bg-slate-100" />
+                      <div className="h-3 w-5/6 animate-pulse rounded bg-slate-100" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : filteredBlogs.length === 0 ? (
           <div className={`p-12 text-center ${'bg-white/80 rounded-3xl border border-violet-100 shadow-sm'
             }`}>
             <BookOpen className="w-12 h-12 mx-auto text-slate-400 mb-3" />
@@ -185,9 +236,14 @@ function BlogPage({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {regularBlogs.map(blog => (
-              <Link
+            {regularBlogs.map((blog, index) => (
+              <m.div
                 key={blog.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: Math.min(index * 0.06, 0.3), ease: 'easeOut' }}
+              >
+              <Link
                 to={`/blog/${blog.slug || blog.id}`}
                 className={`flex flex-col justify-between overflow-hidden transition-all duration-300 group ${'bg-white/95 backdrop-blur-md border-2 border-violet-150 rounded-3xl shadow-lg hover:shadow-xl hover:-translate-y-1'
                   }`}
@@ -263,11 +319,12 @@ function BlogPage({
                   </span>
                 </div>
               </Link>
+              </m.div>
             ))}
           </div>
         )}
 
-        {pageCount > 1 && (
+        {!loading && pageCount > 1 && (
           <nav aria-label="Blog pagination" className="mt-10 flex items-center justify-center gap-4">
             {page > 0 ? (
               <Link

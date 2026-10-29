@@ -10,6 +10,7 @@ import { marketplaceServiceDefaults, mergeMarketplaceServiceRows } from '../src/
 
 const SITE_ORIGIN = 'https://ecomxtra.in'
 const PAGE_SIZE = 6
+const BLOG_FIRST_PAGE_SIZE = 7
 const KNOWN_ROUTES = new Set([
   '/',
   '/philosophy',
@@ -88,7 +89,7 @@ async function getInitialData(pathname, searchParams, injectedSupabaseClient) {
   if (siteContentError) throw siteContentError
   if (publicSiteContent?.length) initialData.siteContent = publicSiteContent
 
-  const serviceMatch = pathname.match(/^\/services\/([^/]+)$/)
+  const serviceMatch = pathname.match(/^\/services\/([^/]+)(?:\/onboarding)?$/)
   if (serviceMatch) {
     const serviceSlug = decodeURIComponent(serviceMatch[1])
     const { data: service, error } = await supabase
@@ -137,13 +138,16 @@ async function getInitialData(pathname, searchParams, injectedSupabaseClient) {
     const page = Number.isFinite(requestedPage) && requestedPage > 0
       ? Math.min(requestedPage - 1, 10000)
       : 0
-    const start = page * PAGE_SIZE
+    const start = page === 0
+      ? 0
+      : BLOG_FIRST_PAGE_SIZE + (page - 1) * PAGE_SIZE
+    const pageSize = page === 0 ? BLOG_FIRST_PAGE_SIZE : PAGE_SIZE
     const { data, error, count } = await supabase
       .from('blog_posts')
       .select('*', { count: 'exact' })
       .eq('is_published', true)
       .order('published_at', { ascending: false })
-      .range(start, start + PAGE_SIZE - 1)
+      .range(start, start + pageSize - 1)
     if (error) throw error
     initialData.blogs = (data || []).map(mapPost)
     initialData.blogPage = page
@@ -233,7 +237,7 @@ export default async function handler(req, res, { supabaseClient = null } = {}) 
     }
 
     const isArticle = pathname.startsWith('/blog/')
-    const isServicePage = /^\/services\/[^/]+$/.test(pathname)
+    const isServicePage = /^\/services\/[^/]+(?:\/onboarding)?$/.test(pathname)
     if (!KNOWN_ROUTES.has(pathname) && !isArticle && !isServicePage) {
       const { renderPage } = await import('../dist/server/entry-server.js')
       const html = await readFile(fileURLToPath(new URL('../dist/index.html', import.meta.url)), 'utf8')

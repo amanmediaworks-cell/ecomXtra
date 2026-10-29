@@ -28,9 +28,10 @@ const STATIC_PUBLIC_ROUTES = [
   { path: '/testimonials' },
   { path: '/contact' },
   { path: '/blog' },
-  ...marketplaceServiceDefaults.map(service => ({
-    path: `/services/${service.slug}`,
-  })),
+  ...marketplaceServiceDefaults.flatMap(service => [
+    { path: `/services/${service.slug}` },
+    { path: `/services/${service.slug}/onboarding` },
+  ]),
 ]
 
 /**

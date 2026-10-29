@@ -8,7 +8,11 @@ import {
   renderSeoHead,
 } from './seoMetadata.js'
 import { getBlogImageForCategory, normalizeBlogImageUrl } from './blogImageUtils.js'
-import { marketplaceServiceDefaults, mergeMarketplaceServiceRows } from './marketplaceServiceContent.js'
+import {
+  getServicePageDetails,
+  marketplaceServiceDefaults,
+  mergeMarketplaceServiceRows,
+} from './marketplaceServiceContent.js'
 import { siteContentDefaults } from './siteContentDefaults.js'
 
 test('canonical URLs use the preferred origin and normalized route path', () => {
@@ -52,6 +56,23 @@ test('marketplace service pages expose canonical, searchable service metadata', 
   assert.match(renderSeoHead(path, null, service), /<title>Amazon Account Management Services \| EcomXtra<\/title>/)
 })
 
+test('marketplace onboarding routes have distinct content, canonical metadata, and service schema', () => {
+  const service = marketplaceServiceDefaults[0]
+  const path = `/services/${service.slug}/onboarding`
+  const details = getServicePageDetails(service, 'onboarding')
+  const metadata = getRouteMetadata(path, null, service)
+  const [, structuredService] = getStructuredData(path, null, service)
+
+  assert.equal(details.hero.title, 'Amazon Seller Onboarding Services')
+  assert.match(details.process.title, /seller onboarding works/)
+  assert.equal(metadata.title, 'Amazon Seller Onboarding Services | EcomXtra')
+  assert.equal(metadata.canonicalUrl, `https://ecomxtra.in${path}`)
+  assert.doesNotMatch(metadata.description, /\bIndia\b/i)
+  assert.equal(structuredService.serviceType, 'Ecommerce marketplace seller onboarding')
+  assert.equal(structuredService.url, metadata.canonicalUrl)
+  assert.match(renderSeoHead(path, null, service), /<title>Amazon Seller Onboarding Services \| EcomXtra<\/title>/)
+})
+
 test('all marketplace SEO titles target platform account management without a location suffix', () => {
   for (const service of marketplaceServiceDefaults) {
     const metadata = getRouteMetadata(`/services/${service.slug}`, null, service)
@@ -62,7 +83,7 @@ test('all marketplace SEO titles target platform account management without a lo
 })
 
 test('each marketplace has editable default article sections and operational FAQs', () => {
-  assert.equal(marketplaceServiceDefaults.length, 7)
+  assert.equal(marketplaceServiceDefaults.length, 10)
   for (const service of marketplaceServiceDefaults) {
     assert.ok(service.slug)
     assert.ok(service.details.hero.description.length > 100)
@@ -81,7 +102,7 @@ test('saved marketplace records override defaults while missing platforms remain
   }
   const merged = mergeMarketplaceServiceRows([savedAmazon, { id: 99, title: 'Legacy service' }])
 
-  assert.equal(merged.length, 8)
+  assert.equal(merged.length, 11)
   assert.equal(merged[0].title, 'Custom Amazon Service Title')
   assert.equal(merged[0].details.hero.title, 'Custom hero title')
   assert.ok(merged.some(service => service.slug === 'zepto-account-management'))

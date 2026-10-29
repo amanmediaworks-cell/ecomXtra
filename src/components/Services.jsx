@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowUpRight, Code, Cpu, LineChart, Link2, ShoppingBag, Zap } from 'lucide-react'
 import SafeImage from './SafeImage'
+import ContactModalTrigger from './ContactModalTrigger'
 
 const SERVICE_VISUALS = [
   'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=900&q=80',
@@ -75,12 +76,18 @@ function Services({
                 </p>
               </div>
 
-              <Link
-                to={service.slug ? `/services/${service.slug}` : '/contact'}
-                className="mt-4 inline-flex items-center gap-1.5 border-t border-slate-100 pt-3 text-xs font-bold uppercase tracking-wider text-[#243141] transition-colors hover:text-[#b85f25]"
-              >
-                {service.slug ? 'Explore Service' : 'Inquire Service'} <ArrowUpRight className="w-3.5 h-3.5" />
-              </Link>
+              {service.slug ? (
+                <Link
+                  to={`/services/${service.slug}`}
+                  className="mt-4 inline-flex items-center gap-1.5 border-t border-slate-100 pt-3 text-xs font-bold uppercase tracking-wider text-[#243141] transition-colors hover:text-[#b85f25]"
+                >
+                  Explore Service <ArrowUpRight className="w-3.5 h-3.5" />
+                </Link>
+              ) : (
+                <ContactModalTrigger className="mt-4 inline-flex items-center gap-1.5 border-t border-slate-100 pt-3 text-xs font-bold uppercase tracking-wider text-[#243141] transition-colors hover:text-[#b85f25]">
+                  Inquire Service <ArrowUpRight className="w-3.5 h-3.5" />
+                </ContactModalTrigger>
+              )}
             </div>
           );
         })}

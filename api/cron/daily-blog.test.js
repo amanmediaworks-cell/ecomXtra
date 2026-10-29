@@ -66,7 +66,8 @@ test('daily blog slug generation is lowercase, readable, and strips accents', ()
 test('category rotation advances and wraps through the fixed list', () => {
   assert.equal(chooseCategory(undefined), 'Amazon')
   assert.equal(chooseCategory('Amazon'), 'Flipkart')
-  assert.equal(chooseCategory('Zepto'), 'Amazon')
+  assert.equal(chooseCategory('Zepto'), 'Myntra')
+  assert.equal(chooseCategory('Nykaa'), 'Amazon')
 })
 
 test('claim RPC result handles the table-returning response shape', () => {
@@ -109,7 +110,7 @@ test('generation prompt states every article requirement enforced by validation'
   assert.match(endpoint, /## Frequently Asked Questions/)
   assert.match(endpoint, /meta_description: maximum 160 characters/)
   assert.match(endpoint, /tags: 3–6 distinct strings/)
-  assert.match(endpoint, /Amazon India, Flipkart, Meesho, Blinkit, JioMart, Swiggy Instamart, and Zepto/)
+  assert.match(endpoint, /Amazon India, Flipkart, Meesho, Blinkit, JioMart, Swiggy Instamart, Zepto, Myntra, AJIO, or Nykaa/)
   assert.match(endpoint, /return\/refund workflows/)
   assert.match(endpoint, /Every article must be directly about EcomXtra services/)
   assert.match(endpoint, /Assigned service platform: \$\{category\}/)
@@ -261,7 +262,7 @@ test('article validation rejects malformed tag values and image URLs', () => {
 })
 
 test('category fallback images use curated Unsplash URLs without an image provider API', () => {
-  for (const category of ['Amazon', 'Flipkart', 'Meesho', 'Blinkit', 'JioMart', 'Swiggy Instamart', 'Zepto']) {
+  for (const category of ['Amazon', 'Flipkart', 'Meesho', 'Blinkit', 'JioMart', 'Swiggy Instamart', 'Zepto', 'Myntra', 'AJIO', 'Nykaa']) {
     const image = getCategoryImage(category)
     assert.match(image.url, /^https:\/\/images\.unsplash\.com\//)
     assert.ok(image.alt)

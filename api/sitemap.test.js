@@ -6,6 +6,7 @@ import handler, {
   formatLastmodDate,
   generateSitemapXml,
 } from './sitemap.js'
+import { marketplaceServiceDefaults } from '../src/data/marketplaceServiceContent.js'
 
 function createSitemapClient({
   pages = [{ content_key: 'seo', updated_at: '2026-10-22T00:00:00Z' }],
@@ -111,6 +112,7 @@ test('generateSitemapXml generates complete sitemap with public static routes an
     'zepto-account-management',
   ]) {
     assert.ok(xml.includes(`<loc>https://ecomxtra.in/services/${slug}</loc>`))
+    assert.ok(xml.includes(`<loc>https://ecomxtra.in/services/${slug}/onboarding</loc>`))
   }
 
   // 3. Dynamic published blog posts
@@ -209,7 +211,7 @@ test('generateSitemapXml paginates published articles beyond Supabase default pa
 
   assert.match(xml, /\/blog\/published-article-0/)
   assert.match(xml, /\/blog\/published-article-1000/)
-  assert.equal((xml.match(/<url>/g) || []).length, 1015)
+  assert.equal((xml.match(/<url>/g) || []).length, 1001 + 7 + marketplaceServiceDefaults.length * 2)
 })
 
 test('handler sets HTTP 200, Content-Type application/xml; charset=utf-8, and security/cache headers', async () => {

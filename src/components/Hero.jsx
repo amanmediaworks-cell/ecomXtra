@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, ArrowUpRight } from 'lucide-react'
+import ContactModalTrigger from './ContactModalTrigger'
 
 function Hero({ content, onOpenMarketplaceServices, marketplaceServicesOpen = false }) {
   const hero = content || {}
@@ -53,6 +54,12 @@ function Hero({ content, onOpenMarketplaceServices, marketplaceServicesOpen = fa
             const isPrimary = index === 0
             const className = `w-full sm:w-auto text-xs uppercase transition-all duration-300 inline-flex items-center justify-center gap-2 font-outfit ${isPrimary ? 'font-extrabold bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white shadow-lg shadow-pink-500/25 hover:shadow-xl' : 'font-bold bg-white/90 backdrop-blur-md border-2 border-violet-200 text-slate-800 shadow-sm hover:bg-violet-50'} px-7 py-3 md:px-8 md:py-3.5 rounded-full hover:scale-105`
             const content = <>{button.label}{isPrimary && <ArrowRight className="w-4 h-4" />}</>
+            if (
+              /^\/contact(?:[/?#]|$)/.test(button.href || '')
+              || /^https?:\/\/wa\.me\//i.test(button.href || '')
+            ) {
+              return <ContactModalTrigger key={`${button.label}-${index}`} className={className}>{content}</ContactModalTrigger>
+            }
             return button.href?.startsWith('/') ? (
               <Link key={`${button.label}-${index}`} to={button.href} className={className}>{content}</Link>
             ) : (
