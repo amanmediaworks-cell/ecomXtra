@@ -28,6 +28,10 @@ const singleImageMigration = await readFile(
   fileURLToPath(new URL('../../supabase/migrations/20261026000000_single_blog_cover_image.sql', import.meta.url)),
   'utf8',
 )
+const fullErrorReasonMigration = await readFile(
+  fileURLToPath(new URL('../../supabase/migrations/20261029000000_daily_blog_full_error_reason.sql', import.meta.url)),
+  'utf8',
+)
 const endpoint = await readFile(fileURLToPath(new URL('./daily-blog.js', import.meta.url)), 'utf8')
 const vercelConfig = JSON.parse(await readFile(
   fileURLToPath(new URL('../../vercel.json', import.meta.url)),
@@ -81,11 +85,43 @@ test('scheduled dates allow authorized recovery of past UTC dates only', () => {
   }
 })
 
-test('handler passes the claimed token to both publishing and failure RPCs', () => {
+test('Gemini HTTP failure preserves the complete provider response', async () => {
+  const originalFetch = globalThis.fetch
+  const oldApiKey = process.env.GEMINI_API_KEY
+  const providerResponse = {
+    error: {
+      code: 400,
+      message: 'Invalid generation request',
+      status: 'INVALID_ARGUMENT',
+      details: [{ field: 'generationConfig', reason: 'unsupported setting' }],
+    },
+    requestId: 'provider-request-id',
+  }
+  process.env.GEMINI_API_KEY = 'unit-test-key'
+  globalThis.fetch = async () => new Response(JSON.stringify(providerResponse), {
+    status: 400,
+    statusText: 'Bad Request',
+    headers: { 'Content-Type': 'application/json' },
+  })
+  try {
+    await assert.rejects(
+      generateArticle('Amazon', [], []),
+      error => error.code === 'gemini_http_400'
+        && JSON.parse(error.reason).response.requestId === providerResponse.requestId
+        && JSON.parse(error.reason).response.error.details[0].reason === 'unsupported setting',
+    )
+  } finally {
+    globalThis.fetch = originalFetch
+    if (oldApiKey === undefined) delete process.env.GEMINI_API_KEY
+    else process.env.GEMINI_API_KEY = oldApiKey
+  }
+})
+
+test('handler scopes publishing and failure updates to the claimed attempt', () => {
   assert.match(endpoint, /const claim = getClaimedRun\(claimedRun\)[\s\S]*?attemptToken = claim\?\.attempt_token/)
   assert.match(endpoint, /publish_daily_blog_post[\s\S]*?p_attempt_token: attemptToken/)
   assert.match(endpoint, /markRunFailed\(supabase, runId, attemptToken, errorCode, errorReason\)/)
-  assert.match(endpoint, /fail_daily_blog_run[\s\S]*?p_attempt_token: attemptToken/)
+  assert.match(endpoint, /\.update\(\{[\s\S]*?error_reason: errorReason,[\s\S]*?\.eq\('attempt_token', attemptToken\)[\s\S]*?\.eq\('status', 'running'\)/)
 })
 
 test('ten-minute lease exceeds configured function maximum and provider timeouts', () => {
@@ -156,22 +192,21 @@ test('generation retry reinforces validation requirements after invalid output',
   }
 })
 
-test('generation rejects unavailable images and asks Gemini to replace them', async () => {
+test('generation uses a curated category image when the generated image is unavailable', async () => {
   const originalFetch = globalThis.fetch
   const oldApiKey = process.env.GEMINI_API_KEY
-  const prompts = []
   let generationCount = 0
   let imageCount = 0
+  const fallbackImage = getCategoryImage('Amazon')
   process.env.GEMINI_API_KEY = 'unit-test-key'
-  globalThis.fetch = async (url, options) => {
+  globalThis.fetch = async url => {
     if (String(url).startsWith('https://images.unsplash.com/')) {
       imageCount += 1
       return new Response(null, {
-        status: imageCount === 1 ? 404 : 200,
+        status: String(url) === validArticle().image_url ? 404 : 200,
         headers: { 'Content-Type': 'image/jpeg' },
       })
     }
-    prompts.push(JSON.parse(options.body).contents[0].parts[0].text)
     generationCount += 1
     return new Response(JSON.stringify({
       candidates: [{
@@ -182,11 +217,37 @@ test('generation rejects unavailable images and asks Gemini to replace them', as
   }
   try {
     const article = await generateArticle('Amazon', [], [])
-    assert.equal(article.image_url, validArticle().image_url)
-    assert.equal(generationCount, 2)
+    assert.equal(article.image_url, fallbackImage.url)
+    assert.equal(article.image_alt, fallbackImage.alt)
+    assert.equal(generationCount, 1)
     assert.equal(imageCount, 2)
-    assert.match(prompts[1], /previous response failed these validation checks/i)
-    assert.match(prompts[1], /HTTP 404/)
+  } finally {
+    globalThis.fetch = originalFetch
+    if (oldApiKey === undefined) delete process.env.GEMINI_API_KEY
+    else process.env.GEMINI_API_KEY = oldApiKey
+  }
+})
+
+test('generation failure retains the final article validation reason', async () => {
+  const originalFetch = globalThis.fetch
+  const oldApiKey = process.env.GEMINI_API_KEY
+  process.env.GEMINI_API_KEY = 'unit-test-key'
+  globalThis.fetch = async () => new Response(JSON.stringify({
+    candidates: [{
+      content: { parts: [{ text: JSON.stringify({
+        ...validArticle(),
+        content: validArticle().content.replace('### Frequently Asked Questions', '### Additional Notes'),
+      }) }] },
+      finishReason: 'STOP',
+    }],
+  }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  try {
+    await assert.rejects(
+      generateArticle('Amazon', [], []),
+      error => error.code === 'gemini_output_validation_failed'
+        && JSON.parse(error.reason).issues.includes('content must include a Frequently Asked Questions or FAQs section')
+        && JSON.parse(error.reason).geminiResponse.candidates[0].content.parts[0].text.includes('"title"'),
+    )
   } finally {
     globalThis.fetch = originalFetch
     if (oldApiKey === undefined) delete process.env.GEMINI_API_KEY
@@ -224,6 +285,12 @@ test('migration makes publication atomic and idempotent per run', () => {
 
 test('failure recording requires the current running attempt', () => {
   assert.match(migration, /create function public\.fail_daily_blog_run\([\s\S]*?where id = p_run_id\s+and attempt_token = p_attempt_token\s+and status = 'running';/)
+})
+
+test('failure recording saves the complete error reason without truncation', () => {
+  assert.match(endpoint, /error_reason: errorReason/)
+  assert.match(fullErrorReasonMigration, /error_reason = p_error_reason/)
+  assert.doesNotMatch(fullErrorReasonMigration, /left\(p_error_reason/)
 })
 
 test('schema preflight checks generated columns, text arrays, and PostgreSQL aggregate syntax', () => {
@@ -343,5 +410,183 @@ test('cron endpoint rejects unauthorized and non-GET requests', async () => {
   } finally {
     if (oldSecret === undefined) delete process.env.CRON_SECRET
     else process.env.CRON_SECRET = oldSecret
+  }
+})
+
+test('cron creates and publishes a generated blog post successfully', async () => {
+  const originalFetch = globalThis.fetch
+  const originalConsole = {
+    info: console.info,
+    warn: console.warn,
+    error: console.error,
+  }
+  const environment = {
+    CRON_SECRET: process.env.CRON_SECRET,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    SUPABASE_URL: process.env.SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  }
+  const secret = 'test-cron-secret-'.padEnd(40, 'x')
+  const claim = { run_id: 'test-run-id', attempt_token: 'test-attempt-token' }
+  const postId = 'test-post-id'
+  const publishedCalls = []
+  const failedRunCalls = []
+  const events = []
+  let invalidOutput = false
+  const article = {
+    ...validArticle(),
+    title: 'A Practical Guide to Managing Amazon Seller Account Listings',
+    excerpt: 'Learn practical ways to organize Amazon seller listings, improve catalogue accuracy, and manage recurring account work.',
+    seo_title: 'Amazon Seller Account Listing Guide',
+    meta_description: 'Practical guidance for managing Amazon seller listings, maintaining catalogue quality, and organizing account operations.',
+    tags: ['Amazon', 'Seller Support', 'Listings'],
+  }
+
+  const jsonResponse = (body, status = 200) => new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+
+  process.env.CRON_SECRET = secret
+  process.env.GEMINI_API_KEY = 'test-gemini-key'
+  process.env.SUPABASE_URL = 'https://supabase.test'
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-supabase-key'
+  console.info = (...args) => events.push(args)
+  console.warn = (...args) => events.push(args)
+  console.error = (...args) => events.push(args)
+  globalThis.fetch = async (input, options = {}) => {
+    const url = new URL(String(input))
+
+    if (url.hostname === 'generativelanguage.googleapis.com') {
+      const generatedArticle = invalidOutput
+        ? {
+          ...article,
+          content: article.content.replace('### Frequently Asked Questions', '### Additional Notes'),
+        }
+        : article
+      return jsonResponse({
+        candidates: [{
+          content: { parts: [{ text: JSON.stringify(generatedArticle) }] },
+          finishReason: 'STOP',
+        }],
+      })
+    }
+
+    if (url.hostname === 'images.unsplash.com') {
+      return new Response(null, { status: 200, headers: { 'Content-Type': 'image/jpeg' } })
+    }
+
+    if (url.hostname !== 'supabase.test') {
+      throw new Error(`Unexpected request host: ${url.hostname}`)
+    }
+
+    const requestBody = options.body ? JSON.parse(options.body) : null
+    if (url.pathname === '/rest/v1/automation_runs' && options.method === 'PATCH') {
+      failedRunCalls.push({
+        body: requestBody,
+        query: url.searchParams,
+      })
+      return jsonResponse([{ id: claim.run_id }])
+    }
+    if (url.pathname === '/rest/v1/automation_runs' && options.method !== 'POST') {
+      return jsonResponse([])
+    }
+    if (url.pathname === '/rest/v1/blog_posts' && options.method !== 'POST') {
+      return jsonResponse([])
+    }
+    if (url.pathname === '/rest/v1/rpc/claim_daily_blog_run') {
+      return jsonResponse([claim])
+    }
+    if (url.pathname === '/rest/v1/rpc/publish_daily_blog_post') {
+      publishedCalls.push(requestBody)
+      return jsonResponse(postId)
+    }
+    throw new Error(`Unexpected Supabase request: ${options.method} ${url.pathname}`)
+  }
+
+  const response = {
+    statusCode: 0,
+    body: null,
+    status(code) {
+      this.statusCode = code
+      return this
+    },
+    json(body) {
+      this.body = body
+      return this
+    },
+  }
+
+  try {
+    await dailyBlogHandler({
+      method: 'GET',
+      headers: { authorization: `Bearer ${secret}` },
+      query: { scheduled_date: '2026-10-28' },
+    }, response)
+
+    assert.equal(response.statusCode, 200)
+    assert.deepEqual(response.body, {
+      ok: true,
+      status: 'published',
+      scheduledDate: '2026-10-28',
+      postId,
+      slug: 'a-practical-guide-to-managing-amazon-seller-account-listings',
+      category: 'Amazon',
+    })
+    assert.equal(publishedCalls.length, 1)
+    assert.equal(publishedCalls[0].p_run_id, claim.run_id)
+    assert.equal(publishedCalls[0].p_attempt_token, claim.attempt_token)
+    assert.deepEqual(publishedCalls[0].p_post, {
+      slug: 'a-practical-guide-to-managing-amazon-seller-account-listings',
+      title: article.title,
+      category: 'Amazon',
+      author: 'EcomXtra Editorial Team',
+      author_role: 'Editorial Team',
+      read_time: `${Math.ceil(countWords(article.content) / 220)} min read`,
+      cover_image: article.image_url,
+      tags: article.tags,
+      excerpt: article.excerpt,
+      content: article.content,
+      published_at: publishedCalls[0].p_post.published_at,
+      seo_title: article.seo_title,
+      meta_description: article.meta_description,
+      image_metadata: { provider: 'Unsplash', alt: article.image_alt },
+    })
+    assert.ok(events.some(([entry]) => entry.includes('"event":"daily_blog_published"')))
+
+    invalidOutput = true
+    response.statusCode = 0
+    response.body = null
+    await dailyBlogHandler({
+      method: 'GET',
+      headers: { authorization: `Bearer ${secret}` },
+      query: { scheduled_date: '2026-10-27' },
+    }, response)
+
+    assert.equal(response.statusCode, 502)
+    assert.equal(response.body.error, 'gemini_output_validation_failed')
+    assert.equal(failedRunCalls.length, 1, JSON.stringify(events))
+    const savedFailure = failedRunCalls[0]
+    assert.equal(savedFailure.body.error_code, 'gemini_output_validation_failed')
+    assert.equal(savedFailure.query.get('attempt_token'), `eq.${claim.attempt_token}`)
+    assert.equal(savedFailure.query.get('status'), 'eq.running')
+    const savedReason = JSON.parse(savedFailure.body.error_reason)
+    assert.ok(savedReason.issues.includes('content must include a Frequently Asked Questions or FAQs section'))
+    assert.equal(
+      savedReason.geminiResponse.candidates[0].content.parts[0].text,
+      JSON.stringify({
+        ...article,
+        content: article.content.replace('### Frequently Asked Questions', '### Additional Notes'),
+      }),
+    )
+  } finally {
+    globalThis.fetch = originalFetch
+    console.info = originalConsole.info
+    console.warn = originalConsole.warn
+    console.error = originalConsole.error
+    for (const [name, value] of Object.entries(environment)) {
+      if (value === undefined) delete process.env[name]
+      else process.env[name] = value
+    }
   }
 })

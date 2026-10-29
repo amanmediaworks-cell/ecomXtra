@@ -5,7 +5,7 @@ const DEFAULT_IMAGE = `${SITE_ORIGIN}/logo.png`
 
 const pageMetadata = {
   '/': {
-    title: 'Marketplace Account Management India | EcomXtra',
+    title: 'Ecommerce Account Management | EcomXtra',
     description: 'EcomXtra manages Amazon, Flipkart, Meesho and more for Indian sellers—listings, catalogues, returns, claims and day-to-day marketplace operations.',
   },
   '/philosophy': {
@@ -17,7 +17,7 @@ const pageMetadata = {
     description: 'Explore EcomXtra eCommerce projects, marketplace work, and growth systems.',
   },
   '/services': {
-    title: 'Marketplace Account Management Services | EcomXtra',
+    title: 'Ecommerce Account Management Services | EcomXtra',
     description: 'Outsource marketplace operations to EcomXtra: product listings, catalogue updates, seller claims, returns and account support for Indian platforms.',
   },
   '/blog': {
