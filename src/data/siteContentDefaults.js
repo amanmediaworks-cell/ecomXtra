@@ -149,7 +149,7 @@ export const siteContentDefaults = [
     display_order: 100,
     is_public: true,
     content: {
-      title: 'Marketplace Account Management India | EcomXtra',
+      title: 'Ecommerce Account Management | EcomXtra',
       description: 'EcomXtra manages Amazon, Flipkart, Meesho and more for Indian sellers—listings, catalogues, returns, claims and day-to-day marketplace operations.',
       socialImage: '/logo.png',
     },

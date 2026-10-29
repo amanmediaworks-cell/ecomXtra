@@ -22,13 +22,29 @@ class JobError extends Error {
     super(code)
     this.code = code
     this.status = status
-    // reason holds the raw underlying API/DB error message for logging.
-    this.reason = reason ? String(reason).slice(0, 1000) : null
+    this.reason = reason == null
+      ? null
+      : typeof reason === 'string'
+        ? reason
+        : JSON.stringify(reason)
   }
 }
 
 function jsonResponse(res, status, body) {
   return res.status(status).json(body)
+}
+
+function getErrorDetails(error) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      stack: error.stack || null,
+      code: error.code,
+      cause: error.cause,
+    }
+  }
+  return error
 }
 
 function secureSecretMatch(header, secret) {
@@ -531,6 +547,7 @@ async function generateArticle(category, titles, recentTopics) {
   }
 
   let previousIssues = []
+  let lastGeminiResponse = null
 
   for (let attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt += 1) {
     const startedAt = Date.now()
@@ -588,23 +605,18 @@ async function generateArticle(category, titles, recentTopics) {
       throw new JobError(
         timedOut ? 'gemini_request_timeout' : 'gemini_request_failed',
         502,
+        getErrorDetails(error),
       )
     }
 
     if (!response.ok) {
-      let responseBody = ''
-
+      const responseText = await response.text()
+      let responseBody = responseText || 'Gemini returned an empty error response'
       try {
-        const errorPayload = await response.json()
-        responseBody =
-          errorPayload?.error?.message ||
-          JSON.stringify(errorPayload?.error || errorPayload)
+        responseBody = JSON.parse(responseText)
       } catch {
-        responseBody = 'Gemini returned a non-JSON error response'
+        // Keep a non-JSON provider response intact for failure diagnostics.
       }
-
-      // Limit log length to avoid excessively large entries.
-      responseBody = String(responseBody).slice(0, 1000)
 
       const retryable = [429, 500, 502, 503, 504].includes(
         response.status,
@@ -641,15 +653,27 @@ async function generateArticle(category, titles, recentTopics) {
       throw new JobError(
         `gemini_http_${response.status}`,
         retryable ? 503 : 502,
+        {
+          provider: 'Gemini',
+          status: response.status,
+          statusText: response.statusText,
+          response: responseBody,
+        },
       )
     }
 
     let payload
+    let responseText
 
     try {
-      payload = await response.json()
+      responseText = await response.text()
+      payload = JSON.parse(responseText)
+      lastGeminiResponse = payload
     } catch (error) {
       previousIssues = ['Gemini returned a response that was not valid JSON']
+      lastGeminiResponse = responseText || {
+        parseError: error?.message || 'Gemini response was empty or unreadable',
+      }
 
       log('error', 'gemini_response_json_parse_failed', {
         attempt,
@@ -660,7 +684,10 @@ async function generateArticle(category, titles, recentTopics) {
       })
 
       if (attempt === MAX_GENERATION_ATTEMPTS) {
-        throw new JobError('gemini_output_validation_failed', 502)
+        throw new JobError('gemini_output_validation_failed', 502, {
+          issues: previousIssues,
+          geminiResponse: lastGeminiResponse,
+        })
       }
 
       continue
@@ -694,7 +721,10 @@ async function generateArticle(category, titles, recentTopics) {
       })
 
       if (attempt === MAX_GENERATION_ATTEMPTS) {
-        throw new JobError('gemini_output_validation_failed', 502)
+        throw new JobError('gemini_output_validation_failed', 502, {
+          issues: previousIssues,
+          geminiResponse: lastGeminiResponse,
+        })
       }
 
       continue
@@ -714,7 +744,10 @@ async function generateArticle(category, titles, recentTopics) {
       })
 
       if (attempt === MAX_GENERATION_ATTEMPTS) {
-        throw new JobError('gemini_output_validation_failed', 502)
+        throw new JobError('gemini_output_validation_failed', 502, {
+          issues: previousIssues,
+          geminiResponse: lastGeminiResponse,
+        })
       }
 
       continue
@@ -748,7 +781,11 @@ async function generateArticle(category, titles, recentTopics) {
       })
 
       if (attempt === MAX_GENERATION_ATTEMPTS) {
-        throw new JobError('gemini_output_validation_failed', 502)
+        throw new JobError('gemini_output_validation_failed', 502, {
+          issues: previousIssues,
+          geminiResponse: lastGeminiResponse,
+          parseError: error?.message || 'Gemini article could not be parsed',
+        })
       }
 
       continue
@@ -763,12 +800,35 @@ async function generateArticle(category, titles, recentTopics) {
         errorMessage: error?.message || 'No error message available',
       })
 
-      throw new JobError('gemini_output_validation_failed', 502)
+      throw new JobError('gemini_output_validation_failed', 502, {
+        issues: previousIssues,
+        geminiResponse: lastGeminiResponse,
+        validatorError: {
+          name: error?.name || 'UnknownError',
+          message: error?.message || 'No error message available',
+        },
+      })
     }
 
     if (previousIssues.length === 0) {
       const imageIssue = await getImageAvailabilityIssue(article.image_url)
-      if (imageIssue) previousIssues.push(imageIssue)
+      if (imageIssue) {
+        const fallbackImage = getCategoryImage(category)
+        const fallbackIssue = fallbackImage.url === article.image_url
+          ? imageIssue
+          : await getImageAvailabilityIssue(fallbackImage.url)
+
+        if (!fallbackIssue) {
+          article.image_url = fallbackImage.url
+          article.image_alt = fallbackImage.alt
+          log('warn', 'gemini_image_fallback_used', {
+            attempt,
+            reason: imageIssue,
+          })
+        } else {
+          previousIssues.push(`${imageIssue}; curated fallback unavailable: ${fallbackIssue}`)
+        }
+      }
     }
 
     if (previousIssues.length === 0) {
@@ -809,7 +869,10 @@ async function generateArticle(category, titles, recentTopics) {
     finalIssues: previousIssues,
   })
 
-  throw new JobError('gemini_output_validation_failed', 502)
+  throw new JobError('gemini_output_validation_failed', 502, {
+    issues: previousIssues,
+    geminiResponse: lastGeminiResponse,
+  })
 }
 
 function getCategoryImage(category) {
@@ -828,7 +891,7 @@ async function chooseUniqueSlug(supabase, title, scheduledDate) {
       .eq('slug', slug)
       .limit(1)
       .maybeSingle()
-    if (error) throw new JobError('database_slug_check_failed', 502)
+    if (error) throw new JobError('database_slug_check_failed', 502, getErrorDetails(error))
     if (!data) return slug
   }
   throw new JobError('slug_collision_limit_reached', 409)
@@ -836,19 +899,34 @@ async function chooseUniqueSlug(supabase, title, scheduledDate) {
 
 async function markRunFailed(supabase, runId, attemptToken, errorCode, errorReason = null) {
   try {
-    const { data: updated, error } = await supabase.rpc('fail_daily_blog_run', {
-      p_run_id: runId,
-      p_attempt_token: attemptToken,
-      p_error_code: errorCode,
-      p_error_reason: errorReason,
-    })
+    const { data: updated, error } = await supabase
+      .from('automation_runs')
+      .update({
+        status: 'failed',
+        error_code: errorCode,
+        error_reason: errorReason,
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', runId)
+      .eq('attempt_token', attemptToken)
+      .eq('status', 'running')
+      .select('id')
+      .maybeSingle()
     if (error) {
-      logEvent('daily_blog_failure_record_failed', { runId, errorCode: 'failure_record_update_failed' })
+      logEvent('daily_blog_failure_record_failed', {
+        runId,
+        errorCode: 'failure_record_update_failed',
+        error: getErrorDetails(error),
+      })
     } else if (!updated) {
       logEvent('daily_blog_failure_record_skipped', { runId, reason: 'attempt_no_longer_current' })
     }
-  } catch {
-    logEvent('daily_blog_failure_record_failed', { runId, errorCode: 'failure_record_update_failed' })
+  } catch (error) {
+    logEvent('daily_blog_failure_record_failed', {
+      runId,
+      errorCode: 'failure_record_update_failed',
+      error: getErrorDetails(error),
+    })
   }
 }
 
@@ -906,7 +984,7 @@ export default async function handler(req, res) {
       .eq('status', 'running')
       .gt('started_at', new Date(Date.now() - RUN_LEASE_MS).toISOString())
       .limit(1)
-    if (runningRunError) throw new JobError('database_run_lookup_failed', 502, runningRunError.message)
+    if (runningRunError) throw new JobError('database_run_lookup_failed', 502, getErrorDetails(runningRunError))
     if (runningRuns?.length) {
       logEvent('daily_blog_run_already_claimed', { requestId, scheduledDate, runId: runningRuns[0].id })
       return jsonResponse(res, 202, { ok: true, status: 'already_running', scheduledDate })
@@ -919,13 +997,13 @@ export default async function handler(req, res) {
       .order('started_at', { ascending: false })
       .limit(1)
       .maybeSingle()
-    if (historyError) throw new JobError('database_history_lookup_failed', 502, historyError.message)
+    if (historyError) throw new JobError('database_history_lookup_failed', 502, getErrorDetails(historyError))
     const category = chooseCategory(priorSuccess?.category)
     const { data: claimedRun, error: claimError } = await supabase.rpc('claim_daily_blog_run', {
       p_scheduled_date: scheduledDate,
       p_category: category,
     })
-    if (claimError) throw new JobError('database_run_claim_failed', 502, claimError.message)
+    if (claimError) throw new JobError('database_run_claim_failed', 502, getErrorDetails(claimError))
     const claim = getClaimedRun(claimedRun)
     runId = claim?.run_id
     attemptToken = claim?.attempt_token
@@ -960,7 +1038,7 @@ export default async function handler(req, res) {
     ])
     if (postHistoryResult.error || topicHistoryResult.error) {
       const dbErr = postHistoryResult.error || topicHistoryResult.error
-      throw new JobError('database_topic_history_lookup_failed', 502, dbErr.message)
+      throw new JobError('database_topic_history_lookup_failed', 502, getErrorDetails(dbErr))
     }
     const posts = postHistoryResult.data || []
     const titleHistory = posts.map(post => post.title).filter(Boolean)
@@ -1011,8 +1089,8 @@ export default async function handler(req, res) {
     if (publishError || !postId) {
       const collision = publishError?.code === '23505'
       // Carry the raw DB message in the JobError so it surfaces in errorReason.
-      const rawDbMessage = publishError?.message
-        ? `[${publishError.code ?? 'DB'}] ${publishError.message}`.slice(0, 1000)
+      const rawDbMessage = publishError
+        ? getErrorDetails(publishError)
         : (!postId ? 'RPC returned no post id' : null)
       throw new JobError(
         collision ? 'database_unique_constraint_conflict' : 'database_publish_failed',
@@ -1036,7 +1114,7 @@ export default async function handler(req, res) {
     // For JobErrors use the explicit reason; for unexpected errors fall back to the message.
     const errorReason = error instanceof JobError
       ? (error.reason ?? null)
-      : (typeof error?.message === 'string' ? error.message.slice(0, 1000) : null)
+      : JSON.stringify(getErrorDetails(error))
     if (runId && attemptToken) await markRunFailed(supabase, runId, attemptToken, errorCode, errorReason)
     logEvent('daily_blog_failed', { requestId, scheduledDate, runId, errorCode, errorReason })
     return jsonResponse(res, status, { ok: false, error: errorCode, scheduledDate })

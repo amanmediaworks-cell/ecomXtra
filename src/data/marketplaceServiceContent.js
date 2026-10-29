@@ -203,7 +203,7 @@ function createDetails(platform) {
       ],
     },
     seo: {
-      title: `${name} Account Management Services in India | EcomXtra`,
+      title: `${name} Account Management Services | EcomXtra`,
       description: `EcomXtra supports Indian ${name} sellers with onboarding, listings, catalogue updates, seller claims, return workflows, and day-to-day account operations.`,
     },
   }

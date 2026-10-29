@@ -19,9 +19,11 @@ test('canonical URLs use the preferred origin and normalized route path', () => 
   assert.equal(normalizeRoutePath('/blog//post-name///'), '/blog/post-name')
 })
 
-test('homepage metadata targets Indian sellers seeking marketplace account management', () => {
+test('homepage metadata targets ecommerce account management searches', () => {
   const metadata = getRouteMetadata('/')
-  assert.equal(metadata.title, 'Marketplace Account Management India | EcomXtra')
+  assert.equal(metadata.title, 'Ecommerce Account Management | EcomXtra')
+  const seoDefaults = siteContentDefaults.find(section => section.content_key === 'seo')
+  assert.equal(seoDefaults.content.title, metadata.title)
   assert.match(metadata.description, /Amazon, Flipkart, Meesho/)
   assert.match(metadata.description, /listings, catalogues, returns, claims/)
   assert.match(renderSeoHead('/'), /<meta name="description" content="EcomXtra manages Amazon, Flipkart, Meesho/)
@@ -31,19 +33,32 @@ test('homepage metadata targets Indian sellers seeking marketplace account manag
   assert.match(hero.content.buttons[1].href, /marketplace%20account%20management/)
 })
 
+test('services index metadata targets ecommerce account management services', () => {
+  assert.equal(getRouteMetadata('/services').title, 'Ecommerce Account Management Services | EcomXtra')
+})
+
 test('marketplace service pages expose canonical, searchable service metadata', () => {
   const service = marketplaceServiceDefaults[0]
   const path = `/services/${service.slug}`
   const metadata = getRouteMetadata(path, null, service)
   const [, structuredService] = getStructuredData(path, null, service)
 
-  assert.equal(metadata.title, 'Amazon Account Management Services in India | EcomXtra')
+  assert.equal(metadata.title, 'Amazon Account Management Services | EcomXtra')
   assert.equal(metadata.canonicalUrl, `https://ecomxtra.in${path}`)
   assert.match(metadata.description, /seller claims, return workflows/)
   assert.equal(structuredService['@type'], 'Service')
   assert.equal(structuredService.areaServed.name, 'India')
   assert.equal(structuredService.url, metadata.canonicalUrl)
-  assert.match(renderSeoHead(path, null, service), /<title>Amazon Account Management Services in India \| EcomXtra<\/title>/)
+  assert.match(renderSeoHead(path, null, service), /<title>Amazon Account Management Services \| EcomXtra<\/title>/)
+})
+
+test('all marketplace SEO titles target platform account management without a location suffix', () => {
+  for (const service of marketplaceServiceDefaults) {
+    const metadata = getRouteMetadata(`/services/${service.slug}`, null, service)
+
+    assert.ok(metadata.title.startsWith(service.title))
+    assert.doesNotMatch(metadata.title, /\bIndia\b/i)
+  }
 })
 
 test('each marketplace has editable default article sections and operational FAQs', () => {

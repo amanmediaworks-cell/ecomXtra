@@ -81,11 +81,11 @@ test('scheduled dates allow authorized recovery of past UTC dates only', () => {
   }
 })
 
-test('handler passes the claimed token to both publishing and failure RPCs', () => {
+test('handler scopes publishing and failure updates to the claimed attempt', () => {
   assert.match(endpoint, /const claim = getClaimedRun\(claimedRun\)[\s\S]*?attemptToken = claim\?\.attempt_token/)
   assert.match(endpoint, /publish_daily_blog_post[\s\S]*?p_attempt_token: attemptToken/)
   assert.match(endpoint, /markRunFailed\(supabase, runId, attemptToken, errorCode, errorReason\)/)
-  assert.match(endpoint, /fail_daily_blog_run[\s\S]*?p_attempt_token: attemptToken/)
+  assert.match(endpoint, /\.update\(\{[\s\S]*?error_reason: errorReason,[\s\S]*?\.eq\('attempt_token', attemptToken\)[\s\S]*?\.eq\('status', 'running'\)/)
 })
 
 test('ten-minute lease exceeds configured function maximum and provider timeouts', () => {
@@ -156,22 +156,21 @@ test('generation retry reinforces validation requirements after invalid output',
   }
 })
 
-test('generation rejects unavailable images and asks Gemini to replace them', async () => {
+test('generation uses a curated category image when the generated image is unavailable', async () => {
   const originalFetch = globalThis.fetch
   const oldApiKey = process.env.GEMINI_API_KEY
-  const prompts = []
   let generationCount = 0
   let imageCount = 0
+  const fallbackImage = getCategoryImage('Amazon')
   process.env.GEMINI_API_KEY = 'unit-test-key'
-  globalThis.fetch = async (url, options) => {
+  globalThis.fetch = async url => {
     if (String(url).startsWith('https://images.unsplash.com/')) {
       imageCount += 1
       return new Response(null, {
-        status: imageCount === 1 ? 404 : 200,
+        status: String(url) === validArticle().image_url ? 404 : 200,
         headers: { 'Content-Type': 'image/jpeg' },
       })
     }
-    prompts.push(JSON.parse(options.body).contents[0].parts[0].text)
     generationCount += 1
     return new Response(JSON.stringify({
       candidates: [{
@@ -182,11 +181,10 @@ test('generation rejects unavailable images and asks Gemini to replace them', as
   }
   try {
     const article = await generateArticle('Amazon', [], [])
-    assert.equal(article.image_url, validArticle().image_url)
-    assert.equal(generationCount, 2)
+    assert.equal(article.image_url, fallbackImage.url)
+    assert.equal(article.image_alt, fallbackImage.alt)
+    assert.equal(generationCount, 1)
     assert.equal(imageCount, 2)
-    assert.match(prompts[1], /previous response failed these validation checks/i)
-    assert.match(prompts[1], /HTTP 404/)
   } finally {
     globalThis.fetch = originalFetch
     if (oldApiKey === undefined) delete process.env.GEMINI_API_KEY
