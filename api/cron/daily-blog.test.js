@@ -28,6 +28,10 @@ const singleImageMigration = await readFile(
   fileURLToPath(new URL('../../supabase/migrations/20261026000000_single_blog_cover_image.sql', import.meta.url)),
   'utf8',
 )
+const fullErrorReasonMigration = await readFile(
+  fileURLToPath(new URL('../../supabase/migrations/20261029000000_daily_blog_full_error_reason.sql', import.meta.url)),
+  'utf8',
+)
 const endpoint = await readFile(fileURLToPath(new URL('./daily-blog.js', import.meta.url)), 'utf8')
 const vercelConfig = JSON.parse(await readFile(
   fileURLToPath(new URL('../../vercel.json', import.meta.url)),
@@ -222,6 +226,12 @@ test('migration makes publication atomic and idempotent per run', () => {
 
 test('failure recording requires the current running attempt', () => {
   assert.match(migration, /create function public\.fail_daily_blog_run\([\s\S]*?where id = p_run_id\s+and attempt_token = p_attempt_token\s+and status = 'running';/)
+})
+
+test('failure recording saves the complete error reason without truncation', () => {
+  assert.match(endpoint, /error_reason: errorReason/)
+  assert.match(fullErrorReasonMigration, /error_reason = p_error_reason/)
+  assert.doesNotMatch(fullErrorReasonMigration, /left\(p_error_reason/)
 })
 
 test('schema preflight checks generated columns, text arrays, and PostgreSQL aggregate syntax', () => {
