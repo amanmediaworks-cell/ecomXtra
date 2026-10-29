@@ -33,8 +33,7 @@ test('homepage metadata targets ecommerce account management searches', () => {
   assert.match(renderSeoHead('/'), /<meta name="description" content="EcomXtra manages Amazon, Flipkart, Meesho/)
   const hero = siteContentDefaults.find(section => section.content_key === 'hero')
   assert.match(hero.content.subheading, /seller claims, returns, refunds/)
-  assert.equal(hero.content.buttons[1].label, 'WhatsApp Us')
-  assert.match(hero.content.buttons[1].href, /marketplace%20account%20management/)
+  assert.deepEqual(hero.content.buttons.map(button => button.label), ['Book Consultation'])
 })
 
 test('services index metadata targets ecommerce account management services', () => {

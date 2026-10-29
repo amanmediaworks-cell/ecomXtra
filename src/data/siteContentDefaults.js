@@ -11,7 +11,6 @@ export const siteContentDefaults = [
       imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1600&q=80',
       buttons: [
         { label: 'Book Consultation', href: '/contact' },
-        { label: 'WhatsApp Us', href: 'https://wa.me/918700259557?text=Hi%20EcomXtra%2C%20I%20need%20help%20with%20marketplace%20account%20management.' },
       ],
     },
   },

@@ -4,7 +4,13 @@ import ContactModalTrigger from './ContactModalTrigger'
 
 function Hero({ content, onOpenMarketplaceServices, marketplaceServicesOpen = false }) {
   const hero = content || {}
-  const buttons = hero.buttons || []
+  const buttons = (hero.buttons || []).filter(button => (
+    button.label?.trim().toLowerCase() !== 'whatsapp us'
+    && !/^https?:\/\/wa\.me\//i.test(button.href || '')
+  ))
+  if (onOpenMarketplaceServices) {
+    buttons.push({ label: 'Explore marketplace services', action: 'marketplace-services' })
+  }
 
   return (
     <section className="relative overflow-hidden flex flex-col items-center justify-center text-center px-4 pt-20 pb-6 md:pt-24 md:pb-8">
@@ -54,6 +60,21 @@ function Hero({ content, onOpenMarketplaceServices, marketplaceServicesOpen = fa
             const isPrimary = index === 0
             const className = `w-full sm:w-auto text-xs uppercase transition-all duration-300 inline-flex items-center justify-center gap-2 font-outfit ${isPrimary ? 'font-extrabold bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white shadow-lg shadow-pink-500/25 hover:shadow-xl' : 'font-bold bg-white/90 backdrop-blur-md border-2 border-violet-200 text-slate-800 shadow-sm hover:bg-violet-50'} px-7 py-3 md:px-8 md:py-3.5 rounded-full hover:scale-105`
             const content = <>{button.label}{isPrimary && <ArrowRight className="w-4 h-4" />}</>
+            if (button.action === 'marketplace-services') {
+              return (
+                <button
+                  key={button.action}
+                  type="button"
+                  aria-controls="marketplace-services-menu"
+                  aria-expanded={marketplaceServicesOpen}
+                  onClick={onOpenMarketplaceServices}
+                  className={className}
+                >
+                  {button.label}
+                  <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
+                </button>
+              )
+            }
             if (
               /^\/contact(?:[/?#]|$)/.test(button.href || '')
               || /^https?:\/\/wa\.me\//i.test(button.href || '')
@@ -75,17 +96,6 @@ function Hero({ content, onOpenMarketplaceServices, marketplaceServicesOpen = fa
             )
           })}
         </div>
-        {onOpenMarketplaceServices && (
-          <button
-            type="button"
-            aria-controls="marketplace-services-menu"
-            aria-expanded={marketplaceServicesOpen}
-            onClick={onOpenMarketplaceServices}
-            className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-full border border-[#eadbc9] bg-white/80 px-5 py-2 text-xs font-bold text-[#243141] shadow-sm transition hover:border-[#bd6530] hover:bg-[#fffdfa] hover:text-[#a54f21] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#bd6530]"
-          >
-            Explore marketplace services <ArrowUpRight className="h-3.5 w-3.5" />
-          </button>
-        )}
       </div>
     </section>
   );

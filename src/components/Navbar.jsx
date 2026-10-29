@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronDown, ShoppingBag, X, Zap } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { marketplaceServiceDefaults } from '../data/marketplaceServiceContent'
 import ContactModalTrigger from './ContactModalTrigger'
 import { defaultNavigationLinks, normalizeNavigationLinks } from '../data/navigationLinks'
+import useModalScrollLock from '../hooks/useModalScrollLock'
 
 const marketplaceLogoDomains = {
   'amazon-account-management': 'amazon.in',
@@ -85,8 +87,14 @@ function Logo() {
 function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
+  const [isCompactViewport, setIsCompactViewport] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches,
+  )
   const [selectedMarketplace, setSelectedMarketplace] = useState(null)
-  const servicesMenuRef = useRef(null)
+  const [isMarketplaceDialogPresent, setIsMarketplaceDialogPresent] = useState(false)
+  const [selectedMarketplaceGroup, setSelectedMarketplaceGroup] = useState('Ecommerce')
+  const servicesTriggerRef = useRef(null)
+  const servicesMenuPanelRef = useRef(null)
   const marketplaceDialogRef = useRef(null)
   const marketplaceTriggerRef = useRef(null)
   const servicesMenuCloseTimeoutRef = useRef(null)
@@ -112,6 +120,14 @@ function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 1023px)')
+    const updateViewport = () => setIsCompactViewport(mediaQuery.matches)
+    updateViewport()
+    mediaQuery.addEventListener('change', updateViewport)
+    return () => mediaQuery.removeEventListener('change', updateViewport)
+  }, [])
+
   useEffect(() => () => {
     window.clearTimeout(servicesMenuCloseTimeoutRef.current)
   }, [])
@@ -120,7 +136,9 @@ function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
     if (!servicesMenuOpen && !selectedMarketplace) return undefined
 
     const closeOnOutsideClick = event => {
-      if (!servicesMenuRef.current?.contains(event.target)) {
+      if (!servicesMenuPanelRef.current?.contains(event.target)
+        && !servicesTriggerRef.current?.contains(event.target)
+        && !marketplaceDialogRef.current?.contains(event.target)) {
         onServicesMenuOpenChange(false)
         setSelectedMarketplace(null)
       }
@@ -142,9 +160,9 @@ function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
   useEffect(() => {
     if (selectedMarketplace) {
       if (!marketplaceTriggerRef.current) marketplaceTriggerRef.current = document.activeElement
-      marketplaceDialogRef.current?.focus()
+      marketplaceDialogRef.current?.focus({ preventScroll: true })
     } else {
-      marketplaceTriggerRef.current?.focus()
+      marketplaceTriggerRef.current?.focus?.({ preventScroll: true })
       marketplaceTriggerRef.current = null
     }
   }, [selectedMarketplace])
@@ -173,6 +191,7 @@ function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
   const marketplaceName = service => service.title.replace(' Account Management Services', '')
   const openMarketplaceChooser = service => {
     window.clearTimeout(servicesMenuCloseTimeoutRef.current)
+    setIsMarketplaceDialogPresent(true)
     setSelectedMarketplace(service)
   }
   const closeServices = () => {
@@ -180,9 +199,11 @@ function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
     onServicesMenuOpenChange(false)
   }
 
+  useModalScrollLock(isMarketplaceDialogPresent || (servicesMenuOpen && isCompactViewport))
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 pt-3 px-3 sm:px-6 pointer-events-none transition-all duration-300">
-      <div ref={servicesMenuRef} className="max-w-7xl mx-auto pointer-events-auto">
+    <header className="fixed top-0 left-0 right-0 z-[60] pt-3 px-3 sm:px-6 pointer-events-none transition-all duration-300">
+      <div className="max-w-7xl mx-auto pointer-events-auto">
         <div className={`w-full rounded-full bg-white transition-all duration-300 border ${
           isScrolled
             ? 'border-slate-300/90 shadow-xl'
@@ -211,6 +232,7 @@ function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
                     {link.label}
                   </NavLink>
                   <button
+                    ref={servicesTriggerRef}
                     type="button"
                     aria-label="Open marketplace services menu"
                     aria-expanded={servicesMenuOpen}
@@ -267,33 +289,99 @@ function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
         {servicesMenuOpen && (
           <m.div
             key="marketplace-services-menu"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="pointer-events-none fixed left-1/2 top-20 z-50 w-[min(calc(100vw-24px),1320px)] -translate-x-1/2"
+            initial={isCompactViewport ? false : { opacity: 0 }}
+            animate={isCompactViewport ? undefined : { opacity: 1 }}
+            exit={isCompactViewport ? undefined : { opacity: 0 }}
+            transition={isCompactViewport ? undefined : { duration: 0.18, ease: 'easeOut' }}
+            className="pointer-events-none fixed inset-x-0 top-0 z-[60] w-full sm:left-1/2 sm:right-auto sm:top-20 sm:w-[min(calc(100vw-24px),1320px)] sm:-translate-x-1/2"
           >
           <m.section
+            ref={servicesMenuPanelRef}
             id="marketplace-services-menu"
             aria-label="Marketplace services"
             onMouseEnter={openServicesMenu}
             onMouseLeave={scheduleServicesMenuClose}
-            initial={{ opacity: 0, y: -12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.99 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="pointer-events-auto max-h-[calc(100dvh-6rem)] overflow-y-auto rounded-2xl border border-[#eadbc9] bg-white p-4 shadow-[0_24px_70px_rgba(25,39,51,0.18)] sm:p-5 lg:p-7"
+            initial={isCompactViewport ? false : { opacity: 0, y: -12, scale: 0.98 }}
+            animate={isCompactViewport ? undefined : { opacity: 1, y: 0, scale: 1 }}
+            exit={isCompactViewport ? undefined : { opacity: 0, y: -8, scale: 0.99 }}
+            transition={isCompactViewport ? undefined : { duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className={`pointer-events-auto flex h-dvh max-h-dvh flex-col overflow-hidden bg-white shadow-[0_24px_70px_rgba(25,39,51,0.18)] sm:h-auto sm:max-h-[calc(100dvh-6rem)] sm:rounded-2xl sm:border sm:border-[#eadbc9] sm:p-5 lg:p-7${isCompactViewport ? ' mobile-services-reveal' : ''}`}
           >
-            <div className="mb-5 flex flex-wrap items-end justify-between gap-3 border-b border-[#eadbc9] pb-4">
-              <div>
+            <div className="z-10 flex shrink-0 items-start justify-between gap-3 border-b border-[#eadbc9] bg-white px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] sm:mb-5 sm:items-end sm:px-0 sm:pb-4 sm:pt-0">
+              <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#bd6530]">One operations partner. {marketplaceServiceDefaults.length} platforms.</p>
-                <h2 className="mt-1 font-clash text-xl font-bold text-[#243141] sm:text-2xl">Choose where you want to grow.</h2>
+                <h2 className="mt-1 font-clash text-lg font-bold text-[#243141] sm:text-2xl">Choose where you want to grow.</h2>
+                <Link onClick={() => onServicesMenuOpenChange(false)} to="/services" className="mt-1 inline-flex items-center gap-1 text-xs font-bold text-[#a54f21] hover:underline sm:hidden">
+                  Explore all services <ArrowUpRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
-              <Link onClick={() => onServicesMenuOpenChange(false)} to="/services" className="inline-flex items-center gap-1 text-xs font-bold text-[#a54f21] hover:underline">
+              <Link onClick={() => onServicesMenuOpenChange(false)} to="/services" className="hidden items-center gap-1 text-xs font-bold text-[#a54f21] hover:underline sm:inline-flex">
                 Explore all services <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
+              <button
+                type="button"
+                onClick={() => onServicesMenuOpenChange(false)}
+                aria-label="Close marketplace services"
+                className="shrink-0 rounded-full border border-[#eadbc9] p-2 text-[#243141] transition hover:bg-[#fff6e8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#bd6530] sm:hidden"
+              >
+                <X aria-hidden="true" className="h-4 w-4" />
+              </button>
             </div>
-            <div className="grid gap-4 lg:grid-cols-[1fr_1fr_0.85fr] lg:gap-6">
+
+            <div className="flex shrink-0 gap-2 border-b border-[#eadbc9] bg-white px-4 py-3 lg:hidden">
+              {marketplaceGroups.map(group => {
+                const GroupIcon = group.icon
+                const selected = selectedMarketplaceGroup === group.title
+                return (
+                  <button
+                    key={group.title}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => setSelectedMarketplaceGroup(group.title)}
+                    className={`flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#bd6530] ${
+                      selected
+                        ? 'border-[#243141] bg-[#243141] text-white'
+                        : 'border-[#eadbc9] bg-[#fffdfa] text-[#243141]'
+                    }`}
+                  >
+                    <GroupIcon aria-hidden="true" className={`h-4 w-4 ${selected ? 'text-[#ffc46d]' : 'text-[#bd6530]'}`} />
+                    {group.title}
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 lg:hidden">
+              {marketplaceGroups.filter(group => group.title === selectedMarketplaceGroup).map(group => (
+                <section key={group.title} role="tabpanel" aria-label={group.title}>
+                  <p className="mb-3 text-xs leading-5 text-slate-500">{group.description}</p>
+                  <div className="grid gap-2">
+                    {group.services.map(service => (
+                      <button
+                        key={service.slug}
+                        type="button"
+                        aria-haspopup="dialog"
+                        onClick={event => {
+                          marketplaceTriggerRef.current = event.currentTarget
+                          openMarketplaceChooser(service)
+                        }}
+                        className="group flex min-h-[4.25rem] items-center gap-3 rounded-xl border border-[#eadbc9] bg-[#fffdfa] px-3 py-2.5 text-left text-sm font-bold text-[#243141] transition hover:border-[#bd6530] hover:bg-[#fff6e8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#bd6530]"
+                      >
+                        <MarketplaceLogo service={service} />
+                        <span className="min-w-0 flex-1">
+                          {marketplaceName(service)}
+                          <span className="mt-0.5 block text-xs font-medium text-slate-500">Account management and seller support</span>
+                        </span>
+                        <ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0 text-[#bd6530] transition-transform group-hover:translate-x-0.5" />
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+
+            <div className="hidden min-h-0 gap-4 overflow-y-auto overscroll-contain lg:grid lg:grid-cols-[1fr_1fr_0.85fr] lg:gap-6">
               {marketplaceGroups.map(group => {
                 const GroupIcon = group.icon
                 return (
@@ -307,7 +395,7 @@ function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
                         <p className="text-[10px] leading-4 text-slate-500">{group.description}</p>
                       </div>
                     </div>
-                    <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-1">
+                    <div className="grid gap-1.5 lg:grid-cols-1">
                       {group.services.map(service => (
                         <button
                           key={service.slug}
@@ -357,16 +445,18 @@ function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
         )}
         </AnimatePresence>
 
-        <AnimatePresence>
-        {selectedMarketplace && (
-          <m.div
+        {typeof document !== 'undefined' && createPortal(
+          <AnimatePresence onExitComplete={() => setIsMarketplaceDialogPresent(false)}>
+            {selectedMarketplace && (
+              <m.div
             key="marketplace-service-dialog"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.16 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-[#17222e]/55 p-4 backdrop-blur-sm"
-            onMouseDown={event => {
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed inset-0 z-[60] flex min-h-dvh items-end justify-center overflow-y-auto overscroll-contain bg-[#17222e]/55 p-0 sm:items-center sm:p-4"
+            style={{ willChange: 'opacity' }}
+            onPointerDown={event => {
               if (event.target === event.currentTarget) setSelectedMarketplace(null)
             }}
           >
@@ -379,7 +469,8 @@ function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
               initial={{ opacity: 0, scale: 0.97, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.98, y: 10 }}
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              style={{ willChange: 'transform' }}
               onKeyDown={event => {
                 if (event.key !== 'Tab') return
                 const focusableElements = Array.from(event.currentTarget.querySelectorAll(
@@ -398,70 +489,79 @@ function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
                   firstElement?.focus()
                 }
               }}
-              className="w-full max-w-md rounded-2xl border border-[#eadbc9] bg-white p-5 shadow-[0_24px_70px_rgba(25,39,51,0.28)] sm:p-7"
+              className="flex max-h-[min(78dvh,620px)] w-full max-w-md flex-col overflow-hidden rounded-t-3xl border border-[#eadbc9] bg-white pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_24px_70px_rgba(25,39,51,0.28)] sm:max-h-[min(calc(100dvh-2rem),760px)] sm:rounded-2xl sm:pb-0"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <MarketplaceLogo service={selectedMarketplace} />
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#bd6530]">Choose a service</p>
-                    <h2 id="marketplace-support-title" className="mt-1 font-clash text-xl font-bold text-[#243141]">
-                      {marketplaceName(selectedMarketplace)} support
-                    </h2>
-                  </div>
+              <div className="shrink-0 border-b border-[#eadbc9] px-5 pb-4 pt-5 sm:px-7 sm:pt-7">
+                <div className="mb-3 flex justify-center sm:hidden">
+                  <span aria-hidden="true" className="h-1 w-10 rounded-full bg-slate-200" />
                 </div>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <MarketplaceLogo service={selectedMarketplace} />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#bd6530]">Choose a service</p>
+                      <h2 id="marketplace-support-title" className="mt-1 font-clash text-xl font-bold text-[#243141]">
+                        {marketplaceName(selectedMarketplace)} support
+                      </h2>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Close service selection"
+                    onClick={() => setSelectedMarketplace(null)}
+                    className="shrink-0 rounded-full border border-[#eadbc9] p-2 text-slate-500 transition hover:bg-[#fff6e8] hover:text-[#243141] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#bd6530]"
+                  >
+                    <X aria-hidden="true" className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 sm:px-7">
                 <button
                   type="button"
-                  aria-label="Close service selection"
-                  onClick={() => setSelectedMarketplace(null)}
-                  className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-[#243141] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#bd6530]"
+                  onClick={() => {
+                    window.clearTimeout(servicesMenuCloseTimeoutRef.current)
+                    onServicesMenuOpenChange(true)
+                    setSelectedMarketplace(null)
+                  }}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold text-[#a54f21] transition hover:bg-[#fff6e8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#bd6530]"
                 >
-                  <X className="h-4 w-4" />
+                  <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+                  Back to platforms
                 </button>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  window.clearTimeout(servicesMenuCloseTimeoutRef.current)
-                  onServicesMenuOpenChange(true)
-                  setSelectedMarketplace(null)
-                }}
-                className="mt-5 inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-semibold text-[#a54f21] transition hover:bg-[#fff6e8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#bd6530]"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to platforms
-              </button>
-              <p className="mt-4 text-sm leading-6 text-slate-600">
-                What kind of {marketplaceName(selectedMarketplace)} support do you need?
-              </p>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <Link
-                  onClick={closeServices}
-                  to={`/services/${selectedMarketplace.slug}`}
-                  className="group rounded-xl border border-[#eadbc9] bg-[#fffdfa] p-4 transition hover:border-[#bd6530] hover:bg-[#fff6e8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#bd6530]"
-                >
-                  <span className="text-sm font-extrabold text-[#243141]">Account management</span>
-                  <span className="mt-1 block text-xs leading-5 text-slate-600">Ongoing listings, catalogue, cases, and account operations.</span>
-                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#a54f21]">Explore service <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" /></span>
-                </Link>
-                <Link
-                  onClick={closeServices}
-                  to={`/services/${selectedMarketplace.slug}/onboarding`}
-                  className="group rounded-xl border border-[#eadbc9] bg-[#fffdfa] p-4 transition hover:border-[#bd6530] hover:bg-[#fff6e8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#bd6530]"
-                >
-                  <span className="text-sm font-extrabold text-[#243141]">Seller onboarding</span>
-                  <span className="mt-1 block text-xs leading-5 text-slate-600">Preparation and coordination to get your marketplace launch-ready.</span>
-                  <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#a54f21]">Explore onboarding <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" /></span>
-                </Link>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  What kind of {marketplaceName(selectedMarketplace)} support do you need?
+                </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <Link
+                    onClick={closeServices}
+                    to={`/services/${selectedMarketplace.slug}`}
+                    className="group min-h-28 rounded-xl border border-[#eadbc9] bg-[#fffdfa] p-4 transition hover:border-[#bd6530] hover:bg-[#fff6e8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#bd6530]"
+                  >
+                    <span className="text-sm font-extrabold text-[#243141]">Account management</span>
+                    <span className="mt-1 block text-xs leading-5 text-slate-600">Ongoing listings, catalogue, cases, and account operations.</span>
+                    <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#a54f21]">Explore service <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" /></span>
+                  </Link>
+                  <Link
+                    onClick={closeServices}
+                    to={`/services/${selectedMarketplace.slug}/onboarding`}
+                    className="group min-h-28 rounded-xl border border-[#eadbc9] bg-[#fffdfa] p-4 transition hover:border-[#bd6530] hover:bg-[#fff6e8] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#bd6530]"
+                  >
+                    <span className="text-sm font-extrabold text-[#243141]">Seller onboarding</span>
+                    <span className="mt-1 block text-xs leading-5 text-slate-600">Preparation and coordination to get your marketplace launch-ready.</span>
+                    <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#a54f21]">Explore onboarding <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" /></span>
+                  </Link>
+                </div>
               </div>
             </m.section>
-          </m.div>
+              </m.div>
+            )}
+          </AnimatePresence>,
+          document.body,
         )}
-        </AnimatePresence>
 
         {/* Mobile dropdown */}
         {mobileOpen && (
-          <div className="md:hidden mt-2 bg-white rounded-2xl border border-slate-200 px-6 py-4 flex flex-col gap-3 shadow-2xl pointer-events-auto">
+          <div className="modal-scroll md:hidden mt-2 max-h-[calc(100dvh-6rem)] overflow-y-auto overscroll-contain bg-white rounded-2xl border border-slate-200 px-6 py-4 flex flex-col gap-3 shadow-2xl pointer-events-auto">
             {navLinks.map(link => link.path === '/services' ? (
               <div key={link.label}>
                 <NavLink

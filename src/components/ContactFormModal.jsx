@@ -1,20 +1,28 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import ContactInquiryForm from './ContactInquiryForm'
 import { ContactModalContext } from './ContactModalContext'
+import useModalScrollLock from '../hooks/useModalScrollLock'
 
-function ContactFormModal({ open, onClose, content }) {
+function ContactFormModal({ open, present, onClose, onExitComplete, content }) {
   const dialogRef = useRef(null)
   const previousFocusRef = useRef(null)
 
+  useModalScrollLock(present)
+
+  useLayoutEffect(() => {
+    if (present && open) {
+      previousFocusRef.current = document.activeElement
+      dialogRef.current?.focus({ preventScroll: true })
+    } else if (!present) {
+      previousFocusRef.current?.focus?.({ preventScroll: true })
+    }
+  }, [open, present])
+
   useEffect(() => {
     if (!open) return undefined
-
-    previousFocusRef.current = document.activeElement
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    dialogRef.current?.focus()
 
     const handleKeyDown = event => {
       if (event.key === 'Escape') {
@@ -43,23 +51,24 @@ function ContactFormModal({ open, onClose, content }) {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => {
-      document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', handleKeyDown)
-      previousFocusRef.current?.focus?.()
     }
   }, [open, onClose])
 
-  return (
-    <AnimatePresence>
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
+    <AnimatePresence onExitComplete={onExitComplete}>
       {open && (
         <m.div
           key="contact-modal"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
-          onMouseDown={event => {
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          className="fixed inset-0 z-[70] flex min-h-dvh items-start justify-center overflow-y-auto overscroll-contain bg-slate-950/65 p-3 sm:items-center sm:p-5"
+          style={{ willChange: 'opacity' }}
+          onPointerDown={event => {
             if (event.target === event.currentTarget) onClose()
           }}
         >
@@ -72,11 +81,12 @@ function ContactFormModal({ open, onClose, content }) {
             initial={{ opacity: 0, y: 22, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="max-h-[min(90dvh,760px)] w-full max-w-xl overflow-y-auto rounded-3xl border-2 border-violet-200 bg-white p-5 shadow-[0_28px_90px_rgba(15,23,42,0.3)] sm:p-8"
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            style={{ willChange: 'transform' }}
+            className="modal-scroll my-auto flex max-h-[calc(100dvh-1.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-3xl border-2 border-violet-200 bg-white p-5 shadow-[0_28px_90px_rgba(15,23,42,0.3)] sm:max-h-[min(calc(100dvh-2.5rem),760px)] sm:p-8"
           >
-            <div className="mb-6 flex items-start justify-between gap-4">
-              <div>
+            <div className="mb-5 flex shrink-0 items-start justify-between gap-4 sm:mb-6">
+              <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-600">Contact EcomXtra</p>
                 <h2 id="contact-modal-title" className="mt-2 font-clash text-2xl font-bold text-slate-900 sm:text-3xl">
                   Let’s talk about your growth
@@ -94,23 +104,37 @@ function ContactFormModal({ open, onClose, content }) {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <ContactInquiryForm content={content} compact />
+            <div className="modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+              <ContactInquiryForm content={content} compact />
+            </div>
           </m.section>
         </m.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   )
 }
 
 export function ContactModalProvider({ children, content }) {
   const [isOpen, setIsOpen] = useState(false)
-  const openContactModal = useCallback(() => setIsOpen(true), [])
+  const [isPresent, setIsPresent] = useState(false)
+  const openContactModal = useCallback(() => {
+    setIsPresent(true)
+    setIsOpen(true)
+  }, [])
   const closeContactModal = useCallback(() => setIsOpen(false), [])
+  const handleExitComplete = useCallback(() => setIsPresent(false), [])
 
   return (
     <ContactModalContext.Provider value={{ openContactModal }}>
       {children}
-      <ContactFormModal open={isOpen} onClose={closeContactModal} content={content} />
+      <ContactFormModal
+        open={isOpen}
+        present={isPresent}
+        onClose={closeContactModal}
+        onExitComplete={handleExitComplete}
+        content={content}
+      />
     </ContactModalContext.Provider>
   )
 }

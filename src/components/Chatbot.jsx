@@ -81,6 +81,25 @@ function Chatbot({
 
   const chatEndRef = useRef(null)
   const inputRef   = useRef(null)
+  const chatPanelRef = useRef(null)
+
+  useEffect(() => {
+    if (!isOpen) return undefined
+
+    const closeOnOutsidePointerDown = event => {
+      if (!chatPanelRef.current?.contains(event.target)) setIsOpen(false)
+    }
+    const closeOnEscape = event => {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+
+    document.addEventListener('pointerdown', closeOnOutsidePointerDown)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointerDown)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [isOpen])
 
   // Persist messages
   useEffect(() => {
@@ -225,7 +244,7 @@ function Chatbot({
 
 
   return (
-    <div className={`fixed ${isOpen ? 'bottom-4 sm:bottom-6' : 'bottom-20 sm:bottom-[5.5rem]'} right-4 sm:right-6 z-50 flex flex-col items-end gap-3`}>
+    <div ref={chatPanelRef} className={`fixed ${isOpen ? 'bottom-4 sm:bottom-6' : 'bottom-20 sm:bottom-[5.5rem]'} right-4 sm:right-6 z-50 flex flex-col items-end gap-3`}>
       <AnimatePresence initial={false}>
         {!isOpen && (
           <m.button
@@ -273,7 +292,7 @@ function Chatbot({
             className={`flex flex-col shadow-2xl overflow-hidden ${
               'w-[calc(100vw-2rem)] sm:w-[400px] max-w-[400px] h-[500px] sm:h-[560px] border-2 border-violet-200 bg-white rounded-[1.8rem]'
             }`}
-            style={{ maxHeight: 'calc(100vh - 80px)' }}
+            style={{ maxHeight: 'calc(100dvh - 80px)' }}
           >
           {/* Header */}
           <div className={`shrink-0 px-4 py-3.5 flex items-center justify-between ${
@@ -309,7 +328,7 @@ function Chatbot({
           </div>
 
           {/* Messages */}
-          <div className={`flex-1 overflow-y-auto p-4 space-y-3 ${
+          <div className={`modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 space-y-3 ${
             'bg-violet-50/30'
           }`}>
             {messages.map((m) => (
