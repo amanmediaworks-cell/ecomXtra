@@ -54,16 +54,10 @@ export default async function triggerCron(req, res) {
     ? req.query.scheduled_date
     : undefined
 
-  const cronQuery = {}
-  if (scheduledDate) cronQuery.scheduled_date = scheduledDate
-  if (req.body?.maxAttempts !== undefined) {
-    cronQuery.max_attempts = String(req.body.maxAttempts)
-  }
-
   const syntheticReq = {
     method: 'GET',
     headers: { authorization: `Bearer ${cronSecret}` },
-    query: cronQuery,
+    query: scheduledDate ? { scheduled_date: scheduledDate } : {},
   }
 
   // ── 3. Capture the cron handler's response without sending to the client ──

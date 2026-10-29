@@ -9,14 +9,12 @@ const CATEGORIES = marketplaceServiceDefaults.map(service => (
   service.title.replace(' Account Management Services', '')
 ))
 const EXPECTED_GEMINI_MODEL = 'gemini-3.1-flash-lite'
-const DEFAULT_GENERATION_ATTEMPTS = 3
-const MAX_ALLOWED_GENERATION_ATTEMPTS = 10
+const MAX_GENERATION_ATTEMPTS = 3
 const ARTICLE_MIN_WORDS = 700
 const ARTICLE_MAX_WORDS = 1800
 const RUN_LEASE_MS = 10 * 60 * 1000
 const MAX_SUPABASE_REQUEST_MS = 4000
 const GEMINI_REQUEST_TIMEOUT_MS = 28000
-const GEMINI_GENERATION_BUDGET_MS = 220000
 const IMAGE_REQUEST_TIMEOUT_MS = 10000
 
 class JobError extends Error {
@@ -113,21 +111,6 @@ function getScheduledDate(query, now = new Date()) {
     throw new JobError('invalid_scheduled_date', 400)
   }
   return requestedDate
-}
-
-function getMaxGenerationAttempts(value) {
-  if (value === undefined) return DEFAULT_GENERATION_ATTEMPTS
-  if (
-    (typeof value !== 'string' && typeof value !== 'number')
-    || !/^\d+$/.test(String(value))
-  ) {
-    throw new JobError('invalid_max_attempts', 400)
-  }
-  const maxAttempts = Number(value)
-  if (maxAttempts < 1 || maxAttempts > MAX_ALLOWED_GENERATION_ATTEMPTS) {
-    throw new JobError('invalid_max_attempts', 400)
-  }
-  return maxAttempts
 }
 
 function getClaimedRun(result) {
@@ -483,16 +466,7 @@ function extractGeminiText(payload) {
   return text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
 }
 
-async function generateArticle(category, titles, recentTopics, maxAttempts = DEFAULT_GENERATION_ATTEMPTS) {
-  const attemptLimit = getMaxGenerationAttempts(maxAttempts)
-  const retryDelayBudgetMs = Array.from(
-    { length: Math.max(0, attemptLimit - 1) },
-    (_, index) => Math.min(1000 * 2 ** index, 4000),
-  ).reduce((total, delay) => total + delay, 0)
-  const geminiRequestTimeoutMs = Math.min(
-    GEMINI_REQUEST_TIMEOUT_MS,
-    Math.floor((GEMINI_GENERATION_BUDGET_MS - retryDelayBudgetMs) / attemptLimit),
-  )
+async function generateArticle(category, titles, recentTopics) {
   const model = process.env.GEMINI_MODEL || EXPECTED_GEMINI_MODEL
 
   const log = (level, event, details = {}) => {
@@ -575,13 +549,12 @@ async function generateArticle(category, titles, recentTopics, maxAttempts = DEF
   let previousIssues = []
   let lastGeminiResponse = null
 
-  for (let attempt = 1; attempt <= attemptLimit; attempt += 1) {
+  for (let attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt += 1) {
     const startedAt = Date.now()
 
     log('info', 'gemini_generation_started', {
       attempt,
-      maxAttempts: attemptLimit,
-      timeoutMs: geminiRequestTimeoutMs,
+      maxAttempts: MAX_GENERATION_ATTEMPTS,
       model,
     })
 
@@ -612,7 +585,7 @@ async function generateArticle(category, titles, recentTopics, maxAttempts = DEF
               maxOutputTokens: 5000,
             },
           }),
-          signal: AbortSignal.timeout(geminiRequestTimeoutMs),
+          signal: AbortSignal.timeout(GEMINI_REQUEST_TIMEOUT_MS),
         },
       )
     } catch (error) {
@@ -622,7 +595,7 @@ async function generateArticle(category, titles, recentTopics, maxAttempts = DEF
 
       log('error', 'gemini_request_failed', {
         attempt,
-        maxAttempts: attemptLimit,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
         durationMs: Date.now() - startedAt,
         errorName: error?.name || 'UnknownError',
         errorMessage: error?.message || 'No error message available',
@@ -650,11 +623,11 @@ async function generateArticle(category, titles, recentTopics, maxAttempts = DEF
       )
 
       const canRetry =
-        retryable && attempt < attemptLimit
+        retryable && attempt < MAX_GENERATION_ATTEMPTS
 
       log(canRetry ? 'warn' : 'error', 'gemini_http_error', {
         attempt,
-        maxAttempts: attemptLimit,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
         httpStatus: response.status,
         statusText: response.statusText,
         durationMs: Date.now() - startedAt,
@@ -704,13 +677,13 @@ async function generateArticle(category, titles, recentTopics, maxAttempts = DEF
 
       log('error', 'gemini_response_json_parse_failed', {
         attempt,
-        maxAttempts: attemptLimit,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
         durationMs: Date.now() - startedAt,
         errorName: error?.name || 'UnknownError',
         errorMessage: error?.message || 'No error message available',
       })
 
-      if (attempt === attemptLimit) {
+      if (attempt === MAX_GENERATION_ATTEMPTS) {
         throw new JobError('gemini_output_validation_failed', 502, {
           issues: previousIssues,
           geminiResponse: lastGeminiResponse,
@@ -741,13 +714,13 @@ async function generateArticle(category, titles, recentTopics, maxAttempts = DEF
 
       log('error', 'gemini_candidate_missing', {
         attempt,
-        maxAttempts: attemptLimit,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
         finishReason,
         blockReason: promptFeedback || null,
         responseKeys: Object.keys(payload || {}),
       })
 
-      if (attempt === attemptLimit) {
+      if (attempt === MAX_GENERATION_ATTEMPTS) {
         throw new JobError('gemini_output_validation_failed', 502, {
           issues: previousIssues,
           geminiResponse: lastGeminiResponse,
@@ -764,13 +737,13 @@ async function generateArticle(category, titles, recentTopics, maxAttempts = DEF
 
       log('warn', 'gemini_output_truncated', {
         attempt,
-        maxAttempts: attemptLimit,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
         finishReason,
         durationMs: Date.now() - startedAt,
         maxOutputTokens: 5000,
       })
 
-      if (attempt === attemptLimit) {
+      if (attempt === MAX_GENERATION_ATTEMPTS) {
         throw new JobError('gemini_output_validation_failed', 502, {
           issues: previousIssues,
           geminiResponse: lastGeminiResponse,
@@ -800,14 +773,14 @@ async function generateArticle(category, titles, recentTopics, maxAttempts = DEF
 
       log('error', 'gemini_article_parse_failed', {
         attempt,
-        maxAttempts: attemptLimit,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
         finishReason,
         durationMs: Date.now() - startedAt,
         errorName: error?.name || 'UnknownError',
         errorMessage: error?.message || 'No error message available',
       })
 
-      if (attempt === attemptLimit) {
+      if (attempt === MAX_GENERATION_ATTEMPTS) {
         throw new JobError('gemini_output_validation_failed', 502, {
           issues: previousIssues,
           geminiResponse: lastGeminiResponse,
@@ -861,7 +834,7 @@ async function generateArticle(category, titles, recentTopics, maxAttempts = DEF
     if (previousIssues.length === 0) {
       log('info', 'gemini_generation_succeeded', {
         attempt,
-        maxAttempts: attemptLimit,
+        maxAttempts: MAX_GENERATION_ATTEMPTS,
         durationMs: Date.now() - startedAt,
         finishReason,
         contentLength: article.content.length,
@@ -873,7 +846,7 @@ async function generateArticle(category, titles, recentTopics, maxAttempts = DEF
 
     log('warn', 'gemini_article_validation_failed', {
       attempt,
-      maxAttempts: attemptLimit,
+      maxAttempts: MAX_GENERATION_ATTEMPTS,
       durationMs: Date.now() - startedAt,
       finishReason,
       issues: previousIssues,
@@ -882,7 +855,7 @@ async function generateArticle(category, titles, recentTopics, maxAttempts = DEF
       wordCount: countWords(article.content),
     })
 
-    if (attempt < attemptLimit) {
+    if (attempt < MAX_GENERATION_ATTEMPTS) {
       log('info', 'gemini_regeneration_scheduled', {
         attempt,
         nextAttempt: attempt + 1,
@@ -892,7 +865,7 @@ async function generateArticle(category, titles, recentTopics, maxAttempts = DEF
   }
 
   log('error', 'gemini_generation_exhausted', {
-    maxAttempts: attemptLimit,
+    maxAttempts: MAX_GENERATION_ATTEMPTS,
     finalIssues: previousIssues,
   })
 
@@ -989,10 +962,8 @@ export default async function handler(req, res) {
   const requestId = randomUUID()
   const now = new Date()
   let scheduledDate
-  let maxAttempts
   try {
     scheduledDate = getScheduledDate(req.query, now)
-    maxAttempts = getMaxGenerationAttempts(req.query?.max_attempts)
   } catch (error) {
     if (error instanceof JobError) {
       return jsonResponse(res, error.status, { ok: false, error: error.code })
@@ -1003,7 +974,7 @@ export default async function handler(req, res) {
   let runId
   let attemptToken
 
-  logEvent('daily_blog_started', { requestId, scheduledDate, maxAttempts })
+  logEvent('daily_blog_started', { requestId, scheduledDate })
 
   try {
     // Prevent concurrent executions if an attempt is currently in-flight within lease duration
@@ -1016,7 +987,7 @@ export default async function handler(req, res) {
     if (runningRunError) throw new JobError('database_run_lookup_failed', 502, getErrorDetails(runningRunError))
     if (runningRuns?.length) {
       logEvent('daily_blog_run_already_claimed', { requestId, scheduledDate, runId: runningRuns[0].id })
-      return jsonResponse(res, 202, { ok: true, status: 'already_running', scheduledDate, maxAttempts })
+      return jsonResponse(res, 202, { ok: true, status: 'already_running', scheduledDate })
     }
 
     const { data: priorSuccess, error: historyError } = await supabase
@@ -1038,7 +1009,7 @@ export default async function handler(req, res) {
     attemptToken = claim?.attempt_token
     if (!runId) {
       logEvent('daily_blog_run_already_claimed', { requestId, scheduledDate })
-      return jsonResponse(res, 202, { ok: true, status: 'already_running', scheduledDate, maxAttempts })
+      return jsonResponse(res, 202, { ok: true, status: 'already_running', scheduledDate })
     }
     if (!attemptToken) throw new JobError('database_run_claim_invalid', 502)
 
@@ -1072,7 +1043,7 @@ export default async function handler(req, res) {
     const posts = postHistoryResult.data || []
     const titleHistory = posts.map(post => post.title).filter(Boolean)
     const recentTopics = (topicHistoryResult.data || []).map(run => run.topic).filter(Boolean)
-    const article = await generateArticle(category, titleHistory, recentTopics, maxAttempts)
+    const article = await generateArticle(category, titleHistory, recentTopics)
 
     const normalizedTitle = normalizeTitle(article.title)
     if (titleHistory.some(title => normalizeTitle(title) === normalizedTitle)
@@ -1133,7 +1104,6 @@ export default async function handler(req, res) {
       ok: true,
       status: 'published',
       scheduledDate,
-      maxAttempts,
       postId,
       slug,
       category,
@@ -1147,7 +1117,7 @@ export default async function handler(req, res) {
       : JSON.stringify(getErrorDetails(error))
     if (runId && attemptToken) await markRunFailed(supabase, runId, attemptToken, errorCode, errorReason)
     logEvent('daily_blog_failed', { requestId, scheduledDate, runId, errorCode, errorReason })
-    return jsonResponse(res, status, { ok: false, error: errorCode, scheduledDate, maxAttempts })
+    return jsonResponse(res, status, { ok: false, error: errorCode, scheduledDate })
   }
 }
 
@@ -1156,7 +1126,6 @@ export {
   countWords,
   getInvalidEnvironment,
   getClaimedRun,
-  getMaxGenerationAttempts,
   getScheduledDate,
   getCategoryImage,
   generateArticle,

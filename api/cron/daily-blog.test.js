@@ -10,7 +10,6 @@ import {
   generateArticle,
   getArticleValidationIssues,
   getClaimedRun,
-  getMaxGenerationAttempts,
   getScheduledDate,
   isValidImagePayload,
   isValidArticle,
@@ -34,10 +33,6 @@ const fullErrorReasonMigration = await readFile(
   'utf8',
 )
 const endpoint = await readFile(fileURLToPath(new URL('./daily-blog.js', import.meta.url)), 'utf8')
-const adminTriggerEndpoint = await readFile(
-  fileURLToPath(new URL('../admin/trigger-cron.js', import.meta.url)),
-  'utf8',
-)
 const vercelConfig = JSON.parse(await readFile(
   fileURLToPath(new URL('../../vercel.json', import.meta.url)),
   'utf8',
@@ -91,58 +86,6 @@ test('scheduled dates allow authorized recovery of past UTC dates only', () => {
   }
 })
 
-test('generation attempt limit defaults to three and accepts only integers from one to ten', () => {
-  assert.equal(getMaxGenerationAttempts(undefined), 3)
-  assert.equal(getMaxGenerationAttempts('1'), 1)
-  assert.equal(getMaxGenerationAttempts(10), 10)
-  for (const invalid of ['0', '11', '-1', '1.5', 'ten', ['10']]) {
-    assert.throws(() => getMaxGenerationAttempts(invalid), { code: 'invalid_max_attempts' })
-  }
-})
-
-test('admin trigger forwards the selected attempt count to the cron handler', () => {
-  assert.match(adminTriggerEndpoint, /req\.body\?\.maxAttempts[\s\S]*?cronQuery\.max_attempts = String\(req\.body\.maxAttempts\)/)
-  assert.match(adminTriggerEndpoint, /query: cronQuery/)
-})
-
-test('cron handler rejects attempt limits above ten before starting a run', async () => {
-  const values = {
-    CRON_SECRET: 'c'.repeat(40),
-    GEMINI_API_KEY: 'test-gemini-key',
-    SUPABASE_URL: 'https://supabase.example',
-    SUPABASE_SERVICE_ROLE_KEY: 'test-service-role-key',
-  }
-  const previous = Object.fromEntries(Object.keys(values).map(name => [name, process.env[name]]))
-  Object.assign(process.env, values)
-  const response = {
-    statusCode: 0,
-    body: null,
-    status(code) {
-      this.statusCode = code
-      return this
-    },
-    json(body) {
-      this.body = body
-      return this
-    },
-    setHeader() {},
-  }
-  try {
-    await dailyBlogHandler({
-      method: 'GET',
-      headers: { authorization: `Bearer ${values.CRON_SECRET}` },
-      query: { max_attempts: '11' },
-    }, response)
-    assert.equal(response.statusCode, 400)
-    assert.equal(response.body.error, 'invalid_max_attempts')
-  } finally {
-    for (const name of Object.keys(values)) {
-      if (previous[name] === undefined) delete process.env[name]
-      else process.env[name] = previous[name]
-    }
-  }
-})
-
 test('handler scopes publishing and failure updates to the claimed attempt', () => {
   assert.match(endpoint, /const claim = getClaimedRun\(claimedRun\)[\s\S]*?attemptToken = claim\?\.attempt_token/)
   assert.match(endpoint, /publish_daily_blog_post[\s\S]*?p_attempt_token: attemptToken/)
@@ -152,10 +95,8 @@ test('handler scopes publishing and failure updates to the claimed attempt', () 
 
 test('ten-minute lease exceeds configured function maximum and provider timeouts', () => {
   const maxDurationSeconds = vercelConfig.functions['api/cron/daily-blog.js'].maxDuration
-  const adminMaxDurationSeconds = vercelConfig.functions['api/admin/trigger-cron.js'].maxDuration
   const leaseSeconds = RUN_LEASE_MS / 1000
   assert.equal(maxDurationSeconds, 300)
-  assert.equal(adminMaxDurationSeconds, 300)
   assert.ok(leaseSeconds > maxDurationSeconds)
   assert.match(endpoint, /EXPECTED_GEMINI_MODEL = 'gemini-3\.1-flash-lite'/)
   assert.match(endpoint, /models\/\$\{EXPECTED_GEMINI_MODEL\}:generateContent/)
@@ -213,34 +154,6 @@ test('generation retry reinforces validation requirements after invalid output',
     assert.match(prompts[0], /final direct image URL that can be used in an HTML img src or as the image inside an anchor tag/)
     assert.match(prompts[1], /previous response failed these validation checks/i)
     assert.match(prompts[1], /Frequently Asked Questions or FAQs section/)
-  } finally {
-    globalThis.fetch = originalFetch
-    if (oldApiKey === undefined) delete process.env.GEMINI_API_KEY
-    else process.env.GEMINI_API_KEY = oldApiKey
-  }
-})
-
-test('generation uses the requested attempt limit instead of the scheduled default', async () => {
-  const originalFetch = globalThis.fetch
-  const oldApiKey = process.env.GEMINI_API_KEY
-  let generationCount = 0
-  process.env.GEMINI_API_KEY = 'unit-test-key'
-  globalThis.fetch = async url => {
-    if (String(url).startsWith('https://images.unsplash.com/')) {
-      return new Response(null, { status: 200, headers: { 'Content-Type': 'image/jpeg' } })
-    }
-    generationCount += 1
-    return new Response(JSON.stringify({
-      candidates: [{
-        content: { parts: [{ text: JSON.stringify(validArticle()) }] },
-        finishReason: generationCount < 4 ? 'MAX_TOKENS' : 'STOP',
-      }],
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } })
-  }
-  try {
-    const article = await generateArticle('Amazon', [], [], 4)
-    assert.equal(isValidArticle(article, 'Amazon'), true)
-    assert.equal(generationCount, 4)
   } finally {
     globalThis.fetch = originalFetch
     if (oldApiKey === undefined) delete process.env.GEMINI_API_KEY
