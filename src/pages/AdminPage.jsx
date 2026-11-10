@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ExternalLink, X, Trash2, Edit, Check, List, BookOpen, LayoutTemplate, Zap, RefreshCw, CheckCircle2, AlertCircle, Clock, Menu } from 'lucide-react'
+import { ExternalLink, X, Trash2, Edit, Check, List, BookOpen, LayoutTemplate, Zap, RefreshCw, CheckCircle2, AlertCircle, Clock, Menu, FileText } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { supabase } from '../src/lib/supabase'
 import { initialContent } from '../data/initialContent'
@@ -10,10 +10,16 @@ import BlogEditorFields from '../components/BlogEditorFields'
 import ServicePageEditor from '../components/ServicePageEditor'
 import { validateBlogPost } from '../data/blogPostUtils'
 import { getServicePageDetails } from '../data/marketplaceServiceContent'
+import proposalGeneratorHtml from './admin/ProposalGenerator.html?raw'
+import proposalGeneratorControls from './admin/ProposalGeneratorControls.js?raw'
 
 const PAGE_SIZE = 6
 const ADMIN_IDLE_TIMEOUT_MS = 30 * 60 * 1000
 const ADMIN_ACTIVITY_STORAGE_KEY = 'ecomxtra-admin-last-activity'
+const proposalGeneratorDocument = proposalGeneratorHtml.replace(
+  '</body>',
+  `<script>${proposalGeneratorControls}</script></body>`,
+)
 
 function getAdminActivityKey(userId) {
   return `${ADMIN_ACTIVITY_STORAGE_KEY}:${userId}`
@@ -858,10 +864,12 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
     { id: 'db',            label: 'CRUD Manager',   icon: <List      className="w-4 h-4" /> },
     { id: 'blogs',         label: 'Manage Blogs',   icon: <BookOpen  className="w-4 h-4" /> },
     { id: 'site',          label: 'Website Content', icon: <LayoutTemplate className="w-4 h-4" /> },
+    { id: 'proposals',     label: 'Proposals',      icon: <FileText  className="w-4 h-4" /> },
     { id: 'cron',          label: 'Cron Jobs',       icon: <Zap       className="w-4 h-4" /> },
   ]
 
   useEffect(() => {
+    if (activeTab === 'proposals') return
     const table = activeTab === 'blogs' ? 'blog_posts' : activeTab === 'site' ? 'site_content' : dbSubTab
     const page = table === 'blog_posts' ? blogPage : table === 'testimonials' ? testimonialPage : 0
     loadContent(table, page)
@@ -1462,6 +1470,15 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
           {/* ─── Cron Jobs ─── */}
           {activeTab === 'cron' && (
             <CronPanel session={session} />
+          )}
+
+          {activeTab === 'proposals' && (
+            <iframe
+              title="Professional client proposal generator"
+              srcDoc={proposalGeneratorDocument}
+              sandbox="allow-scripts allow-modals allow-popups allow-popups-to-escape-sandbox"
+              className="h-[calc(100vh-11rem)] min-h-[36rem] w-full border border-[#f2f2f2]/10 bg-[#eaf0f7] lg:h-[calc(100vh-10rem)]"
+            />
           )}
 
           </m.div>
