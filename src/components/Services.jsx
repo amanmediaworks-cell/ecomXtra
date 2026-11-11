@@ -84,7 +84,11 @@ function Services({
                   Explore Service <ArrowUpRight className="w-3.5 h-3.5" />
                 </Link>
               ) : (
-                <ContactModalTrigger className="mt-4 inline-flex items-center gap-1.5 border-t border-slate-100 pt-3 text-xs font-bold uppercase tracking-wider text-[#243141] transition-colors hover:text-[#b85f25]">
+                <ContactModalTrigger
+                  serviceName={service.title}
+                  buttonLocation="services_list"
+                  className="mt-4 inline-flex items-center gap-1.5 border-t border-slate-100 pt-3 text-xs font-bold uppercase tracking-wider text-[#243141] transition-colors hover:text-[#b85f25]"
+                >
                   Inquire Service <ArrowUpRight className="w-3.5 h-3.5" />
                 </ContactModalTrigger>
               )}

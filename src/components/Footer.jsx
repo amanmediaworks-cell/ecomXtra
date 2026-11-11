@@ -67,7 +67,10 @@ function Footer({ content }) {
                             Phone:{' '}
                             <a
                                 href={getTelephoneHref(content?.phone)}
-                                onClick={() => trackConversionEvent('phone_click', 'site_footer')}
+                                onClick={() => trackConversionEvent('phone_click', {
+                                  buttonLocation: 'site_footer',
+                                  pagePath: window.location.pathname,
+                                })}
                                 className="hover:text-white"
                             >
                                 {content?.phone || '+91 8700259557'}

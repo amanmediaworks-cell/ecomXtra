@@ -79,6 +79,8 @@ function ServiceDetailPage({ service, serviceType = 'management' }) {
               ))}
             </div>
             <ContactModalTrigger
+              serviceName={service.title.replace(' Account Management Services', '')}
+              buttonLocation="service_hero"
               className="mt-8 inline-flex items-center gap-3 rounded-lg bg-[#243141] px-6 py-4 text-sm font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-[#17222e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c96f2e]"
             >
               Book a consultation <ArrowRight className="h-4 w-4" />
@@ -274,7 +276,11 @@ function ServiceDetailPage({ service, serviceType = 'management' }) {
                 : `Talk to EcomXtra about your ${service.title.replace(' Services', '')} account.`}
             </h2>
           </div>
-          <ContactModalTrigger className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#243141] px-6 py-4 font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#17222e]">
+          <ContactModalTrigger
+            serviceName={service.title.replace(' Account Management Services', '')}
+            buttonLocation="service_footer"
+            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#243141] px-6 py-4 font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#17222e]"
+          >
             {isOnboarding ? 'Discuss your launch' : 'Discuss your account'} <ArrowUpRight className="h-4 w-4" />
           </ContactModalTrigger>
         </div>

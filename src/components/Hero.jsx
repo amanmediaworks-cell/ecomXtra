@@ -4,10 +4,7 @@ import ContactModalTrigger from './ContactModalTrigger'
 
 function Hero({ content, onOpenMarketplaceServices, marketplaceServicesOpen = false }) {
   const hero = content || {}
-  const buttons = (hero.buttons || []).filter(button => (
-    button.label?.trim().toLowerCase() !== 'whatsapp us'
-    && !/^https?:\/\/wa\.me\//i.test(button.href || '')
-  ))
+  const buttons = [...(hero.buttons || [])]
   if (onOpenMarketplaceServices) {
     buttons.push({ label: 'Explore marketplace services', action: 'marketplace-services' })
   }
@@ -78,8 +75,18 @@ function Hero({ content, onOpenMarketplaceServices, marketplaceServicesOpen = fa
             if (
               /^\/contact(?:[/?#]|$)/.test(button.href || '')
               || /^https?:\/\/wa\.me\//i.test(button.href || '')
+              || /\b(contact|consult|consultation|talk to|expert|get started|request|inquir|enquir|sales|whatsapp)\b/i.test(button.label || '')
             ) {
-              return <ContactModalTrigger key={`${button.label}-${index}`} className={className}>{content}</ContactModalTrigger>
+              return (
+                <ContactModalTrigger
+                  key={`${button.label}-${index}`}
+                  buttonLocation="home_hero"
+                  buttonText={button.label}
+                  className={className}
+                >
+                  {content}
+                </ContactModalTrigger>
+              )
             }
             return button.href?.startsWith('/') ? (
               <Link key={`${button.label}-${index}`} to={button.href} className={className}>{content}</Link>

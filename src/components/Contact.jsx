@@ -13,7 +13,6 @@ function Contact({ content, showCareers = false }) {
 
     const handleCareerSubmit = (e) => {
         e.preventDefault();
-        trackConversionEvent('contact_form_submit', 'career_form')
         openWhatsAppMessage([
             'Hi EcomXtra, I would like to apply for a position.',
             '',
@@ -22,7 +21,7 @@ function Contact({ content, showCareers = false }) {
             `Position: ${careerForm.role}`,
             `Resume: ${careerForm.resume}`,
             `Note: ${careerForm.message || 'Not provided'}`
-        ].join('\n'), content?.whatsappNumber || '918700259557', 'career_form');
+        ].join('\n'), content?.whatsappNumber || '918700259557');
         setCareerSubmitted(true);
         setTimeout(() => {
             setCareerSubmitted(false);
@@ -64,7 +63,10 @@ function Contact({ content, showCareers = false }) {
                             PHONE:{' '}
                             <a
                                 href={getTelephoneHref(content?.phone)}
-                                onClick={() => trackConversionEvent('phone_click', 'contact_section')}
+                                onClick={() => trackConversionEvent('phone_click', {
+                                  buttonLocation: 'contact_section',
+                                  pagePath: window.location.pathname,
+                                })}
                                 className="hover:underline"
                             >
                                 {content?.phone || '+91 8700259557'}
@@ -198,10 +200,10 @@ function Contact({ content, showCareers = false }) {
                                 {content?.consultationButton || 'Let’s talk about your goals'}
                             </h3>
                             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
-                                Share your contact details and tell us how we can help. We’ll prepare a WhatsApp message for you to review.
+                                Tell us about your goals and we’ll help you choose the right next step.
                             </p>
-                            <ContactModalTrigger className="mt-5 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 px-6 py-3 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-pink-500/20 transition hover:scale-[1.02] hover:opacity-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600">
-                                Open contact form
+                            <ContactModalTrigger buttonLocation="contact_section" className="mt-5 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 px-6 py-3 text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-pink-500/20 transition hover:scale-[1.02] hover:opacity-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600">
+                                Contact us
                             </ContactModalTrigger>
                         </div>
                     )}

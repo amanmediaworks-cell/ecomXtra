@@ -6,9 +6,16 @@ const DEFAULT_PHONE_NUMBER = '+91 8700259557'
 export function openWhatsAppMessage(
   message,
   whatsappNumber = DEFAULT_WHATSAPP_NUMBER,
-  source = 'contact',
+  tracking = null,
 ) {
-  trackConversionEvent('whatsapp_click', source)
+  if (tracking) {
+    trackConversionEvent('whatsapp_click', {
+      buttonText: tracking.buttonText,
+      buttonLocation: tracking.buttonLocation,
+      pagePath: tracking.pagePath,
+      serviceName: tracking.serviceName,
+    })
+  }
   const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`
   window.open(url, '_blank', 'noopener,noreferrer')
 }

@@ -5,13 +5,19 @@ import { setAnalyticsConsent, trackConversionEvent, trackPageView } from './anal
 test('conversion events are not sent without explicit analytics consent and a data layer', () => {
   const originalWindow = globalThis.window
   try {
-    globalThis.window = { dataLayer: [] }
-    assert.equal(trackConversionEvent('whatsapp_click', 'contact_section'), false)
+    globalThis.window = { dataLayer: [], location: { pathname: '/contact', origin: 'https://ecomxtra.in' } }
+    assert.equal(trackConversionEvent('whatsapp_click', {
+      buttonText: 'Contact us',
+      buttonLocation: 'home_hero',
+    }), false)
     assert.equal(window.dataLayer.length, 0)
 
     window.__ECOMXTRA_ANALYTICS_CONSENT__ = true
     delete window.dataLayer
-    assert.equal(trackConversionEvent('whatsapp_click', 'contact_section'), false)
+    assert.equal(trackConversionEvent('whatsapp_click', {
+      buttonText: 'Contact us',
+      buttonLocation: 'home_hero',
+    }), false)
   } finally {
     if (originalWindow === undefined) delete globalThis.window
     else globalThis.window = originalWindow
@@ -24,15 +30,21 @@ test('consented conversion events include only approved event name and safe sour
     globalThis.window = {
       __ECOMXTRA_ANALYTICS_CONSENT__: true,
       dataLayer: [],
+      location: { pathname: '/contact', origin: 'https://ecomxtra.in' },
     }
 
-    assert.equal(trackConversionEvent('contact_form_submit', 'contact_inquiry_form'), true)
+    assert.equal(trackConversionEvent('contact_form_submit', {
+      formId: 'contact_inquiry',
+      formLocation: 'contact_modal',
+    }), true)
     assert.deepEqual(window.dataLayer, [{
       event: 'contact_form_submit',
-      event_source: 'contact_inquiry_form',
+      form_id: 'contact_inquiry',
+      form_location: 'contact_modal',
+      page_path: '/contact',
     }])
-    assert.equal(trackConversionEvent('generate_lead', 'seller@example.com'), false)
-    assert.equal(trackConversionEvent('page_view', 'contact_section'), false)
+    assert.equal(trackConversionEvent('generate_lead'), false)
+    assert.equal(trackConversionEvent('page_view'), false)
     assert.equal(window.dataLayer.length, 1)
   } finally {
     if (originalWindow === undefined) delete globalThis.window
@@ -78,7 +90,7 @@ test('page views require consent and omit query strings', () => {
     globalThis.window = {
       __ECOMXTRA_ANALYTICS_CONSENT__: false,
       dataLayer: [],
-      location: { origin: 'https://ecomxtra.in' },
+      location: { origin: 'https://ecomxtra.in', pathname: '/contact' },
     }
     globalThis.document = { title: 'Contact EcomXtra' }
 
@@ -103,5 +115,66 @@ test('page views require consent and omit query strings', () => {
     else globalThis.window = originalWindow
     if (originalDocument === undefined) delete globalThis.document
     else globalThis.document = originalDocument
+  }
+})
+
+test('WhatsApp, phone, and form events have mutually exclusive safe payloads', () => {
+  const originalWindow = globalThis.window
+  try {
+    globalThis.window = {
+      __ECOMXTRA_ANALYTICS_CONSENT__: true,
+      dataLayer: [],
+      location: { origin: 'https://ecomxtra.in', pathname: '/services/amazon-account-management' },
+    }
+
+    assert.equal(trackConversionEvent('whatsapp_click', {
+      buttonText: 'Book consultation',
+      buttonLocation: 'service_hero',
+      serviceName: 'Amazon',
+    }), true)
+    assert.equal(trackConversionEvent('phone_click', {
+      buttonLocation: 'site_footer',
+    }), true)
+    assert.equal(trackConversionEvent('contact_form_submit', {
+      formId: 'contact_inquiry',
+      formLocation: 'contact_modal',
+      serviceName: 'Amazon',
+    }), true)
+    assert.deepEqual(window.dataLayer, [
+      {
+        event: 'whatsapp_click',
+        button_text: 'Book consultation',
+        button_location: 'service_hero',
+        page_path: '/services/amazon-account-management',
+        service_name: 'Amazon',
+      },
+      {
+        event: 'phone_click',
+        button_location: 'site_footer',
+        page_path: '/services/amazon-account-management',
+      },
+      {
+        event: 'contact_form_submit',
+        form_id: 'contact_inquiry',
+        form_location: 'contact_modal',
+        page_path: '/services/amazon-account-management',
+        service_name: 'Amazon',
+      },
+    ])
+    assert.equal(trackConversionEvent('whatsapp_click', {
+      buttonText: 'seller@example.com',
+      buttonLocation: 'service_hero',
+    }), false)
+    assert.equal(trackConversionEvent('phone_click', {
+      buttonLocation: 'seller@example.com',
+    }), false)
+    assert.equal(trackConversionEvent('contact_form_submit', {
+      formId: 'contact_inquiry',
+      formLocation: 'https://ecomxtra.in/contact?email=seller@example.com',
+    }), false)
+    assert.equal(window.dataLayer.length, 3)
+  } finally {
+    if (originalWindow === undefined) delete globalThis.window
+    else globalThis.window = originalWindow
   }
 })

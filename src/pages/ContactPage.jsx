@@ -1,5 +1,7 @@
 import Contact from '../components/Contact'
 import ContactModalTrigger from '../components/ContactModalTrigger'
+import { getTelephoneHref } from '../utils/contactWhatsApp'
+import { trackConversionEvent } from '../utils/analytics'
 import { Mail, Phone, Building2, ExternalLink } from 'lucide-react'
 
 function ContactPage() {
@@ -46,11 +48,7 @@ function ContactPage() {
                         </div>
                     </ContactModalTrigger>
 
-                    <ContactModalTrigger
-                        aria-label="Open contact form to contact EcomXtra by phone or WhatsApp"
-                        className={`w-full p-4 sm:p-5 flex items-center gap-3.5 text-left transition-all ${'bg-white/95 backdrop-blur-md border-2 border-pink-150 rounded-xl shadow-sm hover:border-pink-400'
-                            }`}
-                    >
+                    <div className={`w-full p-4 sm:p-5 flex items-center gap-3.5 transition-all ${'bg-white/95 backdrop-blur-md border-2 border-pink-150 rounded-xl shadow-sm hover:border-pink-400'}`}>
                         <div className="p-3 rounded-lg bg-pink-100 text-pink-600">
                             <Phone className="w-4 h-4" />
                         </div>
@@ -61,10 +59,19 @@ function ContactPage() {
                             </span>
                             <span className={`text-xs sm:text-sm font-bold block ${'font-outfit text-slate-900 font-extrabold'
                                 }`}>
-                                +91 8700259557
+                                <a
+                                    href={getTelephoneHref()}
+                                    onClick={() => trackConversionEvent('phone_click', {
+                                        buttonLocation: 'contact_page_card',
+                                        pagePath: window.location.pathname,
+                                    })}
+                                    className="hover:underline"
+                                >
+                                    +91 8700259557
+                                </a>
                             </span>
                         </div>
-                    </ContactModalTrigger>
+                    </div>
 
                     <div
                         className={`p-4 sm:p-5 flex items-center gap-3.5 ${'bg-white/95 backdrop-blur-md border-2 border-amber-150 rounded-xl shadow-sm'

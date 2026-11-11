@@ -92,7 +92,7 @@ function ContactFormModal({ open, present, onClose, onExitComplete, content }) {
                   Let’s talk about your growth
                 </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Share a few details and we’ll prepare a WhatsApp message for your request.
+                  Share a few details and our team will follow up about your request.
                 </p>
               </div>
               <button
@@ -126,7 +126,10 @@ export function ContactModalProvider({ children, content }) {
   const handleExitComplete = useCallback(() => setIsPresent(false), [])
 
   return (
-    <ContactModalContext.Provider value={{ openContactModal }}>
+    <ContactModalContext.Provider value={{
+      openContactModal,
+      whatsappNumber: content?.whatsappNumber || '918700259557',
+    }}>
       {children}
       <ContactFormModal
         open={isOpen}

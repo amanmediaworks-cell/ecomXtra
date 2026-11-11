@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { ExternalLink, X, Trash2, Edit, Check, List, BookOpen, LayoutTemplate, Zap, RefreshCw, CheckCircle2, AlertCircle, Clock, Menu, FileText } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { supabase } from '../src/lib/supabase'
+import AdminLeadBell from '../components/AdminLeadBell'
+import AdminLeadsPanel from '../components/AdminLeadsPanel'
 import { initialContent } from '../data/initialContent'
 import { invalidateCachedContent, loadCachedContent, updateCachedContent } from '../data/contentCache'
 import { siteContentDefaults } from '../data/siteContentDefaults'
@@ -540,6 +542,8 @@ function AdminDashboard({ onLogout, authError, session }) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <AdminLeadBell userId={session.user.id} />
+
           {/* Back to site link */}
           <a
             href="/"
@@ -584,6 +588,7 @@ function AdminDashboard({ onLogout, authError, session }) {
           session={session}
         />
       </div>
+      <AdminLeadsPanel userId={session.user.id} hideTrigger />
     </div>
   )
 }
