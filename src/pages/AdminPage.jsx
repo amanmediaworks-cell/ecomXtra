@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ExternalLink, X, Trash2, Edit, Check, List, BookOpen, LayoutTemplate, Zap, RefreshCw, CheckCircle2, AlertCircle, Clock, Menu, FileText } from 'lucide-react'
+import { ExternalLink, X, Trash2, Edit, Check, List, BookOpen, LayoutTemplate, Zap, RefreshCw, CheckCircle2, AlertCircle, Clock, Menu, FileText, Users } from 'lucide-react'
 import { AnimatePresence, m } from 'motion/react'
 import { supabase } from '../src/lib/supabase'
-import AdminLeadBell from '../components/AdminLeadBell'
 import AdminLeadsPanel from '../components/AdminLeadsPanel'
 import { initialContent } from '../data/initialContent'
 import { invalidateCachedContent, loadCachedContent, updateCachedContent } from '../data/contentCache'
@@ -542,8 +541,6 @@ function AdminDashboard({ onLogout, authError, session }) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <AdminLeadBell userId={session.user.id} />
-
           {/* Back to site link */}
           <a
             href="/"
@@ -588,7 +585,6 @@ function AdminDashboard({ onLogout, authError, session }) {
           session={session}
         />
       </div>
-      <AdminLeadsPanel userId={session.user.id} hideTrigger />
     </div>
   )
 }
@@ -811,6 +807,7 @@ function CronPanel({ session }) {
 // ── Inline variant of AdminConsole (no drawer overlay, full page) ────────────
 function AdminConsoleInline({ services, showcases, testimonials, blogs, siteContent, testimonialCount, blogCount, loadContent, handleCRUD, isLoading, isSaving, errorMessage, successMessage, setErrorMessage, setSuccessMessage, session }) {
   const [activeTab, setActiveTab]   = useState('db')
+  const [unreadLeadCount, setUnreadLeadCount] = useState(null)
   const [dbSubTab, setDbSubTab]     = useState('services')
   const [testimonialPage, setTestimonialPage] = useState(0)
   const [blogPage, setBlogPage] = useState(0)
@@ -834,6 +831,49 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
     window.addEventListener('admin-toggle-sidebar', handler)
     return () => window.removeEventListener('admin-toggle-sidebar', handler)
   }, [])
+
+  useEffect(() => {
+    let active = true
+    const refreshUnreadCount = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_contact_lead_metrics')
+        if (error) throw error
+        if (!active) return
+        const metrics = Array.isArray(data) ? data[0] : data
+        setUnreadLeadCount(Number(metrics?.unread_notifications) || 0)
+      } catch (error) {
+        if (active) {
+          setUnreadLeadCount(null)
+          console.error('Unable to load the unread contact lead count.', error)
+        }
+      }
+    }
+
+    const initialRefresh = window.setTimeout(refreshUnreadCount, 0)
+    const poll = window.setInterval(refreshUnreadCount, 30000)
+    const handleReadStateChange = () => refreshUnreadCount()
+    window.addEventListener('admin-lead-read-state-changed', handleReadStateChange)
+    const channel = supabase
+      .channel(`admin-lead-navigation:${session.user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'admin_notifications',
+      }, refreshUnreadCount)
+      .subscribe(status => {
+        if ((status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && active) {
+          console.error('Live unread lead counts are unavailable; polling will continue.')
+        }
+      })
+
+    return () => {
+      active = false
+      window.clearTimeout(initialRefresh)
+      window.clearInterval(poll)
+      window.removeEventListener('admin-lead-read-state-changed', handleReadStateChange)
+      supabase.removeChannel(channel)
+    }
+  }, [session.user.id])
 
   const [newService, setNewService] = useState({ title: '', description: '', category: 'Marketplace Account Management', slug: '' })
   const [editingServiceId, setEditingServiceId] = useState(null)
@@ -868,6 +908,7 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
 
   const tabs = [
     { id: 'db',            label: 'CRUD Manager',   icon: <List      className="w-4 h-4" /> },
+    { id: 'leads',         label: 'Lead Manager',   icon: <Users     className="w-4 h-4" /> },
     { id: 'blogs',         label: 'Manage Blogs',   icon: <BookOpen  className="w-4 h-4" /> },
     { id: 'topics',        label: 'SEO Topics',     icon: <List      className="w-4 h-4" /> },
     { id: 'site',          label: 'Website Content', icon: <LayoutTemplate className="w-4 h-4" /> },
@@ -876,7 +917,7 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
   ]
 
   useEffect(() => {
-    if (activeTab === 'proposals' || activeTab === 'topics') return
+    if (activeTab === 'proposals' || activeTab === 'topics' || activeTab === 'leads') return
     const table = activeTab === 'blogs' ? 'blog_posts' : activeTab === 'site' ? 'site_content' : dbSubTab
     const page = table === 'blog_posts' ? blogPage : table === 'testimonials' ? testimonialPage : 0
     loadContent(table, page)
@@ -947,7 +988,17 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
                 }`}
               >
                 <span className={activeTab === t.id ? 'text-[#f2f2f2]' : 'text-[#f2f2f2]/30'}>{t.icon}</span>
-                {t.label}
+                <span className="flex flex-1 items-center justify-between gap-2 whitespace-nowrap">
+                  <span>{t.label}</span>
+                  {t.id === 'leads' && unreadLeadCount > 0 && (
+                    <span
+                      aria-label={`${unreadLeadCount} unread leads`}
+                      className="inline-flex min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[9px] font-black leading-none text-white"
+                    >
+                      {unreadLeadCount > 99 ? '99+' : unreadLeadCount}
+                    </span>
+                  )}
+                </span>
               </m.button>
             ))}
 
@@ -1049,6 +1100,10 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
             isSaving={isSaving}
             isLoading={isLoading}
           />
+        )}
+
+        {activeTab === 'leads' && (
+          <AdminLeadsPanel userId={session.user.id} active={activeTab === 'leads'} />
         )}
 
         {/* ─── CRUD Manager ─── */}
@@ -1506,7 +1561,17 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
               }`}
             >
               <span className={activeTab === t.id ? 'text-[#f2f2f2]' : 'text-[#f2f2f2]/30'}>{t.icon}</span>
-              <span className="leading-none">{t.label.split(' ')[0]}</span>
+              <span className="flex items-center gap-1 leading-none">
+                {t.label.split(' ')[0]}
+                {t.id === 'leads' && unreadLeadCount > 0 && (
+                  <span
+                    aria-label={`${unreadLeadCount} unread leads`}
+                    className="inline-flex min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 py-0.5 text-[8px] font-black leading-none text-white"
+                  >
+                    {unreadLeadCount > 99 ? '99+' : unreadLeadCount}
+                  </span>
+                )}
+              </span>
               {activeTab === t.id && (
                 <m.span
                   layoutId="bottom-tab-indicator"

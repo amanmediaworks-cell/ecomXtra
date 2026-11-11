@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowDown, Bell, CalendarClock, Check, ChevronDown, ChevronUp, ExternalLink, MessageCircle, Phone, Search, X } from 'lucide-react'
+import { ArrowDown, CalendarClock, Check, ChevronDown, ChevronUp, ExternalLink, MessageCircle, Phone, Search } from 'lucide-react'
 import { supabase } from '../src/lib/supabase'
 import { contactLeadServiceOptions } from '../utils/contactLead'
 
@@ -44,8 +44,7 @@ function getWhatsAppHref(value) {
     : null
 }
 
-function AdminLeadsPanel({ userId, hideTrigger = false }) {
-  const [drawerOpen, setDrawerOpen] = useState(false)
+function AdminLeadsPanel({ userId, active }) {
   const [records, setRecords] = useState([])
   const [metrics, setMetrics] = useState(null)
   const [filter, setFilter] = useState('all')
@@ -71,8 +70,7 @@ function AdminLeadsPanel({ userId, hideTrigger = false }) {
   const loadingRef = useRef(false)
   const requestIdRef = useRef(0)
   const loadRecordsRef = useRef(null)
-  const drawerOpenRef = useRef(drawerOpen)
-  const headingRef = useRef(null)
+  const activeRef = useRef(active)
 
   const loadMetrics = useCallback(async () => {
     try {
@@ -88,7 +86,7 @@ function AdminLeadsPanel({ userId, hideTrigger = false }) {
   }, [])
 
   const loadRecords = useCallback(async (reset = false) => {
-    if (!drawerOpen || (loadingRef.current && !reset)) return
+    if (!active || (loadingRef.current && !reset)) return
     const requestId = ++requestIdRef.current
     loadingRef.current = true
     setErrorMessage('')
@@ -140,15 +138,15 @@ function AdminLeadsPanel({ userId, hideTrigger = false }) {
         setLoadingMore(false)
       }
     }
-  }, [createdFrom, createdTo, debouncedSearch, drawerOpen, filter, followUpDue, priorityFilter, serviceFilter, statusFilter])
+  }, [active, createdFrom, createdTo, debouncedSearch, filter, followUpDue, priorityFilter, serviceFilter, statusFilter])
 
   useEffect(() => {
     loadRecordsRef.current = loadRecords
   }, [loadRecords])
 
   useEffect(() => {
-    drawerOpenRef.current = drawerOpen
-  }, [drawerOpen])
+    activeRef.current = active
+  }, [active])
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search), 300)
@@ -156,29 +154,23 @@ function AdminLeadsPanel({ userId, hideTrigger = false }) {
   }, [search])
 
   useEffect(() => {
-    const openLeads = () => setDrawerOpen(true)
-    window.addEventListener('admin-open-leads', openLeads)
-    return () => window.removeEventListener('admin-open-leads', openLeads)
-  }, [])
-
-  useEffect(() => {
-    if (!drawerOpen) return
-    headingRef.current?.focus()
+    if (!active) return
     const timer = window.setTimeout(() => loadRecords(true), 0)
     return () => window.clearTimeout(timer)
-  }, [drawerOpen, loadRecords])
+  }, [active, loadRecords])
 
   useEffect(() => {
+    if (!active) return undefined
     const initialRefresh = window.setTimeout(loadMetrics, 0)
     const poll = window.setInterval(() => {
       loadMetrics()
-      if (drawerOpenRef.current) loadRecordsRef.current?.(true)
+      if (activeRef.current) loadRecordsRef.current?.(true)
     }, 30000)
     return () => {
       window.clearTimeout(initialRefresh)
       window.clearInterval(poll)
     }
-  }, [loadMetrics])
+  }, [active, loadMetrics])
 
   useEffect(() => {
     const channel = supabase
@@ -189,7 +181,7 @@ function AdminLeadsPanel({ userId, hideTrigger = false }) {
         table: 'admin_notifications',
       }, () => {
         loadMetrics()
-        if (drawerOpenRef.current) loadRecordsRef.current?.(true)
+        if (activeRef.current) loadRecordsRef.current?.(true)
       })
       .subscribe(status => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -201,15 +193,6 @@ function AdminLeadsPanel({ userId, hideTrigger = false }) {
       supabase.removeChannel(channel)
     }
   }, [loadMetrics, userId])
-
-  useEffect(() => {
-    if (!drawerOpen) return undefined
-    const handleKeyDown = event => {
-      if (event.key === 'Escape') setDrawerOpen(false)
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [drawerOpen])
 
   const updateLead = async (leadId, changes) => {
     setErrorMessage('')
@@ -242,6 +225,7 @@ function AdminLeadsPanel({ userId, hideTrigger = false }) {
       if (result.error) throw result.error
       setActionMessage(read ? 'Selected notifications marked as read.' : 'Selected notifications marked as unread.')
       setSelectedIds([])
+      window.dispatchEvent(new CustomEvent('admin-lead-read-state-changed'))
       await Promise.all([loadMetrics(), loadRecords(true)])
     } catch (error) {
       setErrorMessage(`Unable to update notification read state: ${error.message}`)
@@ -255,6 +239,7 @@ function AdminLeadsPanel({ userId, hideTrigger = false }) {
       if (error) throw error
       setActionMessage(`${Number(data) || 0} notification${Number(data) === 1 ? '' : 's'} marked as read.`)
       setSelectedIds([])
+      window.dispatchEvent(new CustomEvent('admin-lead-read-state-changed'))
       await Promise.all([loadMetrics(), loadRecords(true)])
     } catch (error) {
       setErrorMessage(`Unable to mark all notifications as read: ${error.message}`)
@@ -319,43 +304,20 @@ function AdminLeadsPanel({ userId, hideTrigger = false }) {
     setSelectedIds(checked ? records.map(record => record.notification_id) : [])
   }
 
-  const closeDrawer = () => setDrawerOpen(false)
   const controlClass = 'min-h-10 border border-white/15 bg-[#1a1a1a] px-3 text-xs text-[#f2f2f2] outline-none focus:border-white/50'
   const buttonClass = 'inline-flex min-h-9 items-center justify-center gap-2 border border-white/15 px-3 text-[10px] font-bold uppercase tracking-wider text-[#f2f2f2]/75 transition hover:border-white/40 hover:text-white disabled:cursor-not-allowed disabled:opacity-40'
   const count = Number(metrics?.unread_notifications) || 0
 
   return (
-    <>
-      {!hideTrigger && <button
-        type="button"
-        onClick={() => setDrawerOpen(true)}
-        aria-label={`Open lead inbox, ${count} unread`}
-        className="relative inline-flex min-h-10 items-center gap-2 border border-white/15 px-3 text-xs font-bold uppercase tracking-widest text-[#f2f2f2]/70 hover:border-white/40 hover:text-white"
-      >
-        <Bell aria-hidden="true" className="h-4 w-4" />
-        Leads
-        {count > 0 && <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] text-white">{count > 99 ? '99+' : count}</span>}
-      </button>}
-
-      {drawerOpen && (
-        <div className="fixed inset-0 z-[100] flex justify-end bg-black/70 backdrop-blur-sm" onMouseDown={event => {
-          if (event.target === event.currentTarget) closeDrawer()
-        }}>
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="admin-leads-title"
-            className="flex h-full w-full max-w-5xl flex-col overflow-hidden border-l border-white/10 bg-[#111111] text-[#f2f2f2] shadow-2xl"
-          >
-            <header className="flex items-start justify-between gap-4 border-b border-white/10 px-4 py-4 sm:px-6">
+    <section aria-labelledby="admin-leads-title" className="min-w-0 text-[#f2f2f2]">
+            <header className="mb-5 flex items-start justify-between gap-4 border-b border-white/10 pb-4">
               <div>
-                <h2 id="admin-leads-title" ref={headingRef} tabIndex={-1} className="font-clash text-xl font-bold tracking-tight outline-none">Contact leads</h2>
-                <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/40">Private admin inbox · latest 10 per page</p>
+                <h2 id="admin-leads-title" className="font-clash text-xl font-bold tracking-tight">Lead Manager</h2>
+                <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/40">Private contact lead inbox · latest 10 per page</p>
               </div>
-              <button type="button" aria-label="Close lead inbox" onClick={closeDrawer} className="p-2 text-white/60 hover:text-white"><X className="h-4 w-4" /></button>
             </header>
 
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="space-y-2">
               <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
                 {[
                   ['Total leads', metrics?.total_leads, null],
@@ -523,10 +485,7 @@ function AdminLeadsPanel({ userId, hideTrigger = false }) {
               )}
               {metrics?.converted_leads != null && <p className="mt-4 text-right text-[10px] text-white/35">{metrics.converted_leads} converted leads · contact records created {formatDate(records[0]?.lead_created_at)}</p>}
             </div>
-          </section>
-        </div>
-      )}
-    </>
+    </section>
   )
 }
 

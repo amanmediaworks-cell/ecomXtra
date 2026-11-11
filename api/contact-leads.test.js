@@ -147,7 +147,7 @@ test('rate-limited and failed database submissions never return success', async 
 test('contact migration keeps lead tables private and creation transactional', async () => {
   const migration = await readFile(new URL('../supabase/migrations/20261112000000_contact_lead_management.sql', import.meta.url), 'utf8')
   const triggerFix = await readFile(new URL('../supabase/migrations/20261112000001_fix_contact_lead_activity_trigger.sql', import.meta.url), 'utf8')
-  assert.match(migration, /REPLACE_WITH_EXISTING_ADMIN_AUTH_UID/)
+  assert.match(migration, /values \('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'::uuid\)/i)
   assert.match(migration, /create table if not exists public\.contact_leads/)
   assert.match(migration, /create table if not exists public\.admin_notifications/)
   assert.match(migration, /on conflict \(idempotency_key\) do nothing/)
