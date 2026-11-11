@@ -8,7 +8,6 @@ const SUPABASE_TIMEOUT_MS = 4000
 const CACHE_TTL_MS = 60 * 1000 // 1 minute in-memory cache
 const SITEMAP_URL_LIMIT = 50000
 const SUPABASE_PAGE_SIZE = 1000
-const SITEMAP_LASTMOD = '2026-10-26'
 
 // In-memory cache for serverless execution environment
 let inMemoryCache = {
@@ -164,7 +163,7 @@ export async function generateSitemapXml({ forceFresh = false, supabaseClient = 
       ? `${CANONICAL_ORIGIN}/`
       : `${CANONICAL_ORIGIN}${staticRoute.path}`
 
-    addUrl(loc, SITEMAP_LASTMOD)
+    addUrl(loc, null)
   }
 
   // 2. Dynamic published blog posts

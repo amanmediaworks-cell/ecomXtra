@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 import {
+  buildPrompt,
   chooseCategory,
   countWords,
   getCategoryImage,
@@ -19,6 +20,7 @@ import {
   titleSimilarity,
 } from './daily-blog.js'
 import dailyBlogHandler from './daily-blog.js'
+import { getBlogTopicValidationIssues } from '../../src/data/blogTopicQueue.js'
 
 const migration = await readFile(
   fileURLToPath(new URL('../../supabase/migrations/20261020000000_daily_ai_blog_automation.sql', import.meta.url)),
@@ -30,6 +32,10 @@ const singleImageMigration = await readFile(
 )
 const fullErrorReasonMigration = await readFile(
   fileURLToPath(new URL('../../supabase/migrations/20261029000000_daily_blog_full_error_reason.sql', import.meta.url)),
+  'utf8',
+)
+const topicQueueMigration = await readFile(
+  fileURLToPath(new URL('../../supabase/migrations/20261111000000_keyword_first_blog_topic_queue.sql', import.meta.url)),
   'utf8',
 )
 const endpoint = await readFile(fileURLToPath(new URL('./daily-blog.js', import.meta.url)), 'utf8')
@@ -55,9 +61,27 @@ function validArticle(heading = '###') {
     tags: ['Shopify', 'Checkout', 'Conversion'],
     image_url: 'https://images.unsplash.com/photo-test?auto=format&fit=crop&w=1200&q=80',
     image_alt: 'Marketplace seller reviewing a product listing on a laptop',
-    content: `${heading} Start Here\n\n${practicalBody}\n\n${heading} Next Steps\n\n${practicalBody}\n\n${heading} Conclusion\n\n${conclusion}\n\n${heading} Frequently Asked Questions\n\n${faq}`,
+    content: `${heading} Start Here\n\nSee [Amazon account support](https://ecomxtra.in/services/amazon-account-management) for related services.\n\n${practicalBody}\n\n${heading} Next Steps\n\n${practicalBody}\n\n${heading} Conclusion\n\n${conclusion}\n\n${heading} Frequently Asked Questions\n\n${faq}`,
   }
 }
+
+const approvedTopic = {
+  primary_keyword: 'A Practical Guide to Improving Shopify Checkout',
+  marketplace: 'Amazon',
+  search_intent: 'seller_education',
+  target_audience: 'Indian Amazon sellers',
+  content_type: 'Practical guide',
+  proposed_title: 'A Practical Guide to Improving Shopify Checkout',
+  secondary_keywords: ['seller support'],
+  existing_competing_page: null,
+  target_internal_url: 'https://ecomxtra.in/services/amazon-account-management',
+  priority: 3,
+  evidence_source: 'Unit test fixture',
+  status: 'generating',
+}
+const approvedRelatedPages = [
+  { title: 'Amazon account support', url: approvedTopic.target_internal_url },
+]
 
 test('daily blog slug generation is lowercase, readable, and strips accents', () => {
   assert.equal(slugify('Café: Shopify & Growth!'), 'cafe-shopify-growth')
@@ -90,7 +114,7 @@ test('handler scopes publishing and failure updates to the claimed attempt', () 
   assert.match(endpoint, /const claim = getClaimedRun\(claimedRun\)[\s\S]*?attemptToken = claim\?\.attempt_token/)
   assert.match(endpoint, /publish_daily_blog_post[\s\S]*?p_attempt_token: attemptToken/)
   assert.match(endpoint, /markRunFailed\(supabase, runId, attemptToken, errorCode, errorReason\)/)
-  assert.match(endpoint, /\.update\(\{[\s\S]*?error_reason: errorReason,[\s\S]*?\.eq\('attempt_token', attemptToken\)[\s\S]*?\.eq\('status', 'running'\)/)
+  assert.match(endpoint, /rpc\('fail_daily_blog_run',\s*\{[\s\S]*?p_attempt_token: attemptToken,[\s\S]*?p_error_reason: errorReason/)
 })
 
 test('ten-minute lease exceeds configured function maximum and provider timeouts', () => {
@@ -105,7 +129,7 @@ test('ten-minute lease exceeds configured function maximum and provider timeouts
 })
 
 test('generation prompt states every article requirement enforced by validation', () => {
-  assert.match(endpoint, /800–1000 words/)
+  assert.match(endpoint, /900–1,400 words/)
   assert.match(endpoint, /## Conclusion/)
   assert.match(endpoint, /## Frequently Asked Questions/)
   assert.match(endpoint, /meta_description: maximum 160 characters/)
@@ -117,7 +141,63 @@ test('generation prompt states every article requirement enforced by validation'
   assert.match(endpoint, /seller onboarding services for this platform/)
   assert.match(endpoint, /image_url: a direct, publicly accessible HTTPS image URL/)
   assert.match(endpoint, /responds with HTTP 200 and an image content type/)
-  assert.match(endpoint, /as an aspiration or slogan, never as a factual ranking/)
+  assert.match(endpoint, /Never make unsupported leadership, ranking, award, results, guarantee/)
+  assert.match(endpoint, /Do not invent, replace, broaden, or switch the primary keyword/)
+  assert.match(endpoint, /Verified internal pages allowed for helpful links/)
+})
+
+test('approved topic prompt preserves the supplied keyword and verified link targets', () => {
+  const prompt = buildPrompt(approvedTopic, [], [], approvedRelatedPages)
+  assert.match(prompt, /Exact primary keyword: A Practical Guide to Improving Shopify Checkout/)
+  assert.match(prompt, /Search intent: seller_education/)
+  assert.match(prompt, /Target audience: Indian Amazon sellers/)
+  assert.match(prompt, /https:\/\/ecomxtra\.in\/services\/amazon-account-management/)
+  assert.doesNotMatch(prompt, /Choose one specific, search-focused customer problem/)
+})
+
+test('editorial queue validates marketplace, intent, status, priority, and internal service URL', () => {
+  assert.deepEqual(
+    getBlogTopicValidationIssues(approvedTopic, ['Amazon'], [approvedTopic.target_internal_url]),
+    [],
+  )
+  const issues = getBlogTopicValidationIssues({
+    ...approvedTopic,
+    search_intent: 'unknown',
+    status: 'auto_publish',
+    priority: 8,
+    target_internal_url: 'https://example.com/amazon',
+  }, ['Amazon'], [approvedTopic.target_internal_url])
+  assert.ok(issues.some(issue => issue.includes('Search intent')))
+  assert.ok(issues.some(issue => issue.includes('Editorial status')))
+  assert.ok(issues.some(issue => issue.includes('Priority')))
+  assert.ok(issues.some(issue => issue.includes('verified EcomXtra marketplace service page')))
+  assert.ok(getBlogTopicValidationIssues({
+    ...approvedTopic,
+    search_intent: 'navigational',
+  }, ['Amazon'], [approvedTopic.target_internal_url]).some(issue => issue.includes('cannot be generated')))
+})
+
+test('article quality validation rejects missing target keywords and unapproved links', () => {
+  const article = validArticle()
+  const issues = getArticleValidationIssues({
+    ...article,
+    content: article.content.replace(
+      'https://ecomxtra.in/services/amazon-account-management',
+      'https://example.com/amazon',
+    ),
+  }, 'Amazon', approvedTopic, approvedRelatedPages)
+  assert.ok(issues.includes('content must include the approved target service page link'))
+  assert.ok(issues.some(issue => issue.includes('unverified internal or external link')))
+})
+
+test('topic queue migration restricts publication to approved, locked topics', () => {
+  assert.match(topicQueueMigration, /create table if not exists public\.blog_topic_queue/)
+  assert.match(topicQueueMigration, /status = 'approved'/)
+  assert.match(topicQueueMigration, /for update skip locked/)
+  assert.match(topicQueueMigration, /publish_daily_blog_post_from_topic/)
+  assert.match(topicQueueMigration, /status = 'published'/)
+  assert.match(topicQueueMigration, /status = 'approved'[\s\S]*?status = 'generating'/)
+  assert.match(topicQueueMigration, /REPLACE_WITH_EXISTING_ADMIN_AUTH_UID/)
 })
 
 test('generation retry reinforces validation requirements after invalid output', async () => {
@@ -146,12 +226,12 @@ test('generation retry reinforces validation requirements after invalid output',
     }), { status: 200, headers: { 'Content-Type': 'application/json' } })
   }
   try {
-    const article = await generateArticle('Amazon', [], [])
-    assert.equal(isValidArticle(article, 'Amazon'), true)
+    const article = await generateArticle(approvedTopic, [], [], approvedRelatedPages)
+    assert.equal(isValidArticle(article, 'Amazon', approvedTopic, approvedRelatedPages), true)
     assert.equal(prompts.length, 2)
     assert.deepEqual(schemas[0].required.slice(-2), ['image_url', 'image_alt'])
     assert.equal(article.image_url, 'https://images.unsplash.com/photo-test?auto=format&fit=crop&w=1200&q=80')
-    assert.match(prompts[0], /final direct image URL that can be used in an HTML img src or as the image inside an anchor tag/)
+    assert.match(prompts[0], /Any Markdown links in the article must use only the verified internal URLs/)
     assert.match(prompts[1], /previous response failed these validation checks/i)
     assert.match(prompts[1], /Frequently Asked Questions or FAQs section/)
   } finally {
@@ -185,7 +265,7 @@ test('generation uses a curated category image when the generated image is unava
     }), { status: 200, headers: { 'Content-Type': 'application/json' } })
   }
   try {
-    const article = await generateArticle('Amazon', [], [])
+    const article = await generateArticle(approvedTopic, [], [], approvedRelatedPages)
     assert.equal(article.image_url, fallbackImage.url)
     assert.equal(article.image_alt, fallbackImage.alt)
     assert.equal(generationCount, 1)
@@ -230,7 +310,7 @@ test('failure recording requires the current running attempt', () => {
 })
 
 test('failure recording saves the complete error reason without truncation', () => {
-  assert.match(endpoint, /error_reason: errorReason/)
+  assert.match(endpoint, /p_error_reason: errorReason/)
   assert.match(fullErrorReasonMigration, /error_reason = p_error_reason/)
   assert.doesNotMatch(fullErrorReasonMigration, /left\(p_error_reason/)
 })

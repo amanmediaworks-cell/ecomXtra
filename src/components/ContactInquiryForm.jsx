@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
 import { openWhatsAppMessage } from '../utils/contactWhatsApp'
 import { isEmailOrPhone } from '../utils/contactValidation'
+import { trackConversionEvent } from '../utils/analytics'
 
 function ContactInquiryForm({ content, compact = false }) {
   const [form, setForm] = useState({ name: '', contact: '', business: '', message: '' })
@@ -14,6 +15,7 @@ function ContactInquiryForm({ content, compact = false }) {
       event.currentTarget.elements.contact.reportValidity()
       return
     }
+    trackConversionEvent('contact_form_submit', 'contact_inquiry_form')
     openWhatsAppMessage([
       'Hi EcomXtra, I would like to book a consultation.',
       '',
@@ -21,7 +23,7 @@ function ContactInquiryForm({ content, compact = false }) {
       `Email or phone: ${form.contact.trim()}`,
       `Business: ${form.business || 'Not provided'}`,
       `How can we help: ${form.message || 'Not provided'}`,
-    ].join('\n'), content?.whatsappNumber)
+    ].join('\n'), content?.whatsappNumber, 'contact_inquiry_form')
     setSubmitted(true)
   }
 

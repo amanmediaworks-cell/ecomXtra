@@ -4,6 +4,7 @@ import { AnimatePresence, domAnimation, LazyMotion, MotionConfig, m } from 'moti
 import Lenis from 'lenis'
 import 'lenis/dist/lenis.css'
 import Navbar from './components/Navbar'
+import AnalyticsConsent from './components/AnalyticsConsent'
 import Chatbot from './components/Chatbot'
 import { ContactModalProvider } from './components/ContactFormModal'
 import Footer from './components/Footer'
@@ -380,6 +381,7 @@ function App({ initialData = {} }) {
               || marketplaceServiceDefaults.find(item => item.slug === requestedServiceSlug)}
             siteContent={siteContent}
           />
+          <AnalyticsConsent />
           <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
             <div className="softly-grain-overlay" />
             <div className="absolute top-[5%] left-[-10%] w-[55vw] h-[55vw] rounded-full bg-gradient-to-tr from-pink-400/25 to-violet-500/25 blur-[120px] animate-float" />

@@ -7,6 +7,7 @@ import { invalidateCachedContent, loadCachedContent, updateCachedContent } from 
 import { siteContentDefaults } from '../data/siteContentDefaults'
 import WebsiteContentEditor from '../components/WebsiteContentEditor'
 import BlogEditorFields from '../components/BlogEditorFields'
+import BlogTopicQueuePanel from '../components/BlogTopicQueuePanel'
 import ServicePageEditor from '../components/ServicePageEditor'
 import { validateBlogPost } from '../data/blogPostUtils'
 import { getServicePageDetails } from '../data/marketplaceServiceContent'
@@ -677,8 +678,8 @@ function CronPanel({ session }) {
             </div>
             <h3 className="font-clash text-lg font-bold text-[#f2f2f2] mb-1">Daily Blog Generator</h3>
             <p className="text-xs text-[#f2f2f2]/40 leading-relaxed max-w-md">
-              Runs the full generation pipeline: picks a marketplace category, calls Gemini AI,
-              validates the article, and publishes it to the blog. Takes up to 30 seconds.
+              Runs the full generation pipeline using the highest-priority approved editorial topic,
+              validates the article and its verified internal links, and publishes it to the blog.
             </p>
             <div className="mt-3 flex flex-wrap gap-3">
               {[
@@ -863,13 +864,14 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
   const tabs = [
     { id: 'db',            label: 'CRUD Manager',   icon: <List      className="w-4 h-4" /> },
     { id: 'blogs',         label: 'Manage Blogs',   icon: <BookOpen  className="w-4 h-4" /> },
+    { id: 'topics',        label: 'SEO Topics',     icon: <List      className="w-4 h-4" /> },
     { id: 'site',          label: 'Website Content', icon: <LayoutTemplate className="w-4 h-4" /> },
     { id: 'proposals',     label: 'Proposals',      icon: <FileText  className="w-4 h-4" /> },
     { id: 'cron',          label: 'Cron Jobs',       icon: <Zap       className="w-4 h-4" /> },
   ]
 
   useEffect(() => {
-    if (activeTab === 'proposals') return
+    if (activeTab === 'proposals' || activeTab === 'topics') return
     const table = activeTab === 'blogs' ? 'blog_posts' : activeTab === 'site' ? 'site_content' : dbSubTab
     const page = table === 'blog_posts' ? blogPage : table === 'testimonials' ? testimonialPage : 0
     loadContent(table, page)
@@ -1468,6 +1470,8 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
         )}
 
           {/* ─── Cron Jobs ─── */}
+          {activeTab === 'topics' && <BlogTopicQueuePanel />}
+
           {activeTab === 'cron' && (
             <CronPanel session={session} />
           )}

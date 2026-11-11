@@ -75,6 +75,15 @@ test('SSR bundle contains React Router instead of relying on unavailable deploye
   assert.doesNotMatch(serverBundle, /\bfrom\s*["']react-router(?:-dom)?["']/)
 })
 
+test('built document installs GTM once with denied consent before the loader', async () => {
+  const html = await readFile(new URL('../dist/index.html', import.meta.url), 'utf8')
+  assert.equal((html.match(/googletagmanager\.com\/gtm\.js/g) || []).length, 1)
+  assert.equal((html.match(/googletagmanager\.com\/ns\.html\?id=GTM-WGBGWTTN/g) || []).length, 1)
+  assert.ok(html.indexOf("window.gtag('consent', 'default'") < html.indexOf('googletagmanager.com/gtm.js'))
+  assert.match(html, /<body[^>]*>\s*<noscript>/)
+  assert.doesNotMatch(html, /googletagmanager\.com\/gtag\/js|G-DPG068QHD2/)
+})
+
 test('published article requests return SSR HTML with unique SEO tags and article content', async () => {
   const res = createResponse()
   await handler(
@@ -88,11 +97,17 @@ test('published article requests return SSR HTML with unique SEO tags and articl
   assert.match(res.body, /<title>A Test Article for Server Rendering<\/title>/)
   assert.match(res.body, /<link rel="canonical" href="https:\/\/ecomxtra\.in\/blog\/test-article"/)
   assert.match(res.body, /The article body is visible in the first HTML response/)
+  assert.match(res.body, /Need help with marketplace seller operations/)
+  assert.match(res.body, /Marketplace account-management services/)
   assert.match(res.body, /application\/ld\+json/)
   assert.match(res.body, /"@type":"BlogPosting"/)
   assert.equal((res.body.match(/rel="canonical"/g) || []).length, 1)
   assert.match(res.body, /window\.__ECOMXTRA_INITIAL_DATA__/)
   assert.match(res.body, /window\.__ECOMXTRA_SSR__=true/)
+  assert.equal((res.body.match(/googletagmanager\.com\/gtm\.js/g) || []).length, 1)
+  assert.equal((res.body.match(/googletagmanager\.com\/ns\.html\?id=GTM-WGBGWTTN/g) || []).length, 1)
+  assert.ok(res.body.indexOf("window.gtag('consent', 'default'") < res.body.indexOf('googletagmanager.com/gtm.js'))
+  assert.match(res.body, /<body[^>]*>\s*<noscript>/)
 })
 
 test('blog pages fetch seven posts first, then six per page', async () => {
@@ -129,6 +144,8 @@ test('marketplace service requests return SSR copy, canonical metadata, and Serv
   assert.match(res.body, /<title>Amazon Account Management Services \| EcomXtra<\/title>/)
   assert.match(res.body, /href="https:\/\/ecomxtra\.in\/services\/amazon-account-management"/)
   assert.match(res.body, /Launch and manage your Amazon seller operations/)
+  assert.match(res.body, /aria-labelledby="related-seller-guides"/)
+  assert.match(res.body, /href="\/blog\/mastering-amazon-india-seller-onboarding-a-complete-launch-guide"/)
   assert.match(res.body, /"@type":"Service"/)
   assert.match(res.body, /"areaServed":\{"@type":"Country","name":"India"\}/)
   assert.match(res.body, /Read more/)
@@ -147,6 +164,7 @@ test('marketplace onboarding requests return their dedicated SSR copy and canoni
   assert.match(res.body, /<title>Amazon Seller Onboarding Services \| EcomXtra<\/title>/)
   assert.match(res.body, /href="https:\/\/ecomxtra\.in\/services\/amazon-account-management\/onboarding"/)
   assert.match(res.body, /Get ready to start selling on Amazon/)
+  assert.match(res.body, /href="\/blog\/mastering-amazon-india-seller-support-a-guide-to-managing-claims-and-returns"/)
   assert.match(res.body, /"serviceType":"Ecommerce marketplace seller onboarding"/)
 })
 

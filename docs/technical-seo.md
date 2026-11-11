@@ -4,7 +4,7 @@
 
 Production Vercel rewrites route requests through `api/render-page.js`. The handler server-renders the existing React app into the initial HTML and hydrates that markup in the browser. Blog pages are loaded from the published-only Supabase rows on each request; an unknown or unpublished article receives HTTP 404, and an ID-based legacy URL redirects to its stored slug. The canonical hostname is `https://ecomxtra.in`; trailing slashes and duplicate route aliases redirect to the normalized route. Tracking/query parameters are omitted from canonical links.
 
-Run `npm run build` to produce both the public Vite build and the server renderer in `dist/server`. Vercel must run that build command and include `dist/**` in the page-render function deployment. The sitemap handler at `/api/sitemap` is exposed as `/sitemap.xml` and reads currently published article slugs and timestamps from Supabase. Static public pages use the `SITEMAP_LASTMOD` date in `api/sitemap.js`; published blog articles use their own `updated_at` timestamp, falling back to `published_at`. Its short cache allows newly published and deleted posts to appear without a manual URL list.
+Run `npm run build` to produce both the public Vite build and the server renderer in `dist/server`. Vercel must run that build command and include `dist/**` in the page-render function deployment. The sitemap handler at `/api/sitemap` is exposed as `/sitemap.xml` and reads currently published article slugs and timestamps from Supabase. Static public pages omit `lastmod` because the repository has no reliable per-page modification timestamp; published blog articles use their own `updated_at` timestamp, falling back to `published_at`. Its short cache allows newly published and deleted posts to appear without a manual URL list.
 
 ## Search metadata and structured data
 
@@ -21,7 +21,7 @@ Automated blog posts use curated, stable Unsplash image URLs directly, without a
 ## Deployment and checks
 
 1. Apply `supabase/migrations/20261022000000_replace_pixabay_images.sql` to the production Supabase project.
-2. Deploy the updated Vercel configuration and confirm its production domains include `ecomxtra.in`. Configure `www.ecomxtra.in` as a Vercel domain alias that redirects to the preferred hostname if it is currently enabled; hostname and HTTPS redirects are also affected by the Vercel domain configuration.
+2. Confirm production domains include `ecomxtra.in`. Configure `www.ecomxtra.in` as a Vercel domain alias that redirects to the preferred hostname if it is enabled; the source host-based redirect alone did not redirect the live HTTPS `www` host when checked on 2026-11-11.
 3. Check `/`, `/blog`, a published `/blog/{slug}`, `/sitemap.xml`, and `/robots.txt`. Confirm article requests return rendered HTML and 200, removed/draft slugs return 404, and sitemap requests return XML with 200.
 4. Run `npm run build`, `npm run lint`, and `node --test api/sitemap.test.js api/cron/daily-blog.test.js`.
 

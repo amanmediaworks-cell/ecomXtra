@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ExternalLink } from 'lucide-react'
-import { openWhatsAppMessage } from '../utils/contactWhatsApp'
+import { getTelephoneHref, openWhatsAppMessage } from '../utils/contactWhatsApp'
+import { trackConversionEvent } from '../utils/analytics'
 import ContactModalTrigger from './ContactModalTrigger'
 
 function Contact({ content, showCareers = false }) {
@@ -12,6 +13,7 @@ function Contact({ content, showCareers = false }) {
 
     const handleCareerSubmit = (e) => {
         e.preventDefault();
+        trackConversionEvent('contact_form_submit', 'career_form')
         openWhatsAppMessage([
             'Hi EcomXtra, I would like to apply for a position.',
             '',
@@ -20,7 +22,7 @@ function Contact({ content, showCareers = false }) {
             `Position: ${careerForm.role}`,
             `Resume: ${careerForm.resume}`,
             `Note: ${careerForm.message || 'Not provided'}`
-        ].join('\n'), content?.whatsappNumber || '918700259557');
+        ].join('\n'), content?.whatsappNumber || '918700259557', 'career_form');
         setCareerSubmitted(true);
         setTimeout(() => {
             setCareerSubmitted(false);
@@ -58,7 +60,16 @@ function Contact({ content, showCareers = false }) {
                     <div className={`mt-6 md:mt-8 space-y-2.5 text-xs tracking-widest uppercase font-black ${'font-outfit text-slate-500'
                         }`}>
                         <div>EMAIL: {content?.email || 'info@ecomxtra.in'}</div>
-                        <div>PHONE: {content?.phone || '+91 8700259557'}</div>
+                        <div>
+                            PHONE:{' '}
+                            <a
+                                href={getTelephoneHref(content?.phone)}
+                                onClick={() => trackConversionEvent('phone_click', 'contact_section')}
+                                className="hover:underline"
+                            >
+                                {content?.phone || '+91 8700259557'}
+                            </a>
+                        </div>
                         <div>
                             PARENT CO:{' '}
                             <a href={content?.parentCompanyUrl || 'https://quadranex-seven.vercel.app/'} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:underline">

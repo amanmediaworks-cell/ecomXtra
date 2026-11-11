@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
 import { ExternalLink } from 'lucide-react'
 import { defaultNavigationLinks, normalizeNavigationLinks } from '../data/navigationLinks'
+import { getTelephoneHref } from '../utils/contactWhatsApp'
+import { trackConversionEvent } from '../utils/analytics'
 
 function Footer({ content }) {
     const links = normalizeNavigationLinks(content?.navigationLinks || defaultNavigationLinks)
@@ -61,7 +63,16 @@ function Footer({ content }) {
                             </a>
                         </li>
                         <li>Email: {content?.email || 'info@ecomxtra.in'}</li>
-                        <li>Phone: {content?.phone || '+91 8700259557'}</li>
+                        <li>
+                            Phone:{' '}
+                            <a
+                                href={getTelephoneHref(content?.phone)}
+                                onClick={() => trackConversionEvent('phone_click', 'site_footer')}
+                                className="hover:text-white"
+                            >
+                                {content?.phone || '+91 8700259557'}
+                            </a>
+                        </li>
                     </ul>
                 </div>
 

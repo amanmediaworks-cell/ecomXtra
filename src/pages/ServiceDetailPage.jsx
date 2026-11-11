@@ -15,6 +15,7 @@ import {
 import SafeImage from '../components/SafeImage'
 import ContactModalTrigger from '../components/ContactModalTrigger'
 import { getServicePageDetails, marketplaceServiceDefaults } from '../data/marketplaceServiceContent'
+import { getRelatedMarketplaceGuides } from '../data/relatedMarketplaceGuides'
 
 const serviceIcons = [
   ClipboardCheck,
@@ -51,6 +52,7 @@ function ServiceDetailPage({ service, serviceType = 'management' }) {
   const isOnboarding = serviceType === 'onboarding'
   const details = getServicePageDetails(service, serviceType)
   const relatedServices = marketplaceServiceDefaults.filter(item => item.slug !== service.slug)
+  const relatedGuides = getRelatedMarketplaceGuides(service.slug, serviceType)
   const serviceFocusAreas = isOnboarding
     ? ['Seller information', 'Catalogue readiness', 'Setup coordination', 'Launch planning']
     : ['Listings', 'Account health', 'Claims', 'Returns & refunds']
@@ -240,6 +242,27 @@ function ServiceDetailPage({ service, serviceType = 'management' }) {
           </div>
         </div>
       </section>
+
+      {relatedGuides.length > 0 && (
+        <section className="service-reveal mx-auto max-w-6xl px-5 py-12 sm:px-8" aria-labelledby="related-seller-guides">
+          <h2 id="related-seller-guides" className="font-clash text-2xl font-bold text-[#243141] sm:text-3xl">
+            Helpful {service.title.replace(' Account Management Services', '')} seller guides
+          </h2>
+          <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+            {relatedGuides.map(guide => (
+              <li key={guide.path}>
+                <Link
+                  to={guide.path}
+                  className="group flex h-full items-center justify-between gap-4 rounded-xl border border-[#243141]/15 bg-white p-4 font-semibold text-[#243141] transition hover:border-[#cb6e27] hover:text-[#a7521e]"
+                >
+                  {guide.label}
+                  <ArrowRight className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="service-reveal bg-[linear-gradient(115deg,#fffaf0_0%,#ffd18a_100%)] px-5 py-14 sm:px-8">
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">

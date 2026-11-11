@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Calendar, Clock, Share2, Check, MessageSquare } from 'lucide-react'
 import BlogMarkdown from '../components/BlogMarkdown'
 import BlogImage from '../components/BlogImage'
+import { getBlogServiceLinks } from '../data/relatedMarketplaceGuides'
 
 function BlogPostPage({
     blogs = [],
@@ -36,6 +37,8 @@ function BlogPostPage({
 
     // Related blogs (excluding current)
     const relatedBlogs = relatedArticles.filter(b => b.id !== blog.id).slice(0, 3)
+    const { marketplaces, serviceLinks, serviceType } = getBlogServiceLinks(blog)
+    const marketplaceLabel = marketplaces.join(' or ')
 
     const handleCopyLink = () => {
         navigator.clipboard.writeText(window.location.href)
@@ -218,19 +221,28 @@ function BlogPostPage({
                     <div className={`p-8 sm:p-10 text-center ${'bg-gradient-to-r from-violet-600 via-pink-500 to-amber-500 text-white rounded-3xl shadow-xl'
                         }`}>
                         <h3 className="text-2xl font-bold font-outfit text-white">
-                            Need support with your marketplace account?
+                            {marketplaceLabel
+                                ? `Need help with ${marketplaceLabel} seller ${serviceType === 'onboarding' ? 'onboarding' : 'operations'}?`
+                                : 'Need help with marketplace seller operations?'}
                         </h3>
                         <p className="mt-2 text-xs sm:text-sm max-w-lg mx-auto opacity-90">
-                            Discuss listing updates, catalogue support, claims, returns, refunds, and routine marketplace operations with our team.
+                            {serviceType === 'onboarding'
+                                ? 'Discuss launch preparation, catalogue readiness, and the setup tasks that fit your seller account.'
+                                : 'Discuss listing, catalogue, claims, returns, or day-to-day account support that fits your seller account.'}
                         </p>
                         <div className="mt-6 flex justify-center">
-                            <Link
-                                to="/services"
-                                className={`inline-flex items-center gap-2 px-8 py-3.5 text-xs font-black tracking-widest uppercase transition-all ${'bg-white text-slate-900 rounded-full hover:bg-slate-100 shadow-md transform hover:scale-105'
-                                    }`}
-                            >
-                                Explore Marketplace Services <ArrowRight className="w-4 h-4" />
-                            </Link>
+                            <div className="flex flex-wrap justify-center gap-3">
+                                {serviceLinks.map(link => (
+                                    <Link
+                                        key={link.path}
+                                        to={link.path}
+                                        className={`inline-flex items-center gap-2 px-6 py-3.5 text-xs font-black tracking-widest uppercase transition-all ${'bg-white text-slate-900 rounded-full hover:bg-slate-100 shadow-md transform hover:scale-105'
+                                            }`}
+                                    >
+                                        {link.label} <ArrowRight className="w-4 h-4" />
+                                    </Link>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>

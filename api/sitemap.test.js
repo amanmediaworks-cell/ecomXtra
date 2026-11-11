@@ -164,7 +164,7 @@ test('generateSitemapXml generates complete sitemap with public static routes an
   }
 })
 
-test('static pages use the current lastmod and blog articles keep their own dates', async () => {
+test('static pages omit unreliable lastmod dates and blog articles keep their own dates', async () => {
   const pages = [
     { content_key: 'seo', updated_at: '2026-10-20T00:00:00Z' },
     { content_key: 'about', updated_at: '2026-10-22T00:00:00Z' },
@@ -184,18 +184,12 @@ test('static pages use the current lastmod and blog articles keep their own date
     supabaseClient: createSitemapClient({ pages, posts }),
   })
 
-  const entries = new Map(
-    [...xml.matchAll(/<url><loc>(.*?)<\/loc><lastmod>(.*?)<\/lastmod><\/url>/g)]
-      .map(([, loc, lastmod]) => [loc, lastmod]),
-  )
-  assert.ok(entries.size > 0)
-  for (const [loc, lastmod] of entries) {
-    if (loc.includes('/blog/') && loc !== 'https://ecomxtra.in/blog') {
-      assert.equal(lastmod, '2026-10-20', `${loc} should use its persisted article date`)
-    } else {
-      assert.equal(lastmod, '2026-10-26', `${loc} should use today's static-page update date`)
-    }
-  }
+  assert.ok(xml.includes(
+    '<url><loc>https://ecomxtra.in/blog/article-updated-on-the-twentieth</loc><lastmod>2026-10-20</lastmod></url>',
+  ))
+  assert.ok(xml.includes('<url><loc>https://ecomxtra.in/</loc></url>'))
+  assert.ok(!xml.includes('<url><loc>https://ecomxtra.in/</loc><lastmod>'))
+  assert.ok(!xml.includes('<lastmod>2026-10-26</lastmod>'))
 })
 
 test('generateSitemapXml paginates published articles beyond Supabase default page size', async () => {
