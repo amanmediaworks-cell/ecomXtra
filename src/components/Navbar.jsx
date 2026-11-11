@@ -244,12 +244,15 @@ function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
                   </button>
                 </div>
               ) : link.path === '/contact' ? (
-                <ContactModalTrigger
+                <NavLink
                   key={link.label}
-                  className="transition-colors text-slate-700 hover:text-violet-600"
+                  to={link.path}
+                  className={({ isActive }) =>
+                    `transition-colors ${isActive ? 'text-violet-600 font-extrabold' : 'text-slate-700 hover:text-violet-600'}`
+                  }
                 >
                   {link.label}
-                </ContactModalTrigger>
+                </NavLink>
               ) : (
                 <NavLink
                   key={link.label}
@@ -602,13 +605,18 @@ function Navbar({ content, servicesMenuOpen, onServicesMenuOpenChange }) {
                 </div>
               </div>
             ) : link.path === '/contact' ? (
-              <ContactModalTrigger
+              <NavLink
                 key={link.label}
+                to={link.path}
                 onClick={() => setMobileOpen(false)}
-                className="py-1 text-left text-sm font-semibold text-slate-800 transition-colors hover:text-violet-600"
+                className={({ isActive }) =>
+                  `text-sm font-semibold py-1 transition-colors ${
+                    isActive ? 'text-violet-600 font-extrabold' : 'text-slate-800 hover:text-violet-600'
+                  }`
+                }
               >
                 {link.label}
-              </ContactModalTrigger>
+              </NavLink>
             ) : (
               <NavLink
                 key={link.label}
