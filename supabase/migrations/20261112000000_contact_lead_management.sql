@@ -6,7 +6,7 @@ create table if not exists public.contact_admin_users (
 );
 
 insert into public.contact_admin_users (user_id)
-values ('REPLACE_WITH_EXISTING_ADMIN_AUTH_UID'::uuid)
+values ('dd954710-1bdd-4101-95ff-d3b1a9eab775'::uuid)
 on conflict (user_id) do nothing;
 
 create or replace function public.is_contact_admin()
@@ -444,8 +444,12 @@ begin
 end;
 $$;
 
-create trigger contact_lead_activity_trigger
-  before insert or update on public.contact_leads
+create trigger contact_lead_activity_after_insert_trigger
+  after insert on public.contact_leads
+  for each row execute function public.record_contact_lead_activity();
+
+create trigger contact_lead_activity_before_update_trigger
+  before update on public.contact_leads
   for each row execute function public.record_contact_lead_activity();
 
 create or replace function public.record_contact_notification_read()

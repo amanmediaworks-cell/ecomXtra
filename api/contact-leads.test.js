@@ -146,6 +146,7 @@ test('rate-limited and failed database submissions never return success', async 
 
 test('contact migration keeps lead tables private and creation transactional', async () => {
   const migration = await readFile(new URL('../supabase/migrations/20261112000000_contact_lead_management.sql', import.meta.url), 'utf8')
+  const triggerFix = await readFile(new URL('../supabase/migrations/20261112000001_fix_contact_lead_activity_trigger.sql', import.meta.url), 'utf8')
   assert.match(migration, /REPLACE_WITH_EXISTING_ADMIN_AUTH_UID/)
   assert.match(migration, /create table if not exists public\.contact_leads/)
   assert.match(migration, /create table if not exists public\.admin_notifications/)
@@ -155,6 +156,12 @@ test('contact migration keeps lead tables private and creation transactional', a
   assert.match(migration, /limit least\(greatest\(coalesce\(p_limit, 10\), 1\), 10\)/)
   assert.match(migration, /grant update \(status, priority, follow_up_at, assigned_admin_id\) on public\.contact_leads to authenticated/)
   assert.match(migration, /create or replace function public\.mark_all_contact_notifications_read/)
+  assert.match(migration, /create trigger contact_lead_activity_after_insert_trigger\s+after insert on public\.contact_leads/i)
+  assert.match(migration, /create trigger contact_lead_activity_before_update_trigger\s+before update on public\.contact_leads/i)
+  assert.doesNotMatch(migration, /create trigger contact_lead_activity_trigger\s+before insert or update on public\.contact_leads/i)
+  assert.match(triggerFix, /drop trigger if exists contact_lead_activity_trigger on public\.contact_leads/i)
+  assert.match(triggerFix, /create trigger contact_lead_activity_after_insert_trigger\s+after insert on public\.contact_leads/i)
+  assert.match(triggerFix, /create trigger contact_lead_activity_before_update_trigger\s+before update on public\.contact_leads/i)
   assert.match(migration, /Admins can read contact leads/)
   assert.doesNotMatch(migration, /create policy[\s\S]{0,100}to anon/)
 })
