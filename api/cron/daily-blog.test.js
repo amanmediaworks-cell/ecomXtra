@@ -124,7 +124,7 @@ test('ten-minute lease exceeds configured function maximum and provider timeouts
   assert.ok(leaseSeconds > maxDurationSeconds)
   assert.match(endpoint, /EXPECTED_GEMINI_MODEL = 'gemini-3\.1-flash-lite'/)
   assert.match(endpoint, /models\/\$\{EXPECTED_GEMINI_MODEL\}:generateContent/)
-  assert.match(endpoint, /GEMINI_REQUEST_TIMEOUT_MS = 28000/)
+  assert.match(endpoint, /GEMINI_REQUEST_TIMEOUT_MS = 60000/)
   assert.match(endpoint, /MAX_SUPABASE_REQUEST_MS = 4000/)
 })
 
@@ -234,6 +234,45 @@ test('generation retry reinforces validation requirements after invalid output',
     assert.match(prompts[0], /Any Markdown links in the article must use only the verified internal URLs/)
     assert.match(prompts[1], /previous response failed these validation checks/i)
     assert.match(prompts[1], /Frequently Asked Questions or FAQs section/)
+  } finally {
+    globalThis.fetch = originalFetch
+    if (oldApiKey === undefined) delete process.env.GEMINI_API_KEY
+    else process.env.GEMINI_API_KEY = oldApiKey
+  }
+})
+
+test('generation retries a transient Gemini timeout before succeeding', async () => {
+  const originalFetch = globalThis.fetch
+  const oldApiKey = process.env.GEMINI_API_KEY
+  const prompts = []
+  let requestCount = 0
+  process.env.GEMINI_API_KEY = 'unit-test-key'
+  globalThis.fetch = async (_url, options) => {
+    if (String(_url).startsWith('https://images.unsplash.com/')) {
+      return new Response(null, { status: 200, headers: { 'Content-Type': 'image/jpeg' } })
+    }
+
+    prompts.push(JSON.parse(options.body).contents[0].parts[0].text)
+    if (requestCount++ === 0) {
+      const timeout = new Error('The operation was aborted due to timeout')
+      timeout.name = 'TimeoutError'
+      throw timeout
+    }
+
+    return new Response(JSON.stringify({
+      candidates: [{
+        content: { parts: [{ text: JSON.stringify(validArticle()) }] },
+        finishReason: 'STOP',
+      }],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  }
+
+  try {
+    const article = await generateArticle(approvedTopic, [], [], approvedRelatedPages)
+    assert.equal(isValidArticle(article, 'Amazon', approvedTopic, approvedRelatedPages), true)
+    assert.equal(requestCount, 2)
+    assert.equal(prompts.length, 2)
+    assert.match(prompts[1], /previous generation attempt timed out/i)
   } finally {
     globalThis.fetch = originalFetch
     if (oldApiKey === undefined) delete process.env.GEMINI_API_KEY

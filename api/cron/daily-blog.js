@@ -23,7 +23,7 @@ const ARTICLE_MIN_WORDS = 700
 const ARTICLE_MAX_WORDS = 1800
 const RUN_LEASE_MS = 10 * 60 * 1000
 const MAX_SUPABASE_REQUEST_MS = 4000
-const GEMINI_REQUEST_TIMEOUT_MS = 28000
+const GEMINI_REQUEST_TIMEOUT_MS = 60000
 const IMAGE_REQUEST_TIMEOUT_MS = 10000
 
 class JobError extends Error {
@@ -578,6 +578,7 @@ async function generateArticle(topic, titles, recentTopics, relatedPages = []) {
   }
 
   let previousIssues = []
+  let previousRequestFailure = null
   let lastGeminiResponse = null
 
   for (let attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt += 1) {
@@ -606,7 +607,9 @@ async function generateArticle(topic, titles, recentTopics, relatedPages = []) {
               parts: [{
                 text: attempt === 1
                   ? prompt
-                  : `${prompt}\n\nThe previous response failed these validation checks: ${previousIssues.join('; ')}. Regenerate it from scratch and correct each issue. Return only valid JSON matching the schema.`,
+                  : `${prompt}\n\n${previousIssues.length
+                    ? `The previous response failed these validation checks: ${previousIssues.join('; ')}. Regenerate it from scratch and correct each issue.`
+                    : previousRequestFailure}\nReturn only valid JSON matching the schema.`,
               }],
             }],
             generationConfig: {
@@ -624,21 +627,44 @@ async function generateArticle(topic, titles, recentTopics, relatedPages = []) {
         error?.name === 'TimeoutError' ||
         error?.name === 'AbortError'
 
-      log('error', 'gemini_request_failed', {
+      const canRetry = attempt < MAX_GENERATION_ATTEMPTS
+      previousIssues = []
+      previousRequestFailure = timedOut
+        ? 'The previous generation attempt timed out before returning an article. Retry the original task from scratch.'
+        : 'The previous generation attempt failed before returning an article. Retry the original task from scratch.'
+
+      log(canRetry ? 'warn' : 'error', 'gemini_request_failed', {
         attempt,
         maxAttempts: MAX_GENERATION_ATTEMPTS,
         durationMs: Date.now() - startedAt,
         errorName: error?.name || 'UnknownError',
         errorMessage: error?.message || 'No error message available',
         timedOut,
+        retryable: true,
+        willRetry: canRetry,
       })
 
-      throw new JobError(
-        timedOut ? 'gemini_request_timeout' : 'gemini_request_failed',
-        502,
-        getErrorDetails(error),
-      )
+      if (!canRetry) {
+        throw new JobError(
+          timedOut ? 'gemini_request_timeout' : 'gemini_request_failed',
+          502,
+          getErrorDetails(error),
+        )
+      }
+
+      const delayMs = Math.min(1000 * 2 ** (attempt - 1), 4000)
+
+      log('warn', 'gemini_retry_scheduled', {
+        attempt,
+        nextAttempt: attempt + 1,
+        delayMs,
+        reason: timedOut ? 'request timeout' : 'network failure',
+      })
+
+      await new Promise(resolve => setTimeout(resolve, delayMs))
+      continue
     }
+    previousRequestFailure = null
 
     if (!response.ok) {
       const responseText = await response.text()

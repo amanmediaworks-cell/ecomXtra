@@ -907,8 +907,8 @@ function AdminConsoleInline({ services, showcases, testimonials, blogs, siteCont
   const [editingBlog, setEditingBlog]     = useState({})
 
   const tabs = [
-    { id: 'db',            label: 'CRUD Manager',   icon: <List      className="w-4 h-4" /> },
     { id: 'leads',         label: 'Lead Manager',   icon: <Users     className="w-4 h-4" /> },
+    { id: 'db',            label: 'CRUD Manager',   icon: <List      className="w-4 h-4" /> },
     { id: 'blogs',         label: 'Manage Blogs',   icon: <BookOpen  className="w-4 h-4" /> },
     { id: 'topics',        label: 'SEO Topics',     icon: <List      className="w-4 h-4" /> },
     { id: 'site',          label: 'Website Content', icon: <LayoutTemplate className="w-4 h-4" /> },
